@@ -31,27 +31,27 @@ export function PathTileSvg({
     return (
       <svg viewBox="0 0 60 80" className="h-full w-full select-none">
         <rect x="2" y="2" width="56" height="76" rx="8" fill="#5D4A3E" stroke="#3B2B26" strokeWidth="2.5" />
-        <rect x="7" y="7" width="46" height="66" rx="5" fill="#756050" stroke="#9D846D" strokeWidth="1.5" strokeDasharray="3 2" />
-        <circle cx="30" cy="36" r="14" fill="#3B2B26" opacity="0.35" />
-        <text x="30" y="42" textAnchor="middle" fontSize="20" fill="#F5D076">
+        <rect x="6" y="6" width="48" height="68" rx="5" fill="#756050" stroke="#9D846D" strokeWidth="1.5" strokeDasharray="3 2" />
+        <circle cx="30" cy="40" r="15" fill="#3B2B26" opacity="0.38" />
+        <text x="30" y="48" textAnchor="middle" fontSize="24" fontWeight="800" fill="#F5D076">
           ?
         </text>
-        <text x="30" y="64" textAnchor="middle" fontSize="7.5" fontWeight="700" fill="#EFE2CE">
+        <text x="30" y="68" textAnchor="middle" fontSize="8" fontWeight="800" fill="#EFE2CE">
           VAULT
         </text>
         {privateScoutHint && (
           <g>
             <rect
-              x="6"
-              y="6"
-              width="48"
-              height="16"
-              rx="4"
-              fill={privateScoutHint === "TRUE_RELIC" ? "#F4C145" : "#D1C2B0"}
+              x="4"
+              y="4"
+              width="52"
+              height="20"
+              rx="5"
+              fill={privateScoutHint === "TRUE_RELIC" ? "#F4C145" : "#E6D8C7"}
               stroke="#3B2B26"
-              strokeWidth="1.2"
+              strokeWidth="1.6"
             />
-            <text x="30" y="17" textAnchor="middle" fontSize="7.5" fontWeight="800" fill="#3B2B26">
+            <text x="30" y="17.5" textAnchor="middle" fontSize="9.5" fontWeight="900" fill="#3B2B26">
               {privateScoutHint === "TRUE_RELIC" ? "★ RELIC" : "✕ DECOY"}
             </text>
           </g>

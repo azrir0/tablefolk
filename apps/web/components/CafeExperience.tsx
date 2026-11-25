@@ -555,7 +555,7 @@ export function CafeExperience() {
   }
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-[#F3E7D3] select-none">
+    <div className="relative h-[100dvh] w-screen overflow-hidden bg-[#F3E7D3] select-none">
       {/* Full-Viewport Phaser 3 Walkable Café */}
       <div ref={mountRef} className="h-full w-full" />
 

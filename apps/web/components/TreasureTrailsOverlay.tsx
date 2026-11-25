@@ -9,11 +9,15 @@ import {
   EyeOff,
   Flame,
   LogOut,
+  MessageCircle,
   RotateCw,
   Send,
   Sparkles,
   Trash2,
   Wrench,
+  X,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import {
   BOARD_COLS,
@@ -58,7 +62,15 @@ interface FlyingCardEffect {
   fromY: number;
   toX: number;
   toY: number;
-  kind: "PATH" | "HAZARD" | "REPAIR" | "FIELD_PATCH" | "SPYGLASS" | "VAULT" | "BOULDER_CLEAR" | "DISCARD";
+  kind:
+    | "PATH"
+    | "HAZARD"
+    | "REPAIR"
+    | "FIELD_PATCH"
+    | "SPYGLASS"
+    | "VAULT"
+    | "BOULDER_CLEAR"
+    | "DISCARD";
   label: string;
   icon?: string;
   edges?: PathEdges;
@@ -127,7 +139,12 @@ export function TreasureTrailsOverlay({
   const [nowMs, setNowMs] = useState(Date.now());
   const [roleVisible, setRoleVisible] = useState(true);
 
-  // Pre-round dramatic ceremony state: countdown (3-2-1) -> full-screen role reveal -> playing
+  // Mobile-friendly view toggles
+  const [boardZoomed, setBoardZoomed] = useState(false);
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
+
+  // Pre-round dramatic ceremony state
   const [introStage, setIntroStage] = useState<"none" | "countdown" | "role">("none");
   const [countdownNum, setCountdownNum] = useState<3 | 2 | 1>(3);
   const lastIntroRoundRef = useRef<number>(0);
@@ -164,12 +181,13 @@ export function TreasureTrailsOverlay({
   const latestPubRef = useRef<TreasureTrailsPublicState | null>(null);
   const latestPrivRef = useRef<TreasureTrailsPrivateState | null>(null);
   const introEndsAtRef = useRef(0);
+  const mobileChatOpenRef = useRef(false);
 
   latestPubRef.current = pub;
   latestPrivRef.current = priv;
   introEndsAtRef.current = introEndsAt;
+  mobileChatOpenRef.current = mobileChatOpen;
 
-  // Fast timer tick for smooth countdown display
   useEffect(() => {
     const id = setInterval(() => setNowMs(Date.now()), 250);
     return () => clearInterval(id);
@@ -186,7 +204,6 @@ export function TreasureTrailsOverlay({
   const currentPhase = pub?.phase;
   const myRole = priv?.role;
 
-  // Trigger dramatic 3 -> 2 -> 1 -> Full-Screen Role Reveal ceremony whenever a new round starts
   useEffect(() => {
     if (!currentRound || currentPhase !== "IN_PROGRESS" || !myRole) return;
     if (lastIntroRoundRef.current === currentRound) return;
@@ -232,7 +249,7 @@ export function TreasureTrailsOverlay({
   const getCenterOf = useCallback((el: HTMLElement | null | undefined) => {
     if (!el) {
       return {
-        x: typeof window !== "undefined" ? window.innerWidth / 2 : 480,
+        x: typeof window !== "undefined" ? window.innerWidth / 2 : 360,
         y: typeof window !== "undefined" ? window.innerHeight / 2 : 360,
       };
     }
@@ -250,13 +267,16 @@ export function TreasureTrailsOverlay({
     [myUserId, getCenterOf]
   );
 
-  const spawnFlying = useCallback((effect: Omit<FlyingCardEffect, "id">, durationMs = 740) => {
-    const id = `fly_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    setFlyingEffects((prev) => [...prev, { ...effect, id }]);
-    setTimeout(() => {
-      setFlyingEffects((prev) => prev.filter((e) => e.id !== id));
-    }, durationMs);
-  }, []);
+  const spawnFlying = useCallback(
+    (effect: Omit<FlyingCardEffect, "id">, durationMs = 740) => {
+      const id = `fly_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      setFlyingEffects((prev) => [...prev, { ...effect, id }]);
+      setTimeout(() => {
+        setFlyingEffects((prev) => prev.filter((e) => e.id !== id));
+      }, durationMs);
+    },
+    []
+  );
 
   const spawnImpact = useCallback(
     (x: number, y: number, colorClass: string, icon: string, delayMs = 460) => {
@@ -279,8 +299,7 @@ export function TreasureTrailsOverlay({
       for (const ev of events) {
         if (ev.type === "TILE_PLACED") {
           const from = getActorOrigin(ev.actorId);
-          const cellEl = cellRefs.current.get(coordKey(ev.x, ev.y));
-          const to = getCenterOf(cellEl);
+          const to = getCenterOf(cellRefs.current.get(coordKey(ev.x, ev.y)));
           const placed = state.board[coordKey(ev.x, ev.y)];
 
           soundEngine.playTilePlace();
@@ -358,7 +377,6 @@ export function TreasureTrailsOverlay({
           const vaultPt = getCenterOf(cellRefs.current.get(vaultKey));
 
           soundEngine.playSpyglass();
-          // Step 1: Spyglass flies from actor -> chosen Sealed Vault
           spawnFlying(
             {
               mode: "fly",
@@ -373,7 +391,6 @@ export function TreasureTrailsOverlay({
             680
           );
 
-          // Step 2: Sealed Vault lifts off the board -> flies to the scouting player -> returns to board!
           setTimeout(() => {
             spawnFlying(
               {
@@ -444,7 +461,6 @@ export function TreasureTrailsOverlay({
     [getActorOrigin, getCenterOf, myUserId, spawnFlying, spawnImpact]
   );
 
-  // Auto-fade floating action banner
   useEffect(() => {
     if (!actionBanner) return;
     const t = setTimeout(() => setActionBanner(null), 2600);
@@ -483,7 +499,6 @@ export function TreasureTrailsOverlay({
 
             const evs = payload.events ?? [];
             if (evs.length > 0) {
-              // Run after React paints updated board cells so coordinates resolve accurately
               requestAnimationFrame(() => {
                 animateEvents(evs, payload.state);
               });
@@ -527,6 +542,9 @@ export function TreasureTrailsOverlay({
 
         room.onMessage("game.chatReceived", (msg: GameChatEntry) => {
           setChatLog((prev) => [...prev.slice(-39), msg]);
+          if (!mobileChatOpenRef.current && msg.senderUserId !== myUserId) {
+            setUnreadChatCount((c) => c + 1);
+          }
         });
       })
       .catch((err) => {
@@ -652,9 +670,31 @@ export function TreasureTrailsOverlay({
     ? pub?.config.turnSeconds ?? 45
     : Math.max(0, Math.ceil((turnEndsAt - nowMs) / 1000));
 
+  const statusHintText = isIntroBlocking
+    ? "Get ready for the expedition!"
+    : !isMyTurn
+      ? `Waiting for ${nameOf(pub?.activePlayerId ?? "")}...`
+      : fieldPatchMode
+        ? "Tap any 2 cards in your hand to patch broken gear."
+        : !selectedCard
+          ? myBrokenGears.length > 0
+            ? "⚠️ Gear broken! Repair, Field-Patch (2 cards), or Discard."
+            : "Tap a card below to play or discard."
+          : selectedCard.kind === "PATH"
+            ? myBrokenGears.length > 0
+              ? "Repair broken gear before placing paths."
+              : "Tap any glowing green cell on the map!"
+            : selectedCard.kind === "HAZARD"
+              ? `Tap an intact ${selectedCard.gear} icon above to break it!`
+              : selectedCard.kind === "REPAIR"
+                ? "Tap a broken gear icon above to repair!"
+                : selectedCard.kind === "SPYGLASS"
+                  ? "Tap any glowing Sealed Vault on the right edge!"
+                  : "Tap any placed path tile to clear it!";
+
   if (!pub) {
     return (
-      <div className="fixed inset-0 z-40 flex items-center justify-center bg-espresso/75 backdrop-blur-sm">
+      <div className="fixed inset-0 z-40 flex h-[100dvh] items-center justify-center bg-espresso/75 backdrop-blur-sm">
         <div className="rounded-3xl bg-oat-50 px-8 py-6 text-center shadow-cozy">
           <div className="font-display text-xl font-bold text-espresso">
             Dealing Treasure Trails...
@@ -667,88 +707,179 @@ export function TreasureTrailsOverlay({
     );
   }
 
-  return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-[#2D241E]/95 text-espresso backdrop-blur-md">
-      {/* Top Game Header */}
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-oat-300/20 bg-oat-50 px-4 py-2.5 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 font-display text-lg font-bold text-espresso">
-            <Compass className="h-5 w-5 text-sage-700" />
-            Treasure Trails
+  const renderChatAndLogBody = () => (
+    <>
+      <div className="max-h-32 space-y-1 overflow-y-auto border-b border-oat-200 bg-oat-100/80 p-2.5 text-[11px] font-semibold text-espresso-soft">
+        {pub.recentEvents.slice(-6).map((ev, i) => (
+          <div key={i} className="rounded-lg bg-white/85 px-2.5 py-1">
+            {describeEvent(ev, nameOf)}
           </div>
-          <span className="rounded-full bg-oat-200 px-2.5 py-0.5 text-xs font-bold text-espresso-soft">
-            Round {pub.currentRound}/{pub.config.totalRounds}
-          </span>
-          <span
-            ref={deckRef}
-            className="rounded-full bg-amberwarm-100 px-2.5 py-0.5 text-xs font-bold text-amberwarm-600"
-          >
-            Deck: {pub.deckCount} · Discard: {pub.discardCount}
-          </span>
-          {pub.phase === "IN_PROGRESS" && (
-            <span
-              className={`rounded-full px-3 py-0.5 text-xs font-bold ${
-                inServerIntro
-                  ? "bg-amberwarm-400 text-espresso"
-                  : isMyTurn
-                    ? "animate-pulse bg-sage-500 text-white"
-                    : "bg-oat-200 text-espresso"
-              }`}
-            >
-              {inServerIntro
-                ? "Revealing Roles..."
-                : isMyTurn
-                  ? `Your Turn • ${secondsLeft}s`
-                  : `${nameOf(pub.activePlayerId)}'s Turn • ${secondsLeft}s`}
-            </span>
-          )}
-        </div>
+        ))}
+      </div>
 
-        <div className="flex items-center gap-2">
-          {priv && (
+      <div className="flex-1 space-y-1.5 overflow-y-auto p-3 text-xs">
+        {chatLog.length === 0 && (
+          <p className="text-center text-[11px] text-espresso-muted">
+            Discuss routes — or bluff the table!
+          </p>
+        )}
+        {chatLog.map((m) => (
+          <div key={m.id} className="rounded-xl bg-oat-100 px-2.5 py-1.5">
+            <span className="font-bold text-sage-700">{m.senderName}: </span>
+            <span className="text-espresso">{m.message}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-1 border-t border-oat-200 bg-oat-100/60 p-2">
+        {QUICK_BLUFF_PILLS.slice(0, 6).map((pill) => (
+          <button
+            key={pill}
+            type="button"
+            onClick={() => roomRef.current?.send("game.quickBluff", { text: pill })}
+            className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-espresso shadow-sm hover:bg-amberwarm-100"
+          >
+            {pill}
+          </button>
+        ))}
+      </div>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!chatInput.trim()) return;
+          roomRef.current?.send("game.chat", { message: chatInput });
+          setChatInput("");
+        }}
+        className="flex gap-1.5 border-t border-oat-200 p-2"
+      >
+        <input
+          type="text"
+          value={chatInput}
+          onChange={(e) => setChatInput(e.target.value)}
+          placeholder="Accuse or coordinate..."
+          maxLength={200}
+          className="flex-1 rounded-xl border border-oat-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-sage-500"
+        />
+        <button
+          type="submit"
+          className="rounded-xl bg-sage-500 p-2 text-white hover:bg-sage-700"
+        >
+          <Send className="h-3.5 w-3.5" />
+        </button>
+      </form>
+    </>
+  );
+
+  return (
+    <div className="fixed inset-0 z-40 flex h-[100dvh] flex-col overflow-hidden bg-[#2D241E] text-espresso">
+      {/* Compact Responsive Header (Single/Tight Row on Mobile, Rich on Desktop) */}
+      <header className="shrink-0 border-b border-oat-300/20 bg-oat-50 px-2.5 py-1.5 shadow-sm sm:px-4 sm:py-2.5">
+        <div className="flex items-center justify-between gap-1.5">
+          {/* Left: Title (Desktop) + Turn Status + Deck */}
+          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
+            <div className="hidden items-center gap-1.5 font-display text-lg font-bold text-espresso sm:flex">
+              <Compass className="h-5 w-5 text-sage-700" />
+              Treasure Trails
+            </div>
+            <span className="shrink-0 rounded-full bg-oat-200 px-2 py-0.5 text-[10px] font-bold text-espresso-soft sm:text-xs">
+              R{pub.currentRound}/{pub.config.totalRounds}
+            </span>
+            <span
+              ref={deckRef}
+              className="shrink-0 rounded-full bg-amberwarm-100 px-2 py-0.5 text-[10px] font-bold text-amberwarm-600 sm:px-2.5 sm:text-xs"
+            >
+              🃏{pub.deckCount}
+              <span className="hidden sm:inline"> · Disc {pub.discardCount}</span>
+            </span>
+            {pub.phase === "IN_PROGRESS" && (
+              <span
+                className={`truncate rounded-full px-2.5 py-0.5 text-[11px] font-extrabold sm:px-3 sm:text-xs ${
+                  inServerIntro
+                    ? "bg-amberwarm-400 text-espresso"
+                    : isMyTurn
+                      ? "animate-pulse bg-sage-500 text-white"
+                      : "bg-oat-200 text-espresso"
+                }`}
+              >
+                {inServerIntro
+                  ? "Starting..."
+                  : isMyTurn
+                    ? `Your Turn · ${secondsLeft}s`
+                    : `${nameOf(pub.activePlayerId)} · ${secondsLeft}s`}
+              </span>
+            )}
+          </div>
+
+          {/* Right: Secret Role Pill + Chat (Mobile) + Rules + Exit */}
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            {priv && (
+              <button
+                type="button"
+                onClick={() => setRoleVisible((v) => !v)}
+                className={`inline-flex items-center gap-1 rounded-xl px-2 py-1 text-[10px] font-extrabold shadow-sm transition sm:px-3 sm:py-1.5 sm:text-xs ${
+                  !roleVisible
+                    ? "bg-oat-200 text-espresso"
+                    : priv.role === "TRICKSTER"
+                      ? "bg-terracotta-500 text-white"
+                      : "bg-sage-500 text-white"
+                }`}
+              >
+                {roleVisible ? <Eye className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> : <EyeOff className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
+                {roleVisible
+                  ? priv.role === "TRICKSTER"
+                    ? "TRICKSTER"
+                    : "TRAILBLAZER"
+                  : "Hidden"}
+              </button>
+            )}
+
+            {/* Mobile Chat / Bluff Drawer Button */}
             <button
               type="button"
-              onClick={() => setRoleVisible((v) => !v)}
-              className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold shadow-sm transition ${
-                !roleVisible
-                  ? "bg-oat-200 text-espresso"
-                  : priv.role === "TRICKSTER"
-                    ? "bg-terracotta-500 text-white"
-                    : "bg-sage-500 text-white"
-              }`}
+              onClick={() => {
+                setMobileChatOpen(true);
+                setUnreadChatCount(0);
+              }}
+              aria-label="Table Chat & Log"
+              className="relative inline-flex items-center justify-center rounded-xl bg-oat-200 p-1.5 text-espresso hover:bg-oat-300 lg:hidden"
             >
-              {roleVisible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-              {roleVisible
-                ? priv.role === "TRICKSTER"
-                  ? "Secret Role: TRICKSTER"
-                  : "Secret Role: TRAILBLAZER"
-                : "Role Hidden (Tap to Peek)"}
+              <MessageCircle className="h-4 w-4" />
+              {unreadChatCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-terracotta-500 px-1 text-[9px] font-extrabold text-white">
+                  {unreadChatCount}
+                </span>
+              )}
             </button>
-          )}
 
-          <button
-            type="button"
-            onClick={onOpenTutorial}
-            className="inline-flex items-center gap-1 rounded-xl bg-oat-200 px-3 py-1.5 text-xs font-bold text-espresso hover:bg-oat-300"
-          >
-            <BookOpen className="h-3.5 w-3.5" /> Rules
-          </button>
+            <button
+              type="button"
+              onClick={onOpenTutorial}
+              aria-label="Rules"
+              className="inline-flex items-center gap-1 rounded-xl bg-oat-200 p-1.5 text-xs font-bold text-espresso hover:bg-oat-300 sm:px-3 sm:py-1.5"
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Rules</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={onExitGame}
-            className="inline-flex items-center gap-1 rounded-xl bg-oat-200 px-3 py-1.5 text-xs font-bold text-espresso hover:bg-terracotta-100 hover:text-terracotta-700"
-          >
-            <LogOut className="h-3.5 w-3.5" /> Back to Café
-          </button>
+            <button
+              type="button"
+              onClick={onExitGame}
+              aria-label="Back to Café"
+              className="inline-flex items-center gap-1 rounded-xl bg-oat-200 p-1.5 text-xs font-bold text-espresso hover:bg-terracotta-100 hover:text-terracotta-700 sm:px-3 sm:py-1.5"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Back to Café</span>
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Main Layout: Board + Right Sidebar */}
-      <div className="grid flex-1 gap-3 overflow-hidden p-3 lg:grid-cols-12">
-        <div className="flex flex-col gap-2.5 overflow-hidden lg:col-span-9">
-          {/* Player Roster & Clickable Gear Slots */}
-          <div className="flex gap-2 overflow-x-auto pb-1">
+      {/* Main Content Area: Player Strip + 9x5 Board + Desktop Sidebar */}
+      <div className="grid min-h-0 flex-1 gap-2 overflow-hidden p-2 sm:gap-3 sm:p-3 lg:grid-cols-12">
+        <div className="flex min-h-0 flex-col gap-1.5 overflow-hidden sm:gap-2.5 lg:col-span-9">
+          {/* Compact Player Roster Strip */}
+          <div className="flex shrink-0 gap-1.5 overflow-x-auto pb-0.5 sm:gap-2">
             {pub.players.map((p) => {
               const isActive =
                 !inServerIntro &&
@@ -764,29 +895,28 @@ export function TreasureTrailsOverlay({
                     if (el) playerRefs.current.set(p.userId, el);
                     else playerRefs.current.delete(p.userId);
                   }}
-                  className={`min-w-[152px] shrink-0 rounded-2xl border-2 px-3 py-2 transition ${
-                    isShaking ? "animate-tt-shake border-terracotta-500 bg-terracotta-100" : ""
-                  } ${
-                    !isShaking && isActive
-                      ? "border-amberwarm-400 bg-oat-50 shadow-md"
-                      : !isShaking
-                        ? "border-oat-300/60 bg-oat-50/85"
-                        : ""
+                  className={`min-w-[118px] shrink-0 rounded-2xl border-2 px-2 py-1.5 transition sm:min-w-[152px] sm:px-3 sm:py-2 ${
+                    isShaking
+                      ? "animate-tt-shake border-terracotta-500 bg-terracotta-100"
+                      : isActive
+                        ? "border-amberwarm-400 bg-oat-50 shadow-md"
+                        : "border-oat-300/60 bg-oat-50/90"
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-1 text-xs font-bold">
+                  <div className="flex items-center justify-between gap-1 text-[11px] font-bold sm:text-xs">
                     <span className="truncate text-espresso">
-                      {p.displayName} {isMe ? "(You)" : ""}
+                      {p.displayName}
+                      {isMe ? " ★" : ""}
                     </span>
-                    <span className="shrink-0 rounded-md bg-amberwarm-100 px-1.5 py-0.5 text-[10px] text-amberwarm-600">
-                      ★ {p.score}
+                    <span className="shrink-0 rounded-md bg-amberwarm-100 px-1 py-0.5 text-[9px] text-amberwarm-600 sm:px-1.5 sm:text-[10px]">
+                      ★{p.score}
                     </span>
                   </div>
-                  <div className="mt-1 flex items-center justify-between">
+                  <div className="mt-1 flex items-center justify-between gap-1">
                     <span className="text-[10px] font-bold text-espresso-muted">
-                      🃏 {p.handCount}
+                      🃏{p.handCount}
                     </span>
-                    <div className="flex gap-1">
+                    <div className="flex gap-0.5 sm:gap-1">
                       {(["lantern", "compass", "grapple"] as GearType[]).map((g) => {
                         const intact = p.gear[g];
                         const canTargetHazard =
@@ -808,7 +938,7 @@ export function TreasureTrailsOverlay({
                             disabled={!clickable}
                             onClick={() => handlePlayerGearClick(p.userId, g)}
                             title={`${p.displayName}'s ${GEAR_META[g].label}: ${intact ? "Intact" : "BROKEN"}`}
-                            className={`flex h-6 w-6 items-center justify-center rounded-lg border text-xs transition ${
+                            className={`flex h-5 w-5 items-center justify-center rounded-md border text-[11px] transition sm:h-6 sm:w-6 sm:rounded-lg sm:text-xs ${
                               !intact
                                 ? "border-terracotta-500 bg-terracotta-100"
                                 : "border-oat-300 bg-oat-100"
@@ -831,108 +961,142 @@ export function TreasureTrailsOverlay({
             })}
           </div>
 
-          {/* 9x5 Expedition Board */}
-          <div className="relative flex flex-1 items-center justify-center overflow-auto rounded-3xl border-2 border-[#594436] bg-[#3E3026] p-3 shadow-inner">
+          {/* 9x5 Expedition Board — Fits 100% On Mobile Screen By Default + Zoom Toggle! */}
+          <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border-2 border-[#594436] bg-[#3E3026] shadow-inner sm:rounded-3xl">
+            {/* Mobile Zoom / Fit-All Toggle Pill */}
+            <button
+              type="button"
+              onClick={() => setBoardZoomed((z) => !z)}
+              className="absolute right-2 top-2 z-20 inline-flex items-center gap-1 rounded-full bg-espresso/85 px-2.5 py-1 text-[10px] font-bold text-oat-50 shadow-md backdrop-blur hover:bg-espresso sm:hidden"
+            >
+              {boardZoomed ? (
+                <>
+                  <ZoomOut className="h-3 w-3" /> Fit All
+                </>
+              ) : (
+                <>
+                  <ZoomIn className="h-3 w-3" /> Zoom
+                </>
+              )}
+            </button>
+
             {/* Live Floating Action Banner */}
             {actionBanner && !isIntroBlocking && (
-              <div className="pointer-events-none absolute top-3 left-1/2 z-20 -translate-x-1/2 rounded-full border border-amberwarm-400/50 bg-espresso/90 px-4 py-1.5 text-xs font-bold text-oat-50 shadow-lg backdrop-blur">
+              <div className="pointer-events-none absolute left-1/2 top-2 z-20 max-w-[78%] -translate-x-1/2 truncate rounded-full border border-amberwarm-400/50 bg-espresso/90 px-3 py-1 text-[11px] font-bold text-oat-50 shadow-lg backdrop-blur sm:px-4 sm:py-1.5 sm:text-xs">
                 {actionBanner}
               </div>
             )}
 
-            {/* Private Spyglass Vision Toast (visible ONLY to the player who peeked!) */}
+            {/* Private Spyglass Vision Toast */}
             {spyglassVision && (
-              <div className="pointer-events-none absolute bottom-4 left-1/2 z-30 -translate-x-1/2 rounded-2xl border-2 border-amberwarm-400 bg-oat-50 px-5 py-3 text-center shadow-2xl">
-                <div className="text-[10px] font-extrabold uppercase tracking-widest text-amberwarm-600">
-                  🔭 Secret Spyglass Vision (Only You See This!)
+              <div className="pointer-events-none absolute bottom-3 left-1/2 z-30 w-[90%] max-w-sm -translate-x-1/2 rounded-2xl border-2 border-amberwarm-400 bg-oat-50 px-4 py-2.5 text-center shadow-2xl">
+                <div className="text-[10px] font-extrabold uppercase tracking-wider text-amberwarm-600">
+                  🔭 Secret Spyglass Intel (Only You See This!)
                 </div>
-                <div className="mt-0.5 font-display text-lg font-bold text-espresso">
-                  Vault ({spyglassVision.coord}) is{" "}
+                <div className="mt-0.5 font-display text-base font-bold text-espresso sm:text-lg">
+                  Vault ({spyglassVision.coord}):{" "}
                   {spyglassVision.kind === "TRUE_RELIC" ? (
-                    <span className="text-sage-700">★ THE GOLDEN COMPASS!</span>
+                    <span className="text-sage-700">★ GOLDEN COMPASS!</span>
                   ) : (
-                    <span className="text-terracotta-700">🏺 a Hollow Decoy</span>
+                    <span className="text-terracotta-700">🏺 Hollow Decoy</span>
                   )}
                 </div>
               </div>
             )}
 
+            {/* Scrollable Board Canvas (NEVER clips left/top edges!) */}
             <div
-              className="grid gap-1.5"
-              style={{
-                gridTemplateColumns: `repeat(${BOARD_COLS}, minmax(52px, 76px))`,
-              }}
+              className={`flex-1 overflow-auto p-1.5 sm:p-3 ${
+                boardZoomed
+                  ? "block"
+                  : "flex items-center justify-center"
+              }`}
             >
-              {Array.from({ length: BOARD_ROWS }).map((_, y) =>
-                Array.from({ length: BOARD_COLS }).map((__, x) => {
-                  const key = coordKey(x, y);
-                  const cell = pub.board[key];
-                  const canPlaceHere = validPlacementKeys.has(key);
-                  const canScoutHere =
-                    isMyTurn &&
-                    selectedCard?.kind === "SPYGLASS" &&
-                    cell?.kind === "VAULT" &&
-                    !cell.vaultRevealed;
-                  const canClearHere =
-                    isMyTurn &&
-                    selectedCard?.kind === "BOULDER_CLEAR" &&
-                    cell?.kind === "PATH";
-                  const interactive = canPlaceHere || canScoutHere || canClearHere;
+              <div
+                className={`grid gap-1 sm:gap-1.5 ${
+                  boardZoomed
+                    ? "w-max"
+                    : "w-full max-w-[720px]"
+                }`}
+                style={{
+                  gridTemplateColumns: boardZoomed
+                    ? `repeat(${BOARD_COLS}, 60px)`
+                    : `repeat(${BOARD_COLS}, minmax(0, 1fr))`,
+                }}
+              >
+                {Array.from({ length: BOARD_ROWS }).map((_, y) =>
+                  Array.from({ length: BOARD_COLS }).map((__, x) => {
+                    const key = coordKey(x, y);
+                    const cell = pub.board[key];
+                    const canPlaceHere = validPlacementKeys.has(key);
+                    const canScoutHere =
+                      isMyTurn &&
+                      selectedCard?.kind === "SPYGLASS" &&
+                      cell?.kind === "VAULT" &&
+                      !cell.vaultRevealed;
+                    const canClearHere =
+                      isMyTurn &&
+                      selectedCard?.kind === "BOULDER_CLEAR" &&
+                      cell?.kind === "PATH";
+                    const interactive = canPlaceHere || canScoutHere || canClearHere;
 
-                  return (
-                    <button
-                      key={key}
-                      ref={(el) => {
-                        if (el) cellRefs.current.set(key, el);
-                        else cellRefs.current.delete(key);
-                      }}
-                      type="button"
-                      onClick={() => handleCellClick(x, y)}
-                      disabled={!interactive}
-                      className={`relative aspect-[3/4] rounded-xl transition ${
-                        cell
-                          ? ""
-                          : canPlaceHere
-                            ? "cursor-pointer border-2 border-dashed border-emerald-400 bg-emerald-400/25 hover:bg-emerald-400/40"
-                            : "border border-white/10 bg-white/[0.04]"
-                      } ${
-                        canScoutHere
-                          ? "cursor-pointer ring-4 ring-amberwarm-400"
-                          : canClearHere
-                            ? "cursor-pointer ring-4 ring-terracotta-500"
-                            : ""
-                      }`}
-                    >
-                      {cell ? (
-                        <PathTileSvg
-                          edges={
-                            cell.edges ?? { N: false, E: false, S: false, W: false }
-                          }
-                          connectedCenter={cell.connectedCenter}
-                          kind={cell.kind}
-                          vaultRevealed={cell.vaultRevealed}
-                          vaultKind={cell.vaultKind}
-                          privateScoutHint={priv?.scoutedVaults[key]}
-                          compact
-                        />
-                      ) : canPlaceHere ? (
-                        <span className="text-lg font-bold text-emerald-200">+</span>
-                      ) : null}
-                    </button>
-                  );
-                })
-              )}
+                    return (
+                      <button
+                        key={key}
+                        ref={(el) => {
+                          if (el) cellRefs.current.set(key, el);
+                          else cellRefs.current.delete(key);
+                        }}
+                        type="button"
+                        onClick={() => handleCellClick(x, y)}
+                        disabled={!interactive}
+                        className={`relative aspect-[3/4] rounded-lg transition sm:rounded-xl ${
+                          cell
+                            ? ""
+                            : canPlaceHere
+                              ? "cursor-pointer border-2 border-dashed border-emerald-400 bg-emerald-400/25 hover:bg-emerald-400/40"
+                              : "border border-white/10 bg-white/[0.04]"
+                        } ${
+                          canScoutHere
+                            ? "cursor-pointer ring-2 ring-amberwarm-400 sm:ring-4"
+                            : canClearHere
+                              ? "cursor-pointer ring-2 ring-terracotta-500 sm:ring-4"
+                              : ""
+                        }`}
+                      >
+                        {cell ? (
+                          <PathTileSvg
+                            edges={
+                              cell.edges ?? { N: false, E: false, S: false, W: false }
+                            }
+                            connectedCenter={cell.connectedCenter}
+                            kind={cell.kind}
+                            vaultRevealed={cell.vaultRevealed}
+                            vaultKind={cell.vaultKind}
+                            privateScoutHint={priv?.scoutedVaults[key]}
+                            compact
+                          />
+                        ) : canPlaceHere ? (
+                          <span className="text-sm font-extrabold text-emerald-200 sm:text-lg">
+                            +
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
             </div>
 
             {errorToast && (
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-terracotta-500 px-4 py-1.5 text-xs font-bold text-white shadow-lg">
+              <div className="absolute bottom-2 left-1/2 z-20 -translate-x-1/2 rounded-full bg-terracotta-500 px-3.5 py-1 text-[11px] font-bold text-white shadow-lg">
                 {errorToast}
               </div>
             )}
 
             {myPublic?.autoPass && (
-              <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-amberwarm-400 px-4 py-1.5 text-xs font-bold text-espresso shadow-lg">
-                <span>Auto-Pass Active</span>
+              <div className="absolute left-1/2 top-9 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full bg-amberwarm-400 px-3.5 py-1 text-[11px] font-bold text-espresso shadow-lg">
+                <span>Auto-Pass</span>
                 <button
                   type="button"
                   onClick={() => roomRef.current?.send("game.imBack")}
@@ -945,78 +1109,94 @@ export function TreasureTrailsOverlay({
           </div>
         </div>
 
-        {/* Right Sidebar: Live Event Log + Table Bluff Chat */}
+        {/* Desktop Right Sidebar */}
         <aside className="hidden flex-col overflow-hidden rounded-3xl border border-oat-300/30 bg-oat-50/95 lg:col-span-3 lg:flex">
           <div className="border-b border-oat-200 px-4 py-2.5 font-display text-sm font-bold text-espresso">
-            Expedition Log & Table Talk
+            Expedition Log &amp; Table Talk
           </div>
-
-          <div className="max-h-40 space-y-1.5 overflow-y-auto border-b border-oat-200 bg-oat-100/80 p-3 text-[11px] font-semibold text-espresso-soft">
-            {pub.recentEvents.slice(-6).map((ev, i) => (
-              <div key={i} className="rounded-lg bg-white/80 px-2.5 py-1.5">
-                {describeEvent(ev, nameOf)}
-              </div>
-            ))}
-          </div>
-
-          <div className="flex-1 space-y-1.5 overflow-y-auto p-3 text-xs">
-            {chatLog.length === 0 && (
-              <p className="text-center text-[11px] text-espresso-muted">
-                Discuss routes — or bluff the table!
-              </p>
-            )}
-            {chatLog.map((m) => (
-              <div key={m.id} className="rounded-xl bg-oat-100 px-2.5 py-1.5">
-                <span className="font-bold text-sage-700">{m.senderName}: </span>
-                <span className="text-espresso">{m.message}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap gap-1 border-t border-oat-200 bg-oat-100/60 p-2">
-            {QUICK_BLUFF_PILLS.slice(0, 6).map((pill) => (
-              <button
-                key={pill}
-                type="button"
-                onClick={() => roomRef.current?.send("game.quickBluff", { text: pill })}
-                className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-espresso shadow-sm hover:bg-amberwarm-100"
-              >
-                {pill}
-              </button>
-            ))}
-          </div>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!chatInput.trim()) return;
-              roomRef.current?.send("game.chat", { message: chatInput });
-              setChatInput("");
-            }}
-            className="flex gap-1.5 border-t border-oat-200 p-2"
-          >
-            <input
-              type="text"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              placeholder="Accuse or coordinate..."
-              maxLength={200}
-              className="flex-1 rounded-xl border border-oat-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-sage-500"
-            />
-            <button
-              type="submit"
-              className="rounded-xl bg-sage-500 p-2 text-white hover:bg-sage-700"
-            >
-              <Send className="h-3.5 w-3.5" />
-            </button>
-          </form>
+          {renderChatAndLogBody()}
         </aside>
       </div>
 
-      {/* Bottom Hand & Action Controls */}
-      <footer className="border-t border-oat-300/30 bg-oat-50 px-4 py-3">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
-          <div ref={handRef} className="flex flex-1 gap-2 overflow-x-auto py-1">
+      {/* Mobile-First Stacked Bottom Hand Dock (Full-Width Cards + Clean Action Bar Above!) */}
+      <footer className="shrink-0 border-t border-oat-300/30 bg-oat-50 px-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-4 sm:py-3">
+        <div className="mx-auto flex max-w-6xl flex-col gap-2">
+          {/* Row 1: Action Buttons & Concise Turn Prompt (Full Width — Never Crushes Cards!) */}
+          <div className="flex flex-wrap items-center justify-between gap-1.5">
+            <div className="text-[11px] font-bold text-espresso-soft sm:text-xs">
+              {statusHintText}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              {selectedCard?.kind === "PATH" && !fieldPatchMode && (
+                <button
+                  type="button"
+                  onClick={() => setRotation((r) => (r === 0 ? 180 : 0))}
+                  className="inline-flex items-center gap-1 rounded-xl bg-amberwarm-400 px-3 py-1.5 text-[11px] font-bold text-espresso shadow-sm hover:bg-amberwarm-600 hover:text-white sm:text-xs"
+                >
+                  <RotateCw className="h-3.5 w-3.5" /> Flip 180°
+                </button>
+              )}
+
+              {isMyTurn && selectedCard && !fieldPatchMode && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    sendAction({ type: "DISCARD", cardId: selectedCard.id })
+                  }
+                  className="inline-flex items-center gap-1 rounded-xl bg-oat-200 px-3 py-1.5 text-[11px] font-bold text-espresso hover:bg-terracotta-100 hover:text-terracotta-700 sm:text-xs"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Discard
+                </button>
+              )}
+
+              {isMyTurn && myBrokenGears.length > 0 && (priv?.hand.length ?? 0) >= 2 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFieldPatchMode((v) => !v);
+                      setPatchCardIds([]);
+                      setSelectedCardId(null);
+                      setPatchGear(myBrokenGears[0]!);
+                    }}
+                    className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-[11px] font-bold shadow-sm sm:text-xs ${
+                      fieldPatchMode
+                        ? "bg-espresso text-oat-50"
+                        : "bg-terracotta-100 text-terracotta-700"
+                    }`}
+                  >
+                    <Wrench className="h-3.5 w-3.5" />
+                    {fieldPatchMode
+                      ? `Pick 2 (${patchCardIds.length}/2)`
+                      : "Field-Patch"}
+                  </button>
+
+                  {fieldPatchMode && patchCardIds.length === 2 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        sendAction({
+                          type: "FIELD_PATCH",
+                          cardIds: [patchCardIds[0]!, patchCardIds[1]!],
+                          gear: patchGear,
+                        })
+                      }
+                      className="rounded-xl bg-sage-500 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sage-700 sm:text-xs"
+                    >
+                      Fix {GEAR_META[patchGear].label}!
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Row 2: Full-Width Card Hand (All 5-6 Cards Clearly Visible on Phone!) */}
+          <div
+            ref={handRef}
+            className="flex w-full items-end gap-1.5 overflow-x-auto pb-0.5 pt-2 sm:gap-2"
+          >
             {priv?.hand.map((card) => {
               const isSelected = fieldPatchMode
                 ? patchCardIds.includes(card.id)
@@ -1026,14 +1206,14 @@ export function TreasureTrailsOverlay({
                   key={card.id}
                   type="button"
                   onClick={() => handleCardSelect(card)}
-                  className={`group relative flex h-28 w-20 shrink-0 flex-col items-center justify-between rounded-2xl border-2 p-1.5 text-center transition ${
+                  className={`relative flex h-[88px] w-[62px] shrink-0 flex-col items-center justify-between rounded-xl border-2 p-1 text-center transition sm:h-28 sm:w-20 sm:rounded-2xl sm:p-1.5 ${
                     isSelected
                       ? "-translate-y-2 border-sage-500 bg-sage-100 shadow-lg"
                       : "border-oat-300 bg-white hover:-translate-y-1 hover:border-amberwarm-400"
                   }`}
                 >
                   {card.kind === "PATH" ? (
-                    <div className="h-20 w-16">
+                    <div className="h-[62px] w-[48px] sm:h-20 sm:w-16">
                       <PathTileSvg
                         edges={getOrientedEdges(
                           card.edges,
@@ -1044,8 +1224,8 @@ export function TreasureTrailsOverlay({
                       />
                     </div>
                   ) : (
-                    <div className="flex flex-1 flex-col items-center justify-center gap-1">
-                      <span className="text-2xl">
+                    <div className="flex flex-1 flex-col items-center justify-center gap-0.5">
+                      <span className="text-xl sm:text-2xl">
                         {card.kind === "HAZARD"
                           ? "⚡"
                           : card.kind === "REPAIR"
@@ -1054,123 +1234,56 @@ export function TreasureTrailsOverlay({
                               ? "🔭"
                               : "💥"}
                       </span>
-                      <span className="text-[9px] font-extrabold uppercase tracking-wide text-espresso-muted">
+                      <span className="text-[7.5px] font-extrabold uppercase tracking-tight text-espresso-muted sm:text-[9px]">
                         {card.kind.replace("_", " ")}
                       </span>
                     </div>
                   )}
-                  <span className="line-clamp-1 text-[9.5px] font-bold text-espresso">
+                  <span className="w-full truncate text-[8.5px] font-bold text-espresso sm:text-[9.5px]">
                     {card.label}
                   </span>
                 </button>
               );
             })}
           </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {selectedCard?.kind === "PATH" && !fieldPatchMode && (
-              <button
-                type="button"
-                onClick={() => setRotation((r) => (r === 0 ? 180 : 0))}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-amberwarm-400 px-3.5 py-2 text-xs font-bold text-espresso shadow-sm hover:bg-amberwarm-600 hover:text-white"
-              >
-                <RotateCw className="h-4 w-4" /> Flip 180° ({rotation}°)
-              </button>
-            )}
-
-            {isMyTurn && selectedCard && !fieldPatchMode && (
-              <button
-                type="button"
-                onClick={() =>
-                  sendAction({ type: "DISCARD", cardId: selectedCard.id })
-                }
-                className="inline-flex items-center gap-1.5 rounded-xl bg-oat-200 px-3.5 py-2 text-xs font-bold text-espresso hover:bg-terracotta-100 hover:text-terracotta-700"
-              >
-                <Trash2 className="h-4 w-4" /> Discard Card
-              </button>
-            )}
-
-            {isMyTurn && myBrokenGears.length > 0 && (priv?.hand.length ?? 0) >= 2 && (
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFieldPatchMode((v) => !v);
-                    setPatchCardIds([]);
-                    setSelectedCardId(null);
-                    setPatchGear(myBrokenGears[0]!);
-                  }}
-                  className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold shadow-sm ${
-                    fieldPatchMode
-                      ? "bg-espresso text-oat-50"
-                      : "bg-terracotta-100 text-terracotta-700 hover:bg-terracotta-500 hover:text-white"
-                  }`}
-                >
-                  <Wrench className="h-4 w-4" />
-                  {fieldPatchMode
-                    ? `Pick 2 Cards (${patchCardIds.length}/2)`
-                    : "Field-Patch (2 Cards)"}
-                </button>
-
-                {fieldPatchMode && patchCardIds.length === 2 && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      sendAction({
-                        type: "FIELD_PATCH",
-                        cardIds: [patchCardIds[0]!, patchCardIds[1]!],
-                        gear: patchGear,
-                      })
-                    }
-                    className="rounded-xl bg-sage-500 px-3.5 py-2 text-xs font-bold text-white hover:bg-sage-700"
-                  >
-                    Fix My {GEAR_META[patchGear].label}!
-                  </button>
-                )}
-              </div>
-            )}
-
-            <div className="w-full text-[11px] font-bold text-espresso-soft sm:w-auto">
-              {isIntroBlocking
-                ? "Get ready for the expedition!"
-                : !isMyTurn
-                  ? `Waiting for ${nameOf(pub.activePlayerId)}...`
-                  : fieldPatchMode
-                    ? "Tap any 2 cards in your hand to Field-Patch your broken gear."
-                    : !selectedCard
-                      ? myBrokenGears.length > 0
-                        ? "⚠️ Your gear is broken! Play a Repair, use Field-Patch, or Discard."
-                        : "Select a card from your hand to play or discard."
-                      : selectedCard.kind === "PATH"
-                        ? myBrokenGears.length > 0
-                          ? "Repair your broken gear before placing path tiles."
-                          : "Tap a glowing green cell on the grid to place this path!"
-                        : selectedCard.kind === "HAZARD"
-                          ? `Tap an explorer's intact ${selectedCard.gear} icon above to break it!`
-                          : selectedCard.kind === "REPAIR"
-                            ? "Tap a broken gear icon above to repair it!"
-                            : selectedCard.kind === "SPYGLASS"
-                              ? "Tap any glowing Sealed Vault on the right edge to scout!"
-                              : "Tap any placed path tile on the grid to clear it!"}
-            </div>
-          </div>
         </div>
       </footer>
 
-      {/* FLYING CARD & IMPACT VFX STAGE (Fixed GPU Overlay) */}
+      {/* Mobile Slide-Up Table Talk & Log Drawer */}
+      {mobileChatOpen && (
+        <div className="fixed inset-0 z-50 flex items-end bg-espresso/50 backdrop-blur-sm lg:hidden">
+          <div className="flex h-[72dvh] w-full flex-col overflow-hidden rounded-t-3xl border-t-2 border-oat-300 bg-oat-50 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-oat-200 px-4 py-3">
+              <span className="font-display text-base font-bold text-espresso">
+                💬 Table Talk &amp; Expedition Log
+              </span>
+              <button
+                type="button"
+                onClick={() => setMobileChatOpen(false)}
+                className="rounded-xl bg-oat-200 p-1.5 text-espresso"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            {renderChatAndLogBody()}
+          </div>
+        </div>
+      )}
+
+      {/* FLYING CARD & IMPACT VFX STAGE */}
       <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
         {flyingEffects.map((fx) => (
           <div
             key={fx.id}
             style={
               {
-                "--from-x": `${fx.fromX - 36}px`,
-                "--from-y": `${fx.fromY - 48}px`,
-                "--to-x": `${fx.toX - 36}px`,
-                "--to-y": `${fx.toY - 48}px`,
+                "--from-x": `${fx.fromX - 30}px`,
+                "--from-y": `${fx.fromY - 40}px`,
+                "--to-x": `${fx.toX - 30}px`,
+                "--to-y": `${fx.toY - 40}px`,
               } as React.CSSProperties
             }
-            className={`fixed left-0 top-0 flex h-24 w-[72px] flex-col items-center justify-center rounded-2xl border-2 shadow-2xl ${
+            className={`fixed left-0 top-0 flex h-20 w-[60px] flex-col items-center justify-center rounded-xl border-2 shadow-2xl sm:h-24 sm:w-[72px] sm:rounded-2xl ${
               fx.mode === "vault-peek" ? "animate-tt-vault-peek" : "animate-tt-fly"
             } ${
               fx.kind === "HAZARD" || fx.kind === "BOULDER_CLEAR"
@@ -1202,8 +1315,8 @@ export function TreasureTrailsOverlay({
               />
             ) : (
               <>
-                <span className="text-3xl">{fx.icon}</span>
-                <span className="mt-1 px-1 text-center text-[9px] font-extrabold leading-tight">
+                <span className="text-2xl sm:text-3xl">{fx.icon}</span>
+                <span className="mt-0.5 px-1 text-center text-[8px] font-extrabold leading-tight sm:text-[9px]">
                   {fx.label}
                 </span>
               </>
@@ -1215,7 +1328,7 @@ export function TreasureTrailsOverlay({
           <div
             key={b.id}
             style={{ left: b.x, top: b.y }}
-            className={`animate-tt-impact fixed flex h-16 w-16 items-center justify-center rounded-full border-4 text-2xl ${b.colorClass}`}
+            className={`animate-tt-impact fixed flex h-14 w-14 items-center justify-center rounded-full border-4 text-xl sm:h-16 sm:w-16 sm:text-2xl ${b.colorClass}`}
           >
             {b.icon}
           </div>
@@ -1224,7 +1337,7 @@ export function TreasureTrailsOverlay({
 
       {/* FULL-SCREEN COUNTDOWN + DRAMATIC SECRET ROLE REVEAL CEREMONY */}
       {isIntroBlocking && priv && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1F1814]/90 p-6 backdrop-blur-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1F1814]/90 p-5 backdrop-blur-md">
           {introStage === "countdown" ? (
             <div className="text-center">
               <div className="text-xs font-extrabold uppercase tracking-[0.25em] text-amberwarm-400">
@@ -1241,12 +1354,12 @@ export function TreasureTrailsOverlay({
               </p>
             </div>
           ) : (
-            <div className="animate-tt-role-card w-full max-w-md overflow-hidden rounded-[2rem] border-4 bg-oat-50 p-7 text-center shadow-2xl border-amberwarm-400">
+            <div className="animate-tt-role-card w-full max-w-md overflow-hidden rounded-[2rem] border-4 border-amberwarm-400 bg-oat-50 p-6 text-center shadow-2xl sm:p-7">
               <div className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-espresso-muted">
                 Your Secret Role • Round {pub.currentRound}
               </div>
               <div
-                className={`mx-auto mt-4 flex h-24 w-24 items-center justify-center rounded-3xl text-5xl shadow-inner ${
+                className={`mx-auto mt-3 flex h-20 w-20 items-center justify-center rounded-3xl text-4xl shadow-inner sm:mt-4 sm:h-24 sm:w-24 sm:text-5xl ${
                   priv.role === "TRICKSTER"
                     ? "bg-terracotta-100 ring-4 ring-terracotta-500/30"
                     : "bg-sage-100 ring-4 ring-sage-500/30"
@@ -1255,18 +1368,18 @@ export function TreasureTrailsOverlay({
                 {priv.role === "TRICKSTER" ? "🦊" : "🧭"}
               </div>
               <h2
-                className={`mt-4 font-display text-4xl font-bold tracking-tight ${
+                className={`mt-3 font-display text-3xl font-bold tracking-tight sm:mt-4 sm:text-4xl ${
                   priv.role === "TRICKSTER" ? "text-terracotta-700" : "text-sage-700"
                 }`}
               >
                 {priv.role === "TRICKSTER" ? "TRICKSTER" : "TRAILBLAZER"}
               </h2>
-              <p className="mt-3 text-sm font-semibold leading-relaxed text-espresso-soft">
+              <p className="mt-2.5 text-xs font-semibold leading-relaxed text-espresso-soft sm:text-sm">
                 {priv.role === "TRICKSTER"
                   ? "Work in secret to jam explorer gear, drop dead-ends, and misdirect the crew until the Expedition Deck runs dry!"
                   : "Team up to build an unbroken open trail from Base Camp to the hidden Golden Compass Vault before supplies run out!"}
               </p>
-              <div className="mt-5 rounded-2xl bg-oat-100 px-4 py-2.5 text-xs font-bold text-espresso-muted">
+              <div className="mt-4 rounded-2xl bg-oat-100 px-4 py-2 text-xs font-bold text-espresso-muted">
                 Keep your screen private! First turn:{" "}
                 <span className="text-espresso">{nameOf(pub.activePlayerId)}</span>
               </div>
@@ -1277,7 +1390,7 @@ export function TreasureTrailsOverlay({
                   setIntroStage("none");
                   soundEngine.playCountdownGo();
                 }}
-                className={`mt-5 w-full rounded-2xl py-3 font-display text-sm font-bold text-white shadow-sm transition ${
+                className={`mt-4 w-full rounded-2xl py-3 font-display text-sm font-bold text-white shadow-sm transition ${
                   priv.role === "TRICKSTER"
                     ? "bg-terracotta-500 hover:bg-terracotta-700"
                     : "bg-sage-500 hover:bg-sage-700"
@@ -1294,27 +1407,27 @@ export function TreasureTrailsOverlay({
       {(pub.phase === "ROUND_END" || pub.phase === "COMPLETED") &&
         pub.lastRoundSummary && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/65 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-lg rounded-3xl border-2 border-amberwarm-400 bg-oat-50 p-6 text-center shadow-cozy">
+            <div className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-3xl border-2 border-amberwarm-400 bg-oat-50 p-5 text-center shadow-cozy sm:p-6">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amberwarm-100 text-3xl">
                 {pub.lastRoundSummary.winningTeam === "TRAILBLAZER" ? "🧭" : "🦊"}
               </div>
-              <h2 className="mt-3 font-display text-3xl font-bold text-espresso">
+              <h2 className="mt-3 font-display text-2xl font-bold text-espresso sm:text-3xl">
                 {pub.lastRoundSummary.winningTeam === "TRAILBLAZER"
                   ? "Trailblazers Win!"
                   : "Tricksters Win!"}
               </h2>
-              <p className="mt-1 text-sm font-semibold text-espresso-soft">
+              <p className="mt-1 text-xs font-semibold text-espresso-soft sm:text-sm">
                 {pub.lastRoundSummary.reason}
               </p>
 
-              <div className="mt-5 space-y-2 text-left">
+              <div className="mt-4 space-y-2 text-left">
                 {pub.players.map((p) => {
                   const role = pub.lastRoundSummary!.revealedRoles[p.userId];
                   const earned = pub.lastRoundSummary!.starsAwarded[p.userId] ?? 0;
                   return (
                     <div
                       key={p.userId}
-                      className="flex items-center justify-between rounded-2xl bg-oat-100 px-4 py-2.5 text-sm font-bold"
+                      className="flex items-center justify-between rounded-2xl bg-oat-100 px-3.5 py-2 text-xs font-bold sm:px-4 sm:py-2.5 sm:text-sm"
                     >
                       <div className="flex items-center gap-2">
                         <span>{p.displayName}</span>
@@ -1333,7 +1446,7 @@ export function TreasureTrailsOverlay({
                           <span className="text-xs text-sage-700">+{earned} ★</span>
                         )}
                         <span className="rounded-lg bg-amberwarm-100 px-2 py-0.5 text-xs text-amberwarm-600">
-                          Total: {p.score} ★
+                          {p.score} ★
                         </span>
                       </div>
                     </div>
@@ -1341,7 +1454,7 @@ export function TreasureTrailsOverlay({
                 })}
               </div>
 
-              <div className="mt-6 flex justify-center gap-3">
+              <div className="mt-5 flex justify-center gap-3">
                 {pub.phase === "ROUND_END" ? (
                   <button
                     type="button"
