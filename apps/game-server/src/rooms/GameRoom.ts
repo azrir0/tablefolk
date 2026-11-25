@@ -52,6 +52,8 @@ export class GameRoom extends Room {
   private sessionId = "";
   private gameState!: TreasureTrailsState;
   private botUserIds = new Set<string>();
+  private botControlledHumans = new Set<string>();
+  private botTakeoverTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private allowedUserIds = new Set<string>();
   private userIdToClient = new Map<string, Client>();
   private turnEndsAt = 0;
@@ -71,9 +73,11 @@ export class GameRoom extends Room {
     this.gameSlug = options.gameSlug || "treasure-trails";
     this.sessionId = `sess_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
 
+    const humanUserIds: string[] = [];
     for (const p of options.players) {
       this.allowedUserIds.add(p.userId);
       if (p.isBot) this.botUserIds.add(p.userId);
+      else humanUserIds.push(p.userId);
     }
 
     const rngSeed = crypto.randomInt(1, 2_000_000_000);
@@ -87,17 +91,26 @@ export class GameRoom extends Room {
       rngSeed
     );
 
-    registerGameRoom(this.roomId, () => {
-      this.abortAbandonedGame();
-    });
+    registerGameRoom(
+      this.roomId,
+      () => {
+        this.abortAbandonedGame();
+      },
+      humanUserIds,
+      {
+        cafeRoomId: this.cafeRoomId,
+        tableId: this.tableId,
+        gameSlug: this.gameSlug,
+      }
+    );
 
     // Persist session record to PostgreSQL
     void this.persistInitialSession();
 
     this.beginRoundIntroWindow(5800);
 
-    // If no human ever finishes connecting within 20s, clean up automatically
-    this.scheduleEmptyHumansAbort(20_000);
+    // If no human ever finishes connecting within 25s, clean up automatically
+    this.scheduleEmptyHumansAbort(25_000);
 
     // 1-second authoritative turn clock (paused while intro plays or 0 humans connected)
     this.setSimulationInterval(() => {
@@ -141,21 +154,141 @@ export class GameRoom extends Room {
 
   onJoin(client: Client, _options?: GameJoinOptions, auth?: GameAuthedClient) {
     if (!auth) return;
+
+    let reclaimedFromBot = false;
+    let returnedFromGrace = false;
+    const wasEmpty = this.userIdToClient.size === 0;
+
     if (!auth.isSpectator) {
       this.userIdToClient.set(auth.userId, client);
       this.gameState = clearPlayerAfk(this.gameState, auth.userId);
+
+      // Cancel any pending empty-room abort or bot takeover for this player
       if (this.emptyHumansTimer) {
         clearTimeout(this.emptyHumansTimer);
         this.emptyHumansTimer = null;
       }
+      const pendingTakeover = this.botTakeoverTimers.get(auth.userId);
+      if (pendingTakeover) {
+        clearTimeout(pendingTakeover);
+        this.botTakeoverTimers.delete(auth.userId);
+        returnedFromGrace = true;
+      }
+      if (this.botControlledHumans.delete(auth.userId)) {
+        reclaimedFromBot = true;
+      }
+
+      const active = this.gameState.players[this.gameState.activePlayerIndex];
+
+      // If all humans were briefly away (e.g. minimized browser) and the clock expired while paused,
+      // give a fresh turn timer before resuming simulation!
+      if (
+        wasEmpty &&
+        this.gameState.phase === "IN_PROGRESS" &&
+        Date.now() >= this.turnEndsAt - 5000
+      ) {
+        this.resetTurnClock();
+      }
+
+      // If it's currently this returning player's turn, cancel any bot move & give full clock!
+      if (
+        reclaimedFromBot &&
+        active?.userId === auth.userId &&
+        this.gameState.phase === "IN_PROGRESS"
+      ) {
+        if (this.botTimer) {
+          clearTimeout(this.botTimer);
+          this.botTimer = null;
+        }
+        this.resetTurnClock();
+      }
     }
 
-    // Send authoritative public state + timer + introEndsAt + private state exclusively to this client
+    // Send authoritative public + private state immediately to the joining/rejoining client
+    this.sendFullSyncToClient(client, auth);
+
+    if (!auth.isSpectator) {
+      if (reclaimedFromBot) {
+        this.broadcastSystemChat(`👋 ${auth.displayName} rejoined and resumed control!`);
+        this.broadcastStateAndEvents([]);
+      } else if (returnedFromGrace) {
+        this.broadcastSystemChat(`👋 ${auth.displayName} is back!`);
+      }
+      this.scheduleBotIfNeeded();
+    }
+  }
+
+  onLeave(client: Client, _consented: boolean) {
+    const auth = client.auth as GameAuthedClient | undefined;
+    if (!auth || auth.isSpectator) return;
+
+    // Ignore stale socket closing if the player already reconnected on a fresh socket!
+    if (this.userIdToClient.get(auth.userId)?.sessionId !== client.sessionId) {
+      return;
+    }
+
+    this.userIdToClient.delete(auth.userId);
+
+    // If 0 humans remain connected, pause bots & give a 60s window for mobile minimize / rejoin
+    if (this.userIdToClient.size === 0) {
+      if (this.botTimer) {
+        clearTimeout(this.botTimer);
+        this.botTimer = null;
+      }
+      for (const t of this.botTakeoverTimers.values()) clearTimeout(t);
+      this.botTakeoverTimers.clear();
+
+      if (this.gameState.phase === "COMPLETED") {
+        void this.disconnect();
+      } else {
+        this.scheduleEmptyHumansAbort(60_000);
+      }
+      return;
+    }
+
+    // Other humans are still playing! Give 15s grace window, then Substitute Bot takes over smoothly
+    if (this.gameState.phase !== "COMPLETED" && !this.botControlledHumans.has(auth.userId)) {
+      this.broadcastSystemChat(
+        `⏳ ${auth.displayName} stepped away — a Café Bot will sub in after 15s if they don't return.`
+      );
+      const prevTimer = this.botTakeoverTimers.get(auth.userId);
+      if (prevTimer) clearTimeout(prevTimer);
+
+      const timer = setTimeout(() => {
+        this.botTakeoverTimers.delete(auth.userId);
+        if (this.aborted || this.gameState.phase === "COMPLETED") return;
+        if (this.userIdToClient.has(auth.userId)) return; // Already rejoined!
+        if (this.userIdToClient.size === 0) return;
+
+        this.botControlledHumans.add(auth.userId);
+        this.broadcastSystemChat(
+          `🤖 Café Bot took over for ${auth.displayName} (they can rejoin anytime!).`
+        );
+        this.broadcastStateAndEvents([]);
+        this.scheduleBotIfNeeded();
+      }, 15_000);
+
+      this.botTakeoverTimers.set(auth.userId, timer);
+    }
+  }
+
+  onDispose() {
+    if (this.botTimer) clearTimeout(this.botTimer);
+    if (this.roundAdvanceTimer) clearTimeout(this.roundAdvanceTimer);
+    if (this.emptyHumansTimer) clearTimeout(this.emptyHumansTimer);
+    for (const t of this.botTakeoverTimers.values()) clearTimeout(t);
+    this.botTakeoverTimers.clear();
+    unregisterGameRoom(this.roomId);
+    notifyCafeTableFinished(this.cafeRoomId, this.tableId);
+  }
+
+  private sendFullSyncToClient(client: Client, auth: GameAuthedClient) {
     client.send("game.publicState", {
       sessionId: this.sessionId,
       state: TreasureTrailsModule.getPublicState(this.gameState),
       turnEndsAt: this.turnEndsAt,
       introEndsAt: this.introEndsAt,
+      botControlledUserIds: Array.from(this.botControlledHumans),
       isSpectator: auth.isSpectator,
     });
 
@@ -164,47 +297,18 @@ export class GameRoom extends Room {
         "game.privateState",
         TreasureTrailsModule.getPrivateState(this.gameState, auth.userId)
       );
-      this.scheduleBotIfNeeded();
     }
   }
 
-  async onLeave(client: Client, consented: boolean) {
-    const auth = client.auth as GameAuthedClient | undefined;
-    if (!consented) {
-      try {
-        await this.allowReconnection(client, 45);
-        return;
-      } catch {
-        // Proceed to mark disconnected
-      }
-    }
-
-    if (auth && this.userIdToClient.get(auth.userId)?.sessionId === client.sessionId) {
-      this.userIdToClient.delete(auth.userId);
-    }
-
-    // Never keep running a bot-only match when 0 humans remain!
-    if (this.userIdToClient.size === 0) {
-      if (this.botTimer) {
-        clearTimeout(this.botTimer);
-        this.botTimer = null;
-      }
-      if (this.gameState.phase === "COMPLETED") {
-        void this.disconnect();
-      } else {
-        // Give brief 15s resume window in case solo player clicked Back to Café temporarily;
-        // standing up at the table triggers immediate abortAbandonedGame() via CafeRoom!
-        this.scheduleEmptyHumansAbort(15_000);
-      }
-    }
-  }
-
-  onDispose() {
-    if (this.botTimer) clearTimeout(this.botTimer);
-    if (this.roundAdvanceTimer) clearTimeout(this.roundAdvanceTimer);
-    if (this.emptyHumansTimer) clearTimeout(this.emptyHumansTimer);
-    unregisterGameRoom(this.roomId);
-    notifyCafeTableFinished(this.cafeRoomId, this.tableId);
+  private broadcastSystemChat(message: string) {
+    this.broadcast("game.chatReceived", {
+      id: `sys_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      senderUserId: "system",
+      senderName: "TableFolk",
+      message,
+      isQuickBluff: true,
+      timestamp: Date.now(),
+    });
   }
 
   private scheduleEmptyHumansAbort(delayMs: number) {
@@ -232,6 +336,8 @@ export class GameRoom extends Room {
       clearTimeout(this.emptyHumansTimer);
       this.emptyHumansTimer = null;
     }
+    for (const t of this.botTakeoverTimers.values()) clearTimeout(t);
+    this.botTakeoverTimers.clear();
 
     if (!this.persistedFinish && this.gameState?.phase !== "COMPLETED") {
       this.persistedFinish = true;
@@ -248,11 +354,19 @@ export class GameRoom extends Room {
       })();
     }
 
+    unregisterGameRoom(this.roomId);
     notifyCafeTableFinished(this.cafeRoomId, this.tableId);
     void this.disconnect();
   }
 
   private registerMessageHandlers() {
+    // Instant full-state resync when a mobile browser wakes up from background
+    this.onMessage("game.sync", (client) => {
+      const auth = client.auth as GameAuthedClient | undefined;
+      if (!auth) return;
+      this.sendFullSyncToClient(client, auth);
+    });
+
     this.onMessage("game.action", (client, raw) => {
       const auth = client.auth as GameAuthedClient | undefined;
       if (!auth || auth.isSpectator) {
@@ -357,6 +471,13 @@ export class GameRoom extends Room {
 
   private handlePostStateChange() {
     if (this.gameState.phase === "COMPLETED") {
+      if (this.emptyHumansTimer) {
+        clearTimeout(this.emptyHumansTimer);
+        this.emptyHumansTimer = null;
+      }
+      for (const t of this.botTakeoverTimers.values()) clearTimeout(t);
+      this.botTakeoverTimers.clear();
+      unregisterGameRoom(this.roomId);
       void this.persistCompletedResults();
       notifyCafeTableFinished(this.cafeRoomId, this.tableId);
       this.clock.setTimeout(() => {
@@ -392,6 +513,7 @@ export class GameRoom extends Room {
       state: publicState,
       turnEndsAt: this.turnEndsAt,
       introEndsAt: this.introEndsAt,
+      botControlledUserIds: Array.from(this.botControlledHumans),
       events,
     });
 
@@ -405,7 +527,7 @@ export class GameRoom extends Room {
   }
 
   /**
-   * Smart, fair Practice Bot AI — uses ONLY public state + its own private state
+   * Smart, fair Practice & Substitute Bot AI — uses ONLY public state + its own private state
    * and goes through the exact same validateAction/applyAction pipeline as human players.
    */
   private scheduleBotIfNeeded() {
@@ -417,7 +539,10 @@ export class GameRoom extends Room {
     if (this.userIdToClient.size === 0) return;
 
     const active = this.gameState.players[this.gameState.activePlayerIndex];
-    if (!active || !this.botUserIds.has(active.userId)) return;
+    const isBotTurn =
+      Boolean(active) &&
+      (this.botUserIds.has(active!.userId) || this.botControlledHumans.has(active!.userId));
+    if (!active || !isBotTurn) return;
 
     const waitIntroMs = Math.max(0, this.introEndsAt - Date.now());
     const delayMs = waitIntroMs > 0 ? waitIntroMs + 950 : 1450;
@@ -427,6 +552,13 @@ export class GameRoom extends Room {
       if (this.gameState.phase !== "IN_PROGRESS") return;
       const current = this.gameState.players[this.gameState.activePlayerIndex];
       if (!current || current.userId !== active.userId) return;
+      // Guard against human reclaiming control right before the timer fired
+      if (
+        !this.botUserIds.has(active.userId) &&
+        !this.botControlledHumans.has(active.userId)
+      ) {
+        return;
+      }
 
       const chosen = this.pickBotAction(active.userId);
       if (chosen) {

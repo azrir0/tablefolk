@@ -18,6 +18,7 @@ import {
 import { getUserProfile, verifyAuthToken } from "../services/auth.js";
 import {
   abortGameRoom,
+  getActiveGameForUser,
   registerCafeRoom,
   registerPrivateCafeCode,
   unregisterCafeRoom,
@@ -162,28 +163,86 @@ export class CafeRoom extends Room<CafeRoomState> {
       this.privateExpireTimer = null;
     }
 
-    // Prevent duplicate sessions for the same user inside the same room
-    for (const [sid, existing] of this.state.players.entries()) {
-      if (existing.userId === auth.userId && sid !== client.sessionId) {
-        this.releasePlayerSeat(existing);
-        this.state.players.delete(sid);
-      }
-    }
-
     const player = new PlayerSchema();
     player.sessionId = client.sessionId;
     player.userId = auth.userId;
     player.displayName = auth.displayName;
     player.avatarJson = auth.avatarJson;
 
-    // Slight jitter around spawn rug so multiple joining players don't stack identically
-    const jitterX = (Math.random() - 0.5) * 64;
-    const jitterY = (Math.random() - 0.5) * 28;
-    const spawnX = COZY_CAFE_MAP.spawnPoint.x + jitterX;
-    const spawnY = COZY_CAFE_MAP.spawnPoint.y + jitterY;
-    player.x = isWalkableWorldPos(spawnX, spawnY) ? spawnX : COZY_CAFE_MAP.spawnPoint.x;
-    player.y = isWalkableWorldPos(spawnX, spawnY) ? spawnY : COZY_CAFE_MAP.spawnPoint.y;
-    player.facing = "north";
+    // Preserve state & seat seamlessly if the same user reconnected on a fresh socket
+    let restoredFromPrevious = false;
+    for (const [sid, existing] of this.state.players.entries()) {
+      if (existing.userId === auth.userId && sid !== client.sessionId) {
+        if (!restoredFromPrevious) {
+          player.x = existing.x;
+          player.y = existing.y;
+          player.facing = existing.facing;
+          player.carryingGameSlug = existing.carryingGameSlug;
+          player.inGameSessionId = existing.inGameSessionId;
+          player.isReady = existing.isReady;
+
+          if (existing.seatedTableId) {
+            const table = this.state.tables.get(existing.seatedTableId);
+            const seat = table?.seats.at(existing.seatIndex);
+            if (table && seat && seat.occupantSessionId === sid) {
+              seat.occupantSessionId = client.sessionId;
+              seat.occupantName = auth.displayName;
+              player.seatedTableId = existing.seatedTableId;
+              player.seatIndex = existing.seatIndex;
+            }
+          }
+          restoredFromPrevious = true;
+        } else {
+          this.releasePlayerSeat(existing, false);
+        }
+
+        this.state.players.delete(sid);
+        this.chatTimestamps.delete(sid);
+        this.lastMoveAt.delete(sid);
+      }
+    }
+
+    if (!restoredFromPrevious) {
+      // Slight jitter around spawn rug so multiple joining players don't stack identically
+      const jitterX = (Math.random() - 0.5) * 64;
+      const jitterY = (Math.random() - 0.5) * 28;
+      const spawnX = COZY_CAFE_MAP.spawnPoint.x + jitterX;
+      const spawnY = COZY_CAFE_MAP.spawnPoint.y + jitterY;
+      player.x = isWalkableWorldPos(spawnX, spawnY) ? spawnX : COZY_CAFE_MAP.spawnPoint.x;
+      player.y = isWalkableWorldPos(spawnX, spawnY) ? spawnY : COZY_CAFE_MAP.spawnPoint.y;
+      player.facing = "north";
+    }
+
+    // Check if this user has an active in-progress game match they can rejoin
+    const activeGame = getActiveGameForUser(auth.userId);
+    if (activeGame) {
+      if (activeGame.cafeRoomId === this.roomId && !player.seatedTableId) {
+        const table = this.state.tables.get(activeGame.tableId);
+        const tableDef = COZY_CAFE_MAP.tables.find((t) => t.id === activeGame.tableId);
+        if (table && tableDef && table.activeGameRoomId === activeGame.gameRoomId) {
+          const openSeat = table.seats.find((s) => s.status === "AVAILABLE");
+          if (openSeat) {
+            const seatDef = tableDef.seats[openSeat.seatIndex];
+            openSeat.status = "OCCUPIED";
+            openSeat.occupantSessionId = client.sessionId;
+            openSeat.occupantUserId = player.userId;
+            openSeat.occupantName = player.displayName;
+            openSeat.isBot = false;
+            openSeat.isReady = true;
+            player.seatedTableId = table.tableId;
+            player.seatIndex = openSeat.seatIndex;
+            player.inGameSessionId = activeGame.gameRoomId;
+            if (!table.hostUserId) table.hostUserId = player.userId;
+            if (seatDef) {
+              player.x = seatDef.x;
+              player.y = seatDef.y;
+              player.facing = seatDef.facing;
+            }
+          }
+        }
+      }
+      client.send("game.rejoinAvailable", activeGame);
+    }
 
     this.state.players.set(client.sessionId, player);
 
@@ -207,15 +266,19 @@ export class CafeRoom extends Room<CafeRoomState> {
       }
     }
 
-    this.releasePlayerSeat(player);
+    // Re-check in case a newer socket already replaced this player entry
+    const currentPlayer = this.state.players.get(client.sessionId);
+    if (!currentPlayer) return;
+
+    this.releasePlayerSeat(currentPlayer, false);
     this.state.players.delete(client.sessionId);
     this.chatTimestamps.delete(client.sessionId);
     this.lastMoveAt.delete(client.sessionId);
 
     this.broadcast("player.left", {
       sessionId: client.sessionId,
-      userId: player.userId,
-      displayName: player.displayName,
+      userId: currentPlayer.userId,
+      displayName: currentPlayer.displayName,
     });
 
     if (this.state.isPrivate && this.clients.length === 0) {
@@ -229,6 +292,11 @@ export class CafeRoom extends Room<CafeRoomState> {
   }
 
   private registerMessageHandlers() {
+    // 0. Liveness ping so mobile browsers waking from background detect zombie half-open sockets
+    this.onMessage("cafe.ping", (client) => {
+      client.send("cafe.pong", { ts: Date.now() });
+    });
+
     // 1. Movement with server-side speed & walkability validation
     this.onMessage("player.move", (client, raw) => {
       const player = this.state.players.get(client.sessionId);
@@ -324,6 +392,15 @@ export class CafeRoom extends Room<CafeRoomState> {
       if (!table || !tableDef) return;
 
       if (table.status === "IN_PROGRESS") {
+        const activeGame = getActiveGameForUser(player.userId);
+        if (activeGame && activeGame.gameRoomId === table.activeGameRoomId) {
+          client.send("table.gameStarted", {
+            tableId: table.tableId,
+            gameRoomId: activeGame.gameRoomId,
+            gameSlug: activeGame.gameSlug,
+          });
+          return;
+        }
         client.send("cafe.error", { message: "A game is currently in progress at this table." });
         return;
       }
@@ -349,7 +426,7 @@ export class CafeRoom extends Room<CafeRoomState> {
       }
 
       // Release any previous seat cleanly before occupying the new one
-      this.releasePlayerSeat(player);
+      this.releasePlayerSeat(player, true);
 
       seat.status = "OCCUPIED";
       seat.occupantSessionId = client.sessionId;
@@ -390,7 +467,7 @@ export class CafeRoom extends Room<CafeRoomState> {
     this.onMessage("table.releaseSeat", (client) => {
       const player = this.state.players.get(client.sessionId);
       if (!player || !player.seatedTableId) return;
-      this.releasePlayerSeat(player);
+      this.releasePlayerSeat(player, true);
     });
 
     // 7. Quick Game Switcher at Table
@@ -605,7 +682,7 @@ export class CafeRoom extends Room<CafeRoomState> {
     seat.isReady = false;
   }
 
-  private releasePlayerSeat(player: PlayerSchema) {
+  private releasePlayerSeat(player: PlayerSchema, explicitStandUp = false) {
     if (!player.seatedTableId) return;
     const table = this.state.tables.get(player.seatedTableId);
     const tableDef = COZY_CAFE_MAP.tables.find((t) => t.id === player.seatedTableId);
@@ -616,16 +693,22 @@ export class CafeRoom extends Room<CafeRoomState> {
         this.clearSeat(seat);
       }
 
-      // If no human players remain, stop any bot-only match immediately and reset the table!
       const remainingHumans = table.seats.filter((s) => s.status === "OCCUPIED");
       if (remainingHumans.length === 0) {
         const runningGameId = table.activeGameRoomId;
-        for (const s of table.seats) this.clearSeat(s);
-        table.hostUserId = "";
-        table.status = "AVAILABLE";
-        table.activeGameRoomId = "";
-        if (runningGameId) {
-          abortGameRoom(runningGameId);
+        if (table.status === "IN_PROGRESS" && runningGameId && !explicitStandUp) {
+          // Do not abort an active GameRoom on an unconsented CafeRoom socket timeout
+          // (e.g. minimized mobile browser). GameRoom handles its own 60s empty-human grace timer.
+          table.hostUserId = "";
+        } else {
+          // Explicit stand-up or pre-game lobby: reset table immediately and stop any bot-only match!
+          for (const s of table.seats) this.clearSeat(s);
+          table.hostUserId = "";
+          table.status = "AVAILABLE";
+          table.activeGameRoomId = "";
+          if (runningGameId) {
+            abortGameRoom(runningGameId);
+          }
         }
       } else if (table.hostUserId === player.userId) {
         table.hostUserId = remainingHumans[0]!.occupantUserId;

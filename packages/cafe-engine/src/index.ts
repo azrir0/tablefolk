@@ -20,6 +20,7 @@ export interface CafeEngineHandle {
   setJoystickVector: (vx: number, vy: number) => void;
   triggerNearbyInteract: () => void;
   setPaused: (paused: boolean) => void;
+  resetInput: () => void;
   destroy: () => void;
 }
 
@@ -55,7 +56,12 @@ export function mountCafeEngine(
         game.loop.sleep();
       } else {
         game.loop.wake();
+        game.scale.refresh();
       }
+    },
+    resetInput: () => {
+      scene.resetInput();
+      game.scale.refresh();
     },
     destroy: () => {
       game.destroy(true);

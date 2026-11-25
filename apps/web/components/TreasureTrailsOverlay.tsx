@@ -4,12 +4,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Client as ColyseusClient, type Room } from "colyseus.js";
 import {
   BookOpen,
+  Bot,
   Compass,
   Eye,
   EyeOff,
   Flame,
   LogOut,
   MessageCircle,
+  RefreshCw,
   RotateCw,
   Send,
   Sparkles,
@@ -42,7 +44,7 @@ import { PathTileSvg } from "./TreasureTrailsTileSvg";
 interface TreasureTrailsOverlayProps {
   gameRoomId: string;
   myUserId: string;
-  onExitGame: () => void;
+  onExitGame: (info?: { finished?: boolean; notice?: string }) => void;
   onOpenTutorial: () => void;
 }
 
@@ -85,11 +87,31 @@ interface ImpactBurst {
   icon: string;
 }
 
+interface FlyingChatBubble {
+  id: string;
+  senderName: string;
+  message: string;
+  isQuickBluff: boolean;
+  isMe: boolean;
+  offsetX: number;
+}
+
 const GEAR_META: Record<GearType, { label: string; icon: string }> = {
   lantern: { label: "Lantern", icon: "🏮" },
   compass: { label: "Compass", icon: "🧭" },
   grapple: { label: "Grapple", icon: "🪝" },
 };
+
+function isRoomSocketOpen(room: Room | null): boolean {
+  if (!room) return false;
+  const conn = room.connection as
+    | { isOpen?: boolean; ws?: { readyState?: number } }
+    | undefined;
+  if (!conn) return false;
+  if (typeof conn.isOpen === "boolean") return conn.isOpen;
+  if (typeof conn.ws?.readyState === "number") return conn.ws.readyState === 1;
+  return true;
+}
 
 function describeEvent(
   ev: TreasureTrailsEvent,
@@ -125,6 +147,128 @@ function describeEvent(
   }
 }
 
+interface GameChatAndLogPanelProps {
+  recentEvents: TreasureTrailsEvent[];
+  nameOf: (id: string) => string;
+  chatLog: GameChatEntry[];
+  chatInput: string;
+  onChatInputChange: (val: string) => void;
+  onQuickBluff: (pill: string) => void;
+  onSendChat: () => void;
+}
+
+function GameChatAndLogPanel({
+  recentEvents,
+  nameOf,
+  chatLog,
+  chatInput,
+  onChatInputChange,
+  onQuickBluff,
+  onSendChat,
+}: GameChatAndLogPanelProps) {
+  const logScrollRef = useRef<HTMLDivElement | null>(null);
+  const chatScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Auto-scroll Expedition Log to latest event on mount & update
+  useEffect(() => {
+    const scrollLog = () => {
+      const el = logScrollRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    };
+    scrollLog();
+    const raf = requestAnimationFrame(scrollLog);
+    return () => cancelAnimationFrame(raf);
+  }, [recentEvents.length]);
+
+  // Auto-scroll Table Talk chat to latest message on mount (drawer open!) & new messages
+  useEffect(() => {
+    const scrollChat = () => {
+      const el = chatScrollRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    };
+    scrollChat();
+    const raf = requestAnimationFrame(scrollChat);
+    return () => cancelAnimationFrame(raf);
+  }, [chatLog.length]);
+
+  return (
+    <>
+      <div
+        ref={logScrollRef}
+        className="max-h-32 space-y-1 overflow-y-auto border-b border-oat-200 bg-oat-100/80 p-2.5 text-[11px] font-semibold text-espresso-soft"
+      >
+        {recentEvents.slice(-6).map((ev, i) => (
+          <div key={i} className="rounded-lg bg-white/85 px-2.5 py-1">
+            {describeEvent(ev, nameOf)}
+          </div>
+        ))}
+      </div>
+
+      <div
+        ref={chatScrollRef}
+        className="flex-1 space-y-1.5 overflow-y-auto p-3 text-xs"
+      >
+        {chatLog.length === 0 && (
+          <p className="text-center text-[11px] text-espresso-muted">
+            Discuss routes — or bluff the table!
+          </p>
+        )}
+        {chatLog.map((m) => (
+          <div
+            key={m.id}
+            className={`rounded-xl px-2.5 py-1.5 ${
+              m.senderUserId === "system"
+                ? "border border-amberwarm-400/50 bg-amberwarm-100/90 font-semibold"
+                : "bg-oat-100"
+            }`}
+          >
+            {m.senderUserId !== "system" && (
+              <span className="font-bold text-sage-700">{m.senderName}: </span>
+            )}
+            <span className="text-espresso">{m.message}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-1 border-t border-oat-200 bg-oat-100/60 p-2">
+        {QUICK_BLUFF_PILLS.slice(0, 6).map((pill) => (
+          <button
+            key={pill}
+            type="button"
+            onClick={() => onQuickBluff(pill)}
+            className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-espresso shadow-sm hover:bg-amberwarm-100"
+          >
+            {pill}
+          </button>
+        ))}
+      </div>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSendChat();
+        }}
+        className="flex gap-1.5 border-t border-oat-200 p-2"
+      >
+        <input
+          type="text"
+          value={chatInput}
+          onChange={(e) => onChatInputChange(e.target.value)}
+          placeholder="Accuse or coordinate..."
+          maxLength={200}
+          className="flex-1 rounded-xl border border-oat-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-sage-500"
+        />
+        <button
+          type="submit"
+          className="rounded-xl bg-sage-500 p-2 text-white hover:bg-sage-700"
+        >
+          <Send className="h-3.5 w-3.5" />
+        </button>
+      </form>
+    </>
+  );
+}
+
 export function TreasureTrailsOverlay({
   gameRoomId,
   myUserId,
@@ -134,6 +278,10 @@ export function TreasureTrailsOverlay({
   const roomRef = useRef<Room | null>(null);
   const [pub, setPub] = useState<TreasureTrailsPublicState | null>(null);
   const [priv, setPriv] = useState<TreasureTrailsPrivateState | null>(null);
+  const [botControlledUserIds, setBotControlledUserIds] = useState<string[]>([]);
+  const [connState, setConnState] = useState<
+    "connecting" | "connected" | "reconnecting" | "error"
+  >("connecting");
   const [turnEndsAt, setTurnEndsAt] = useState(0);
   const [introEndsAt, setIntroEndsAt] = useState(0);
   const [nowMs, setNowMs] = useState(Date.now());
@@ -166,6 +314,7 @@ export function TreasureTrailsOverlay({
   } | null>(null);
   const [flyingEffects, setFlyingEffects] = useState<FlyingCardEffect[]>([]);
   const [impactBursts, setImpactBursts] = useState<ImpactBurst[]>([]);
+  const [flyingChatBubbles, setFlyingChatBubbles] = useState<FlyingChatBubble[]>([]);
   const [shakingPlayerId, setShakingPlayerId] = useState<string | null>(null);
   const [chatLog, setChatLog] = useState<GameChatEntry[]>([]);
   const [chatInput, setChatInput] = useState("");
@@ -182,11 +331,16 @@ export function TreasureTrailsOverlay({
   const latestPrivRef = useRef<TreasureTrailsPrivateState | null>(null);
   const introEndsAtRef = useRef(0);
   const mobileChatOpenRef = useRef(false);
+  const onExitGameRef = useRef(onExitGame);
+  const manualReconnectRef = useRef<(() => void) | null>(null);
+  const chatBubbleSeqRef = useRef(0);
+  const chatBubbleTimersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
 
   latestPubRef.current = pub;
   latestPrivRef.current = priv;
   introEndsAtRef.current = introEndsAt;
   mobileChatOpenRef.current = mobileChatOpen;
+  onExitGameRef.current = onExitGame;
 
   useEffect(() => {
     const id = setInterval(() => setNowMs(Date.now()), 250);
@@ -198,7 +352,40 @@ export function TreasureTrailsOverlay({
     introTimersRef.current = [];
   }, []);
 
-  useEffect(() => () => clearIntroTimers(), [clearIntroTimers]);
+  useEffect(() => {
+    const timers = chatBubbleTimersRef.current;
+    return () => {
+      clearIntroTimers();
+      for (const t of timers) clearTimeout(t);
+      timers.clear();
+    };
+  }, [clearIntroTimers]);
+
+  const spawnChatBubble = useCallback((msg: GameChatEntry, localUserId: string) => {
+    if (msg.senderUserId === "system") return;
+    const seq = ++chatBubbleSeqRef.current;
+    const offsets = [0, -14, 14, -8, 8];
+    const id = `cb_${seq}_${Date.now()}`;
+    const bubble: FlyingChatBubble = {
+      id,
+      senderName: msg.senderName,
+      message: msg.message,
+      isQuickBluff: Boolean(msg.isQuickBluff),
+      isMe: msg.senderUserId === localUserId,
+      offsetX: offsets[seq % offsets.length]!,
+    };
+
+    setFlyingChatBubbles((prev) => [...prev.slice(-3), bubble]);
+    if (msg.senderUserId !== localUserId && !mobileChatOpenRef.current) {
+      soundEngine.playEmotePop();
+    }
+
+    const timer = setTimeout(() => {
+      chatBubbleTimersRef.current.delete(timer);
+      setFlyingChatBubbles((prev) => prev.filter((b) => b.id !== id));
+    }, 3650);
+    chatBubbleTimersRef.current.add(timer);
+  }, []);
 
   const currentRound = pub?.currentRound ?? 0;
   const currentPhase = pub?.phase;
@@ -208,9 +395,9 @@ export function TreasureTrailsOverlay({
     if (!currentRound || currentPhase !== "IN_PROGRESS" || !myRole) return;
     if (lastIntroRoundRef.current === currentRound) return;
 
-    const currentTurn = latestPubRef.current?.turnNumber ?? 1;
     const remainingIntro = introEndsAtRef.current - Date.now();
-    if (currentTurn > 1 && remainingIntro < 800) {
+    // When rejoining an already-running round, jump straight onto the live board!
+    if (remainingIntro < 800) {
       lastIntroRoundRef.current = currentRound;
       return;
     }
@@ -467,21 +654,68 @@ export function TreasureTrailsOverlay({
     return () => clearTimeout(t);
   }, [actionBanner]);
 
-  // Connect to Colyseus GameRoom
+  // Connect to Colyseus GameRoom with auto-reconnect + mobile background/visibility recovery
   useEffect(() => {
-    let active = true;
-    const token = getStoredToken();
-    if (!token) return;
+    let disposed = false;
+    let connectSeq = 0;
+    let reconnectAttempt = 0;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let syncWatchdog: ReturnType<typeof setTimeout> | null = null;
+    let lastWakeCheckAt = 0;
 
-    const client = new ColyseusClient(WS_BASE_URL);
-    client
-      .joinById(gameRoomId, { token })
-      .then((room) => {
-        if (!active) {
+    const clearTimers = () => {
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+      if (syncWatchdog) {
+        clearTimeout(syncWatchdog);
+        syncWatchdog = null;
+      }
+    };
+
+    const scheduleReconnect = () => {
+      if (disposed) return;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      const delayMs = [750, 1500, 3000, 5000, 7000][Math.min(reconnectAttempt, 4)]!;
+      reconnectAttempt += 1;
+      setConnState("reconnecting");
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        void connect(true);
+      }, delayMs);
+    };
+
+    const connect = async (isReconnect: boolean) => {
+      const token = getStoredToken();
+      if (!token || disposed) return;
+
+      clearTimers();
+      const mySeq = ++connectSeq;
+      setConnState(isReconnect ? "reconnecting" : "connecting");
+
+      if (roomRef.current) {
+        const old = roomRef.current;
+        roomRef.current = null;
+        try {
+          await old.leave();
+        } catch {
+          // ignore closing dead socket
+        }
+      }
+
+      try {
+        const client = new ColyseusClient(WS_BASE_URL);
+        const room = await client.joinById(gameRoomId, { token });
+
+        if (disposed || mySeq !== connectSeq) {
           void room.leave();
           return;
         }
+
         roomRef.current = room;
+        reconnectAttempt = 0;
+        setConnState("connected");
 
         room.onMessage(
           "game.publicState",
@@ -489,12 +723,21 @@ export function TreasureTrailsOverlay({
             state: TreasureTrailsPublicState;
             turnEndsAt: number;
             introEndsAt?: number;
+            botControlledUserIds?: string[];
             events?: TreasureTrailsEvent[];
           }) => {
+            if (syncWatchdog) {
+              clearTimeout(syncWatchdog);
+              syncWatchdog = null;
+            }
+            setConnState("connected");
             setPub(payload.state);
             setTurnEndsAt(payload.turnEndsAt);
             if (typeof payload.introEndsAt === "number") {
               setIntroEndsAt(payload.introEndsAt);
+            }
+            if (Array.isArray(payload.botControlledUserIds)) {
+              setBotControlledUserIds(payload.botControlledUserIds);
             }
 
             const evs = payload.events ?? [];
@@ -542,22 +785,106 @@ export function TreasureTrailsOverlay({
 
         room.onMessage("game.chatReceived", (msg: GameChatEntry) => {
           setChatLog((prev) => [...prev.slice(-39), msg]);
+          spawnChatBubble(msg, myUserId);
           if (!mobileChatOpenRef.current && msg.senderUserId !== myUserId) {
             setUnreadChatCount((c) => c + 1);
           }
         });
-      })
-      .catch((err) => {
+
+        room.onLeave(() => {
+          if (disposed || mySeq !== connectSeq) return;
+          roomRef.current = null;
+          // Don't keep reconnecting if the match already finished cleanly
+          if (latestPubRef.current?.phase === "COMPLETED") return;
+          scheduleReconnect();
+        });
+      } catch (err) {
+        if (disposed || mySeq !== connectSeq) return;
+        const msg = ((err as Error)?.message || "").toLowerCase();
+        // If room no longer exists on server (finished or aborted while away), return gracefully!
+        if (
+          msg.includes("not found") ||
+          msg.includes("locked") ||
+          msg.includes("4212")
+        ) {
+          onExitGameRef.current({
+            finished: true,
+            notice: "That Treasure Trails match has already ended.",
+          });
+          return;
+        }
         console.error("Failed to join GameRoom:", err);
-        setErrorToast("Could not connect to game session.");
-      });
+        if (reconnectAttempt < 6) {
+          scheduleReconnect();
+        } else {
+          setConnState("error");
+          setErrorToast("Connection interrupted. Tap Reconnect.");
+        }
+      }
+    };
+
+    manualReconnectRef.current = () => {
+      reconnectAttempt = 0;
+      void connect(true);
+    };
+
+    void connect(false);
+
+    // Wake up cleanly after mobile minimize / lock screen / network switch!
+    const handleResume = () => {
+      if (disposed || document.visibilityState === "hidden") return;
+      const now = Date.now();
+      if (now - lastWakeCheckAt < 450) return;
+      lastWakeCheckAt = now;
+      setNowMs(now);
+
+      const room = roomRef.current;
+      if (!isRoomSocketOpen(room)) {
+        reconnectAttempt = 0;
+        void connect(true);
+        return;
+      }
+
+      // Socket claims open — request immediate state sync + start 3.5s zombie-socket watchdog
+      if (syncWatchdog) clearTimeout(syncWatchdog);
+      try {
+        room!.send("game.sync");
+        syncWatchdog = setTimeout(() => {
+          syncWatchdog = null;
+          if (disposed) return;
+          const dead = roomRef.current;
+          roomRef.current = null;
+          try {
+            void dead?.leave(false);
+          } catch {
+            // ignore
+          }
+          reconnectAttempt = 0;
+          void connect(true);
+        }, 3500);
+      } catch {
+        reconnectAttempt = 0;
+        void connect(true);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleResume);
+    window.addEventListener("pageshow", handleResume);
+    window.addEventListener("online", handleResume);
 
     return () => {
-      active = false;
-      void roomRef.current?.leave();
+      disposed = true;
+      connectSeq += 1;
+      clearTimers();
+      manualReconnectRef.current = null;
+      document.removeEventListener("visibilitychange", handleResume);
+      window.removeEventListener("pageshow", handleResume);
+      window.removeEventListener("online", handleResume);
+      const current = roomRef.current;
       roomRef.current = null;
+      void current?.leave();
     };
-  }, [gameRoomId, myUserId, animateEvents]);
+  }, [gameRoomId, myUserId, animateEvents, spawnChatBubble]);
 
   const myPublic = useMemo(
     () => pub?.players.find((p) => p.userId === myUserId) ?? null,
@@ -694,82 +1021,42 @@ export function TreasureTrailsOverlay({
 
   if (!pub) {
     return (
-      <div className="fixed inset-0 z-40 flex h-[100dvh] items-center justify-center bg-espresso/75 backdrop-blur-sm">
-        <div className="rounded-3xl bg-oat-50 px-8 py-6 text-center shadow-cozy">
+      <div className="fixed inset-0 z-40 flex h-[100dvh] items-center justify-center bg-espresso/75 p-4 backdrop-blur-sm">
+        <div className="w-full max-w-sm rounded-3xl bg-oat-50 px-7 py-6 text-center shadow-cozy">
           <div className="font-display text-xl font-bold text-espresso">
-            Dealing Treasure Trails...
+            {connState === "error"
+              ? "Connection Interrupted"
+              : connState === "reconnecting"
+                ? "Rejoining Treasure Trails..."
+                : "Dealing Treasure Trails..."}
           </div>
           <p className="mt-1 text-xs text-espresso-muted">
-            Shuffling secret roles and hiding the Golden Compass
+            {connState === "error"
+              ? "Could not reach the match server right now."
+              : "Shuffling secret roles and syncing the expedition map"}
           </p>
+          <div className="mt-4 flex justify-center gap-2">
+            {connState === "error" && (
+              <button
+                type="button"
+                onClick={() => manualReconnectRef.current?.()}
+                className="rounded-xl bg-sage-500 px-4 py-2 text-xs font-bold text-white hover:bg-sage-700"
+              >
+                Retry
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => onExitGame({ finished: false })}
+              className="rounded-xl bg-oat-200 px-4 py-2 text-xs font-bold text-espresso hover:bg-oat-300"
+            >
+              Back to Café
+            </button>
+          </div>
         </div>
       </div>
     );
   }
-
-  const renderChatAndLogBody = () => (
-    <>
-      <div className="max-h-32 space-y-1 overflow-y-auto border-b border-oat-200 bg-oat-100/80 p-2.5 text-[11px] font-semibold text-espresso-soft">
-        {pub.recentEvents.slice(-6).map((ev, i) => (
-          <div key={i} className="rounded-lg bg-white/85 px-2.5 py-1">
-            {describeEvent(ev, nameOf)}
-          </div>
-        ))}
-      </div>
-
-      <div className="flex-1 space-y-1.5 overflow-y-auto p-3 text-xs">
-        {chatLog.length === 0 && (
-          <p className="text-center text-[11px] text-espresso-muted">
-            Discuss routes — or bluff the table!
-          </p>
-        )}
-        {chatLog.map((m) => (
-          <div key={m.id} className="rounded-xl bg-oat-100 px-2.5 py-1.5">
-            <span className="font-bold text-sage-700">{m.senderName}: </span>
-            <span className="text-espresso">{m.message}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap gap-1 border-t border-oat-200 bg-oat-100/60 p-2">
-        {QUICK_BLUFF_PILLS.slice(0, 6).map((pill) => (
-          <button
-            key={pill}
-            type="button"
-            onClick={() => roomRef.current?.send("game.quickBluff", { text: pill })}
-            className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-espresso shadow-sm hover:bg-amberwarm-100"
-          >
-            {pill}
-          </button>
-        ))}
-      </div>
-
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!chatInput.trim()) return;
-          roomRef.current?.send("game.chat", { message: chatInput });
-          setChatInput("");
-        }}
-        className="flex gap-1.5 border-t border-oat-200 p-2"
-      >
-        <input
-          type="text"
-          value={chatInput}
-          onChange={(e) => setChatInput(e.target.value)}
-          placeholder="Accuse or coordinate..."
-          maxLength={200}
-          className="flex-1 rounded-xl border border-oat-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-sage-500"
-        />
-        <button
-          type="submit"
-          className="rounded-xl bg-sage-500 p-2 text-white hover:bg-sage-700"
-        >
-          <Send className="h-3.5 w-3.5" />
-        </button>
-      </form>
-    </>
-  );
 
   return (
     <div className="fixed inset-0 z-40 flex h-[100dvh] flex-col overflow-hidden bg-[#2D241E] text-espresso">
@@ -864,7 +1151,7 @@ export function TreasureTrailsOverlay({
 
             <button
               type="button"
-              onClick={onExitGame}
+              onClick={() => onExitGame({ finished: pub.phase === "COMPLETED" })}
               aria-label="Back to Café"
               className="inline-flex items-center gap-1 rounded-xl bg-oat-200 p-1.5 text-xs font-bold text-espresso hover:bg-terracotta-100 hover:text-terracotta-700 sm:px-3 sm:py-1.5"
             >
@@ -887,6 +1174,7 @@ export function TreasureTrailsOverlay({
                 pub.activePlayerId === p.userId;
               const isMe = p.userId === myUserId;
               const isShaking = shakingPlayerId === p.userId;
+              const isBotSub = botControlledUserIds.includes(p.userId);
 
               return (
                 <div
@@ -904,9 +1192,19 @@ export function TreasureTrailsOverlay({
                   }`}
                 >
                   <div className="flex items-center justify-between gap-1 text-[11px] font-bold sm:text-xs">
-                    <span className="truncate text-espresso">
-                      {p.displayName}
-                      {isMe ? " ★" : ""}
+                    <span className="flex min-w-0 items-center gap-1 truncate text-espresso">
+                      <span className="truncate">
+                        {p.displayName}
+                        {isMe ? " ★" : ""}
+                      </span>
+                      {isBotSub && (
+                        <span
+                          title="Café Bot subbing in while player is away"
+                          className="inline-flex shrink-0 items-center gap-0.5 rounded bg-amberwarm-400/90 px-1 py-0.5 text-[8px] font-extrabold text-espresso"
+                        >
+                          <Bot className="h-2.5 w-2.5" /> Sub
+                        </span>
+                      )}
                     </span>
                     <span className="shrink-0 rounded-md bg-amberwarm-100 px-1 py-0.5 text-[9px] text-amberwarm-600 sm:px-1.5 sm:text-[10px]">
                       ★{p.score}
@@ -1088,6 +1386,28 @@ export function TreasureTrailsOverlay({
               </div>
             </div>
 
+            {(connState === "reconnecting" || connState === "error") && (
+              <div className="absolute left-1/2 top-2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-amberwarm-400 bg-espresso/95 px-3.5 py-1 text-[11px] font-bold text-oat-50 shadow-lg backdrop-blur">
+                <RefreshCw
+                  className={`h-3 w-3 text-amberwarm-400 ${
+                    connState === "reconnecting" ? "animate-spin" : ""
+                  }`}
+                />
+                <span>
+                  {connState === "reconnecting"
+                    ? "Reconnecting..."
+                    : "Disconnected"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => manualReconnectRef.current?.()}
+                  className="rounded-full bg-amberwarm-400 px-2 py-0.5 text-[10px] font-extrabold text-espresso"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
             {errorToast && (
               <div className="absolute bottom-2 left-1/2 z-20 -translate-x-1/2 rounded-full bg-terracotta-500 px-3.5 py-1 text-[11px] font-bold text-white shadow-lg">
                 {errorToast}
@@ -1114,7 +1434,21 @@ export function TreasureTrailsOverlay({
           <div className="border-b border-oat-200 px-4 py-2.5 font-display text-sm font-bold text-espresso">
             Expedition Log &amp; Table Talk
           </div>
-          {renderChatAndLogBody()}
+          <GameChatAndLogPanel
+            recentEvents={pub.recentEvents}
+            nameOf={nameOf}
+            chatLog={chatLog}
+            chatInput={chatInput}
+            onChatInputChange={setChatInput}
+            onQuickBluff={(pill) =>
+              roomRef.current?.send("game.quickBluff", { text: pill })
+            }
+            onSendChat={() => {
+              if (!chatInput.trim()) return;
+              roomRef.current?.send("game.chat", { message: chatInput });
+              setChatInput("");
+            }}
+          />
         </aside>
       </div>
 
@@ -1265,8 +1599,59 @@ export function TreasureTrailsOverlay({
                 <X className="h-4 w-4" />
               </button>
             </div>
-            {renderChatAndLogBody()}
+            <GameChatAndLogPanel
+              recentEvents={pub.recentEvents}
+              nameOf={nameOf}
+              chatLog={chatLog}
+              chatInput={chatInput}
+              onChatInputChange={setChatInput}
+              onQuickBluff={(pill) =>
+                roomRef.current?.send("game.quickBluff", { text: pill })
+              }
+              onSendChat={() => {
+                if (!chatInput.trim()) return;
+                roomRef.current?.send("game.chat", { message: chatInput });
+                setChatInput("");
+              }}
+            />
           </div>
+        </div>
+      )}
+
+      {/* IN-GAME FLYING CHAT BUBBLES (Centered over the board, non-blocking, fade away!) */}
+      {flyingChatBubbles.length > 0 && !isIntroBlocking && (
+        <div className="pointer-events-none fixed inset-0 z-[48] flex flex-col items-center justify-center gap-2.5 px-4">
+          {flyingChatBubbles.map((b) => (
+            <div
+              key={b.id}
+              style={{ "--bubble-x": `${b.offsetX}px` } as React.CSSProperties}
+              className={`animate-tt-chat-bubble relative max-w-[min(86vw,340px)] rounded-2xl border-2 px-4 py-2 text-center shadow-2xl backdrop-blur-md ${
+                b.isQuickBluff
+                  ? "border-amberwarm-400 bg-amberwarm-100/95 text-espresso"
+                  : b.isMe
+                    ? "border-sage-500 bg-oat-50/95 text-espresso"
+                    : "border-oat-300 bg-oat-50/95 text-espresso"
+              }`}
+            >
+              <div className="flex items-center justify-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wide text-sage-700">
+                <span>{b.isQuickBluff ? "🗣️" : "💬"}</span>
+                <span className="truncate">{b.senderName}</span>
+              </div>
+              <div className="mt-0.5 break-words text-xs font-bold leading-snug text-espresso sm:text-sm">
+                {b.message}
+              </div>
+              {/* Speech bubble tail */}
+              <span
+                className={`absolute -bottom-[7px] left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-b-2 border-r-2 ${
+                  b.isQuickBluff
+                    ? "border-amberwarm-400 bg-amberwarm-100/95"
+                    : b.isMe
+                      ? "border-sage-500 bg-oat-50/95"
+                      : "border-oat-300 bg-oat-50/95"
+                }`}
+              />
+            </div>
+          ))}
         </div>
       )}
 
@@ -1467,7 +1852,7 @@ export function TreasureTrailsOverlay({
                 ) : (
                   <button
                     type="button"
-                    onClick={onExitGame}
+                    onClick={() => onExitGame({ finished: true })}
                     className="inline-flex items-center gap-2 rounded-2xl bg-sage-500 px-6 py-3 font-display text-sm font-bold text-white shadow-sm hover:bg-sage-700"
                   >
                     <Flame className="h-4 w-4" /> Return to Café Table

@@ -1,14 +1,22 @@
 /**
- * Lightweight in-process registry linking active CafeRooms and spawned GameRooms
- * so a CafeRoom table automatically resets when its GameRoom finishes, AND
- * an abandoned bot-only GameRoom immediately terminates when all humans leave the table.
+ * Lightweight in-process registry linking active CafeRooms, spawned GameRooms,
+ * private café access codes, and active human match memberships so players can
+ * seamlessly rejoin after tapping out, refreshing, or minimizing mobile browsers.
  */
 type TableFinishedHandler = (tableId: string) => void;
 type GameAbortHandler = () => void;
 
+export interface ActiveUserGameRef {
+  gameRoomId: string;
+  cafeRoomId: string;
+  tableId: string;
+  gameSlug: string;
+}
+
 const cafeHandlers = new Map<string, TableFinishedHandler>();
 const gameAbortHandlers = new Map<string, GameAbortHandler>();
 const privateCodeToRoomId = new Map<string, string>();
+const activeUserGames = new Map<string, ActiveUserGameRef>();
 
 export function registerCafeRoom(roomId: string, onTableFinished: TableFinishedHandler): void {
   cafeHandlers.set(roomId, onTableFinished);
@@ -28,12 +36,37 @@ export function notifyCafeTableFinished(cafeRoomId: string, tableId: string): vo
   }
 }
 
-export function registerGameRoom(gameRoomId: string, onAbort: GameAbortHandler): void {
+export function registerGameRoom(
+  gameRoomId: string,
+  onAbort: GameAbortHandler,
+  humanUserIds: string[],
+  meta: Omit<ActiveUserGameRef, "gameRoomId">
+): void {
   gameAbortHandlers.set(gameRoomId, onAbort);
+  for (const uid of humanUserIds) {
+    activeUserGames.set(uid, { gameRoomId, ...meta });
+  }
 }
 
 export function unregisterGameRoom(gameRoomId: string): void {
   gameAbortHandlers.delete(gameRoomId);
+  for (const [uid, ref] of activeUserGames.entries()) {
+    if (ref.gameRoomId === gameRoomId) {
+      activeUserGames.delete(uid);
+    }
+  }
+}
+
+export function clearActiveGameForUser(userId: string, gameRoomId?: string): void {
+  const current = activeUserGames.get(userId);
+  if (!current) return;
+  if (!gameRoomId || current.gameRoomId === gameRoomId) {
+    activeUserGames.delete(userId);
+  }
+}
+
+export function getActiveGameForUser(userId: string): ActiveUserGameRef | null {
+  return activeUserGames.get(userId) ?? null;
 }
 
 export function abortGameRoom(gameRoomId: string): void {

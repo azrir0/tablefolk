@@ -137,6 +137,29 @@
   }
 }
 
+@keyframes tt-chat-bubble-fly {
+  0% {
+    transform: translate3d(var(--bubble-x, 0px), 36px, 0) scale(0.76);
+    opacity: 0;
+  }
+  12% {
+    transform: translate3d(var(--bubble-x, 0px), 2px, 0) scale(1.04);
+    opacity: 1;
+  }
+  20% {
+    transform: translate3d(var(--bubble-x, 0px), 0px, 0) scale(1);
+    opacity: 1;
+  }
+  74% {
+    transform: translate3d(var(--bubble-x, 0px), -26px, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--bubble-x, 0px), -68px, 0) scale(0.94);
+    opacity: 0;
+  }
+}
+
 .animate-tt-countdown {
   animation: tt-countdown-pop 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
@@ -159,4 +182,8 @@
 
 .animate-tt-shake {
   animation: tt-shake 0.45s ease-in-out;
+}
+
+.animate-tt-chat-bubble {
+  animation: tt-chat-bubble-fly 3.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }

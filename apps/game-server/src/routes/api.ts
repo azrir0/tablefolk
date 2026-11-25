@@ -27,7 +27,10 @@ import {
   upgradeGuestToAccount,
   verifyAuthToken,
 } from "../services/auth.js";
-import { lookupPrivateCafeRoom } from "../services/roomRegistry.js";
+import {
+  getActiveGameForUser,
+  lookupPrivateCafeRoom,
+} from "../services/roomRegistry.js";
 import { createRateLimiter } from "../middleware/rateLimit.js";
 
 const authLimiter = createRateLimiter({
@@ -187,6 +190,12 @@ export function createApiRouter(): Router {
       return;
     }
     res.json({ profile });
+  });
+
+  router.get("/me/active-game", async (req, res) => {
+    const userId = await requireAuth(req, res);
+    if (!userId) return;
+    res.json({ activeGame: getActiveGameForUser(userId) });
   });
 
   router.patch("/me/avatar", async (req, res) => {

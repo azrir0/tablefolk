@@ -12,6 +12,7 @@ import {
   Gamepad2,
   LogOut,
   MessageCircle,
+  RefreshCw,
   Send,
   Smile,
   Sparkles,
@@ -41,6 +42,7 @@ import { AvatarSvg } from "@tablefolk/ui";
 import {
   WS_BASE_URL,
   clearStoredToken,
+  fetchMyActiveGame,
   fetchMyProfile,
   getStoredToken,
   loginAsGuest,
@@ -48,6 +50,7 @@ import {
   saveMyAvatar,
   submitPlayerReport,
   upgradeGuestAccount,
+  type ActiveGameRef,
 } from "@/lib/api";
 import { soundEngine } from "@/lib/sound";
 import { AvatarCustomizerModal } from "./AvatarCustomizerModal";
@@ -57,6 +60,17 @@ import { TableLobbyDrawer } from "./TableLobbyDrawer";
 import { TreasureTrailsOverlay } from "./TreasureTrailsOverlay";
 import { VirtualJoystick } from "./VirtualJoystick";
 import { WardrobeModal } from "./WardrobeModal";
+
+function isRoomSocketOpen(room: Room | null): boolean {
+  if (!room) return false;
+  const conn = room.connection as
+    | { isOpen?: boolean; ws?: { readyState?: number } }
+    | undefined;
+  if (!conn) return false;
+  if (typeof conn.isOpen === "boolean") return conn.isOpen;
+  if (typeof conn.ws?.readyState === "number") return conn.ws.readyState === 1;
+  return true;
+}
 
 // Helpers to extract plain JS snapshots from Colyseus MapSchema/ArraySchema safely
 interface RawPlayer {
@@ -146,7 +160,7 @@ export function CafeExperience() {
   const [players, setPlayers] = useState<SyncedPlayerSnapshot[]>([]);
   const [tables, setTables] = useState<SyncedTableSnapshot[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<
-    "connecting" | "connected" | "error"
+    "connecting" | "connected" | "reconnecting" | "error"
   >("connecting");
 
   // Interactive UI states
@@ -173,6 +187,7 @@ export function CafeExperience() {
 
   // Chat & Emotes & Moderation
   const [chatOpen, setChatOpen] = useState(true);
+  const [unreadCafeChat, setUnreadCafeChat] = useState(0);
   const [emoteOpen, setEmoteOpen] = useState(false);
   const [chatScope, setChatScope] = useState<"cafe" | "table">("cafe");
   const [chatMessages, setChatMessages] = useState<ChatMessageDTO[]>([]);
@@ -183,9 +198,17 @@ export function CafeExperience() {
     name: string;
   } | null>(null);
   const [reportReason, setReportReason] = useState("");
+  const cafeChatScrollRef = useRef<HTMLDivElement | null>(null);
 
-  // Active Treasure Trails game overlay
+  // Active Treasure Trails game overlay + Rejoin tracker
   const [activeGameRoomId, setActiveGameRoomId] = useState<string | null>(null);
+  const [rejoinGame, setRejoinGame] = useState<ActiveGameRef | null>(null);
+
+  const chatOpenRef = useRef(chatOpen);
+  const activeGameRoomIdRef = useRef<string | null>(activeGameRoomId);
+  const userIdRef = useRef<string | null>(null);
+  chatOpenRef.current = chatOpen;
+  activeGameRoomIdRef.current = activeGameRoomId;
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -228,7 +251,23 @@ export function CafeExperience() {
 
   const [engineReady, setEngineReady] = useState(false);
   const connectSeqRef = useRef(0);
+  const lastCafeTargetRef = useRef<
+    { roomId?: string; accessCode?: string } | undefined
+  >(undefined);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttemptRef = useRef(0);
+  const pongWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intentionalLeaveRef = useRef(false);
+  const lastWakeCheckAtRef = useRef(0);
+  const connectToCafeRef = useRef<
+    ((
+      opts?: { roomId?: string; accessCode?: string },
+      meta?: { isReconnect?: boolean }
+    ) => Promise<void>) | null
+  >(null);
+
   const userId = profile?.userId ?? null;
+  userIdRef.current = userId;
 
   // Mount Phaser 3 engine dynamically on client once authenticated
   useEffect(() => {
@@ -277,17 +316,59 @@ export function CafeExperience() {
     }
   }, [engineReady, mySessionId]);
 
+  const clearReconnectTimers = useCallback(() => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    if (pongWatchdogRef.current) {
+      clearTimeout(pongWatchdogRef.current);
+      pongWatchdogRef.current = null;
+    }
+  }, []);
+
+  const scheduleReconnect = useCallback(() => {
+    if (intentionalLeaveRef.current) return;
+    if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+    const attempt = reconnectAttemptRef.current;
+    const delayMs = [900, 1800, 3500, 5000, 7000][Math.min(attempt, 4)]!;
+    reconnectAttemptRef.current = attempt + 1;
+    setConnectionStatus("reconnecting");
+    reconnectTimerRef.current = setTimeout(() => {
+      reconnectTimerRef.current = null;
+      void connectToCafeRef.current?.(lastCafeTargetRef.current, {
+        isReconnect: true,
+      });
+    }, delayMs);
+  }, []);
+
   const connectToCafe = useCallback(
-    async (opts?: { roomId?: string; accessCode?: string }) => {
+    async (
+      opts?: { roomId?: string; accessCode?: string },
+      meta?: { isReconnect?: boolean }
+    ) => {
       const token = getStoredToken();
       if (!token) return;
 
+      const isReconnect = Boolean(meta?.isReconnect);
+      clearReconnectTimers();
+      intentionalLeaveRef.current = false;
+      if (!isReconnect) {
+        reconnectAttemptRef.current = 0;
+        lastCafeTargetRef.current = opts;
+      }
+
       const mySeq = ++connectSeqRef.current;
-      setConnectionStatus("connecting");
+      setConnectionStatus(isReconnect ? "reconnecting" : "connecting");
+
       if (cafeRoomRef.current) {
         const old = cafeRoomRef.current;
         cafeRoomRef.current = null;
-        await old.leave();
+        try {
+          await old.leave();
+        } catch {
+          // Ignore errors closing a dead socket
+        }
       }
 
       try {
@@ -295,10 +376,27 @@ export function CafeExperience() {
         let room: Room;
 
         if (opts?.roomId) {
-          room = await client.joinById(opts.roomId, {
-            token,
-            accessCode: opts.accessCode,
-          });
+          try {
+            room = await client.joinById(opts.roomId, {
+              token,
+              accessCode: opts.accessCode,
+            });
+          } catch (roomErr) {
+            // If a specific room expired while the mobile browser was sleeping, fall back gracefully!
+            if (isReconnect) {
+              if (opts.accessCode) {
+                const resolved = await resolvePrivateCafeCode(opts.accessCode);
+                room = await client.joinById(resolved.roomId, {
+                  token,
+                  accessCode: resolved.accessCode,
+                });
+              } else {
+                room = await client.joinOrCreate("cafe", { token });
+              }
+            } else {
+              throw roomErr;
+            }
+          }
         } else if (opts?.accessCode) {
           const resolved = await resolvePrivateCafeCode(opts.accessCode);
           room = await client.joinById(resolved.roomId, {
@@ -311,11 +409,16 @@ export function CafeExperience() {
 
         // Guard against React StrictMode unmount or newer switch request
         if (mySeq !== connectSeqRef.current) {
-          await room.leave();
+          void room.leave();
           return;
         }
 
         cafeRoomRef.current = room;
+        reconnectAttemptRef.current = 0;
+        lastCafeTargetRef.current = {
+          roomId: room.roomId,
+          accessCode: opts?.accessCode,
+        };
         lastUiSigRef.current = "";
         setMySessionId(room.sessionId);
         engineRef.current?.setLocalSessionId(room.sessionId);
@@ -366,6 +469,13 @@ export function CafeExperience() {
             });
           });
 
+          if (raw.accessCode) {
+            lastCafeTargetRef.current = {
+              roomId: room.roomId,
+              accessCode: raw.accessCode,
+            };
+          }
+
           // Push directly to Phaser at full speed with ZERO React re-render overhead!
           latestPlayersRef.current = nextPlayers;
           latestTablesRef.current = nextTables;
@@ -411,8 +521,22 @@ export function CafeExperience() {
           syncFromState(room.state as unknown as RawCafeState);
         }
 
+        room.onMessage("cafe.pong", () => {
+          if (pongWatchdogRef.current) {
+            clearTimeout(pongWatchdogRef.current);
+            pongWatchdogRef.current = null;
+          }
+        });
+
+        room.onMessage("game.rejoinAvailable", (ag: ActiveGameRef) => {
+          setRejoinGame(ag);
+        });
+
         room.onMessage("chat.received", (msg: ChatMessageDTO) => {
           setChatMessages((prev) => [...prev.slice(-59), msg]);
+          if (!chatOpenRef.current && msg.senderUserId !== userIdRef.current) {
+            setUnreadCafeChat((c) => c + 1);
+          }
         });
 
         room.onMessage("cafe.error", (p: { message: string }) => {
@@ -431,38 +555,124 @@ export function CafeExperience() {
           "table.gameStarted",
           (p: { tableId: string; gameRoomId: string; gameSlug: string }) => {
             soundEngine.playTurnChime();
+            setRejoinGame({
+              gameRoomId: p.gameRoomId,
+              cafeRoomId: room.roomId,
+              tableId: p.tableId,
+              gameSlug: p.gameSlug,
+              startedAt: Date.now(),
+            });
             setActiveGameRoomId(p.gameRoomId);
           }
         );
 
         room.onLeave(() => {
-          if (mySeq === connectSeqRef.current) {
-            setConnectionStatus("connecting");
-          }
+          if (mySeq !== connectSeqRef.current || intentionalLeaveRef.current) return;
+          cafeRoomRef.current = null;
+          scheduleReconnect();
         });
       } catch (err) {
         if (mySeq !== connectSeqRef.current) return;
         console.error("Cafe connection error:", err);
+        if (isReconnect && reconnectAttemptRef.current < 5) {
+          scheduleReconnect();
+          return;
+        }
         setConnectionStatus("error");
         showToast((err as Error).message || "Could not connect to café server.");
       }
     },
-    [showToast]
+    [clearReconnectTimers, scheduleReconnect, showToast]
   );
 
-  // Connect automatically once authenticated userId is ready
+  connectToCafeRef.current = connectToCafe;
+
+  // Connect automatically once authenticated userId is ready + check for any active match to rejoin
   useEffect(() => {
     if (!userId) return;
     void connectToCafe(
       inviteCodeParam ? { accessCode: inviteCodeParam } : undefined
     );
+    void fetchMyActiveGame()
+      .then((ag) => {
+        if (ag) setRejoinGame(ag);
+      })
+      .catch(() => {});
+
     return () => {
+      intentionalLeaveRef.current = true;
       connectSeqRef.current += 1;
+      clearReconnectTimers();
       const current = cafeRoomRef.current;
       cafeRoomRef.current = null;
       void current?.leave();
     };
-  }, [userId, inviteCodeParam, connectToCafe]);
+  }, [userId, inviteCodeParam, connectToCafe, clearReconnectTimers]);
+
+  // Recover seamlessly when returning from mobile browser minimize / sleep / network switch!
+  useEffect(() => {
+    if (!userId) return;
+
+    const handleResume = () => {
+      if (document.visibilityState === "hidden") return;
+      const now = Date.now();
+      if (now - lastWakeCheckAtRef.current < 450) return;
+      lastWakeCheckAtRef.current = now;
+
+      // Clear any stuck touch/keyboard state and wake Phaser loop if visible
+      engineRef.current?.resetInput();
+      if (!activeGameRoomIdRef.current) {
+        engineRef.current?.setPaused(false);
+        void fetchMyActiveGame()
+          .then((ag) => setRejoinGame(ag))
+          .catch(() => {});
+      }
+
+      const room = cafeRoomRef.current;
+      if (!isRoomSocketOpen(room)) {
+        reconnectAttemptRef.current = 0;
+        void connectToCafeRef.current?.(lastCafeTargetRef.current, {
+          isReconnect: true,
+        });
+        return;
+      }
+
+      // Socket claims open — verify it's not a half-open mobile zombie socket via ping watchdog
+      if (pongWatchdogRef.current) clearTimeout(pongWatchdogRef.current);
+      try {
+        room!.send("cafe.ping");
+        pongWatchdogRef.current = setTimeout(() => {
+          pongWatchdogRef.current = null;
+          if (intentionalLeaveRef.current) return;
+          const dead = cafeRoomRef.current;
+          cafeRoomRef.current = null;
+          try {
+            void dead?.leave(false);
+          } catch {
+            // ignore
+          }
+          reconnectAttemptRef.current = 0;
+          void connectToCafeRef.current?.(lastCafeTargetRef.current, {
+            isReconnect: true,
+          });
+        }, 3500);
+      } catch {
+        reconnectAttemptRef.current = 0;
+        void connectToCafeRef.current?.(lastCafeTargetRef.current, {
+          isReconnect: true,
+        });
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleResume);
+    window.addEventListener("pageshow", handleResume);
+    window.addEventListener("online", handleResume);
+    return () => {
+      document.removeEventListener("visibilitychange", handleResume);
+      window.removeEventListener("pageshow", handleResume);
+      window.removeEventListener("online", handleResume);
+    };
+  }, [userId]);
 
   const myPlayer = useMemo(
     () => players.find((p) => p.sessionId === mySessionId) ?? null,
@@ -476,6 +686,22 @@ export function CafeExperience() {
         : null,
     [myPlayer, tables]
   );
+
+  // If the table for a known rejoinGame finished while we're in the café, clear the stale banner!
+  useEffect(() => {
+    if (!rejoinGame) return;
+    if (rejoinGame.cafeRoomId && rejoinGame.cafeRoomId !== roomMeta.roomId) return;
+    const tbl = tables.find((t) => t.tableId === rejoinGame.tableId);
+    if (tbl && tbl.activeGameRoomId !== rejoinGame.gameRoomId) {
+      setRejoinGame(null);
+    }
+  }, [tables, rejoinGame, roomMeta.roomId]);
+
+  const effectiveRejoinGameId =
+    rejoinGame?.gameRoomId ||
+    (mySeatedTable?.status === "IN_PROGRESS" && mySeatedTable.activeGameRoomId
+      ? mySeatedTable.activeGameRoomId
+      : null);
 
   const myReady = useMemo(() => {
     if (!mySeatedTable || !myPlayer) return false;
@@ -491,6 +717,19 @@ export function CafeExperience() {
       }),
     [chatMessages, mutedUserIds, chatScope]
   );
+
+  // Auto-scroll Café Chat to the latest message whenever opened, switched scope, or new msg arrives
+  useEffect(() => {
+    if (!chatOpen || activeGameRoomId) return;
+    setUnreadCafeChat(0);
+    const scrollBottom = () => {
+      const el = cafeChatScrollRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    };
+    scrollBottom();
+    const raf = requestAnimationFrame(scrollBottom);
+    return () => cancelAnimationFrame(raf);
+  }, [chatOpen, chatScope, visibleChat.length, activeGameRoomId]);
 
   // Inline Instant Guest Join Gate if arriving directly at /cafe or via invite link
   if (authChecked && !profile) {
@@ -661,6 +900,8 @@ export function CafeExperience() {
           <button
             type="button"
             onClick={() => {
+              intentionalLeaveRef.current = true;
+              clearReconnectTimers();
               void cafeRoomRef.current?.leave();
               router.push("/");
             }}
@@ -679,12 +920,53 @@ export function CafeExperience() {
         </div>
       )}
 
+      {/* ACTIVE MATCH REJOIN BANNER (impossible to miss if user accidentally tapped out or refreshed!) */}
+      {effectiveRejoinGameId && !activeGameRoomId && (
+        <div className="fixed left-1/2 top-16 z-30 flex w-[calc(100%-24px)] max-w-md -translate-x-1/2 items-center justify-between gap-2.5 rounded-2xl border-2 border-amberwarm-400 bg-oat-50/95 px-3.5 py-2 shadow-cozy backdrop-blur sm:top-20">
+          <div className="min-w-0 text-left">
+            <div className="truncate font-display text-xs font-bold text-espresso sm:text-sm">
+              🗺️ Active Treasure Trails Match
+            </div>
+            <div className="truncate text-[10px] font-semibold text-espresso-muted">
+              A Café Bot subs in while you&apos;re away — rejoin anytime!
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActiveGameRoomId(effectiveRejoinGameId)}
+            className="shrink-0 rounded-xl bg-sage-500 px-3.5 py-1.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-sage-700"
+          >
+            Rejoin
+          </button>
+        </div>
+      )}
+
+      {connectionStatus === "reconnecting" && !activeGameRoomId && (
+        <div className="fixed left-1/2 top-28 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-amberwarm-400 bg-espresso/95 px-4 py-1.5 text-xs font-bold text-oat-50 shadow-cozy backdrop-blur">
+          <RefreshCw className="h-3.5 w-3.5 animate-spin text-amberwarm-400" />
+          <span>Reconnecting to café...</span>
+          <button
+            type="button"
+            onClick={() => {
+              reconnectAttemptRef.current = 0;
+              void connectToCafe(lastCafeTargetRef.current, { isReconnect: true });
+            }}
+            className="ml-1 rounded-full bg-amberwarm-400 px-2.5 py-0.5 text-[10px] font-extrabold text-espresso"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {connectionStatus === "error" && (
-        <div className="fixed left-1/2 top-24 z-30 -translate-x-1/2 rounded-2xl bg-terracotta-500 px-5 py-3 text-center text-xs font-bold text-white shadow-cozy">
+        <div className="fixed left-1/2 top-28 z-30 -translate-x-1/2 rounded-2xl bg-terracotta-500 px-5 py-3 text-center text-xs font-bold text-white shadow-cozy">
           Disconnected from TableFolk server.
           <button
             type="button"
-            onClick={() => void connectToCafe()}
+            onClick={() => {
+              reconnectAttemptRef.current = 0;
+              void connectToCafe(lastCafeTargetRef.current);
+            }}
             className="ml-3 rounded-lg bg-white px-2.5 py-1 text-terracotta-700"
           >
             Reconnect
@@ -793,7 +1075,10 @@ export function CafeExperience() {
             </button>
           </div>
 
-          <div className="flex-1 space-y-1.5 overflow-y-auto p-3 text-xs">
+          <div
+            ref={cafeChatScrollRef}
+            className="flex-1 space-y-1.5 overflow-y-auto p-3 text-xs"
+          >
             {visibleChat.length === 0 && (
               <p className="py-4 text-center text-[11px] text-espresso-muted">
                 Walk with WASD / click floor. Approach any table to sit!
@@ -919,10 +1204,18 @@ export function CafeExperience() {
 
           <button
             type="button"
-            onClick={() => setChatOpen((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-2xl border border-oat-300 bg-oat-50/95 px-3.5 py-2 text-xs font-bold text-espresso shadow-cozy hover:bg-white"
+            onClick={() => {
+              setChatOpen((v) => !v);
+              setUnreadCafeChat(0);
+            }}
+            className="relative inline-flex items-center gap-1.5 rounded-2xl border border-oat-300 bg-oat-50/95 px-3.5 py-2 text-xs font-bold text-espresso shadow-cozy hover:bg-white"
           >
             <MessageCircle className="h-4 w-4 text-sage-700" /> Chat
+            {!chatOpen && unreadCafeChat > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-terracotta-500 px-1 text-[10px] font-extrabold text-white shadow-sm">
+                {unreadCafeChat}
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -1156,7 +1449,17 @@ export function CafeExperience() {
         <TreasureTrailsOverlay
           gameRoomId={activeGameRoomId}
           myUserId={profile.userId}
-          onExitGame={() => setActiveGameRoomId(null)}
+          onExitGame={(info) => {
+            setActiveGameRoomId(null);
+            if (info?.notice) showToast(info.notice);
+            if (info?.finished) {
+              setRejoinGame(null);
+            } else {
+              void fetchMyActiveGame()
+                .then((ag) => setRejoinGame(ag))
+                .catch(() => {});
+            }
+          }}
           onOpenTutorial={() => setShowCashierModal(true)}
         />
       )}

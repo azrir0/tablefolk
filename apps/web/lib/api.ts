@@ -208,3 +208,20 @@ export async function submitPlayerReport(
     true
   );
 }
+
+export interface ActiveGameRef {
+  gameRoomId: string;
+  cafeRoomId: string;
+  tableId: string;
+  gameSlug: string;
+  startedAt: number;
+}
+
+export async function fetchMyActiveGame(): Promise<ActiveGameRef | null> {
+  const res = await apiFetch<{ activeGame: ActiveGameRef | null }>(
+    "/api/me/active-game",
+    {},
+    true
+  );
+  return res.activeGame ?? null;
+}

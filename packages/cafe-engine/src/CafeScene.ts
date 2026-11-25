@@ -150,6 +150,19 @@ export class CozyCafeScene extends Phaser.Scene {
     }
   }
 
+  public resetInput() {
+    this.localVel.x = 0;
+    this.localVel.y = 0;
+    this.joystickVec = { x: 0, y: 0 };
+    this.walkPath = [];
+    this.localMoving = false;
+    this.lastMoveSendAt = 0;
+    this.pathIndicator?.setVisible(false);
+    if (this.sceneReady && this.input?.keyboard) {
+      this.input.keyboard.resetKeys();
+    }
+  }
+
   public triggerNearbyInteract() {
     if (this.activeInteractable) {
       this.callbacks?.onInteract(this.activeInteractable);
