@@ -47,8 +47,8 @@ async function bootstrap() {
   gameServer.define("cafe", CafeRoom);
   gameServer.define("game", GameRoom);
 
-  await gameServer.listen(PORT);
-  console.log(`☕ TableFolk Game Server listening on http://localhost:${PORT}`);
+  await gameServer.listen(PORT, "0.0.0.0");
+  console.log(`☕ TableFolk Game Server listening on http://0.0.0.0:${PORT}`);
 
   const shutdown = async () => {
     console.log("Shutting down TableFolk Game Server gracefully...");
