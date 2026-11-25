@@ -17,7 +17,7 @@ function resolveAllowedOrigins(): boolean | string[] {
   if (!raw) return true;
   return raw
     .split(",")
-    .map((o) => o.trim())
+    .map((o) => o.trim().replace(/\/+$/, ""))
     .filter(Boolean);
 }
 

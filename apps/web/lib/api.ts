@@ -6,12 +6,17 @@ import type {
   UserProfileDTO,
 } from "@tablefolk/shared";
 
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:2567";
+export const API_BASE_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:2567"
+)
+  .trim()
+  .replace(/\/+$/, "");
 
-export const WS_BASE_URL =
-  process.env.NEXT_PUBLIC_WS_URL ||
-  API_BASE_URL.replace(/^http/, "ws");
+export const WS_BASE_URL = (
+  process.env.NEXT_PUBLIC_WS_URL || API_BASE_URL.replace(/^http/, "ws")
+)
+  .trim()
+  .replace(/\/+$/, "");
 
 const TOKEN_KEY = "tablefolk_auth_token";
 
@@ -47,10 +52,17 @@ async function apiFetch<T>(
     throw new Error("Please sign in first.");
   }
 
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch {
+    throw new Error(
+      `Cannot reach game server (${API_BASE_URL}). If hosted on Render free tier, wait 20–30s for it to wake up and try again.`
+    );
+  }
 
   const data = (await res.json().catch(() => ({}))) as { error?: string } & T;
   if (!res.ok) {
