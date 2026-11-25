@@ -18,6 +18,7 @@ export const metadata: Metadata = {
   title: "TableFolk — Virtual Board Game Café",
   description:
     "Meet friends in a cozy top-down virtual board game café, customize your character, grab a box from the wardrobe, and play multiplayer tabletop games like Treasure Trails.",
+  applicationName: "TableFolk",
   appleWebApp: {
     capable: true,
     title: "TableFolk",
