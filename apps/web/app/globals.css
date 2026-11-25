@@ -1,0 +1,162 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    background-color: #faf4ea;
+    color: #3b2b26;
+    font-family: var(--font-nunito), system-ui, -apple-system, sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-fredoka), system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Subtle custom scrollbars matching warm café aesthetic */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(228, 209, 181, 0.25);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(141, 117, 106, 0.45);
+  border-radius: 999px;
+}
+
+/* Treasure Trails Immersive Tabletop Animations */
+@keyframes tt-countdown-pop {
+  0% {
+    transform: scale(0.45);
+    opacity: 0;
+  }
+  45% {
+    transform: scale(1.16);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes tt-role-card-in {
+  0% {
+    transform: perspective(900px) rotateY(90deg) scale(0.82);
+    opacity: 0;
+  }
+  65% {
+    transform: perspective(900px) rotateY(-8deg) scale(1.04);
+    opacity: 1;
+  }
+  100% {
+    transform: perspective(900px) rotateY(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes tt-fly-card {
+  0% {
+    transform: translate3d(var(--from-x), var(--from-y), 0) scale(0.9) rotate(-8deg);
+    opacity: 0.95;
+  }
+  45% {
+    transform: translate3d(
+        calc((var(--from-x) + var(--to-x)) * 0.5),
+        calc((var(--from-y) + var(--to-y)) * 0.5 - 38px),
+        0
+      )
+      scale(1.16)
+      rotate(5deg);
+    opacity: 1;
+  }
+  88% {
+    transform: translate3d(var(--to-x), var(--to-y), 0) scale(1.02) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--to-x), var(--to-y), 0) scale(0.72) rotate(0deg);
+    opacity: 0;
+  }
+}
+
+@keyframes tt-vault-peek-roundtrip {
+  0% {
+    transform: translate3d(var(--from-x), var(--from-y), 0) scale(0.95);
+    opacity: 1;
+  }
+  38% {
+    transform: translate3d(var(--to-x), var(--to-y), 0) scale(1.22) rotate(-4deg);
+    opacity: 1;
+  }
+  64% {
+    transform: translate3d(var(--to-x), var(--to-y), 0) scale(1.25) rotate(4deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--from-x), var(--from-y), 0) scale(0.9);
+    opacity: 0;
+  }
+}
+
+@keyframes tt-impact-ring {
+  0% {
+    transform: translate(-50%, -50%) scale(0.35);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.15);
+    opacity: 0;
+  }
+}
+
+@keyframes tt-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px) rotate(-2deg);
+  }
+  40% {
+    transform: translateX(6px) rotate(2deg);
+  }
+  60% {
+    transform: translateX(-4px) rotate(-1deg);
+  }
+  80% {
+    transform: translateX(4px) rotate(1deg);
+  }
+}
+
+.animate-tt-countdown {
+  animation: tt-countdown-pop 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-tt-role-card {
+  animation: tt-role-card-in 0.72s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-tt-fly {
+  animation: tt-fly-card 0.68s cubic-bezier(0.25, 0.85, 0.3, 1) forwards;
+}
+
+.animate-tt-vault-peek {
+  animation: tt-vault-peek-roundtrip 1.35s cubic-bezier(0.25, 0.85, 0.3, 1) forwards;
+}
+
+.animate-tt-impact {
+  animation: tt-impact-ring 0.6s ease-out forwards;
+}
+
+.animate-tt-shake {
+  animation: tt-shake 0.45s ease-in-out;
+}

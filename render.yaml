@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: tablefolk-game-server
+    runtime: docker
+    dockerfilePath: ./Dockerfile.server
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "2567"
+      - key: TABLEFOLK_JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: WEB_ORIGIN
+        sync: false
