@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
     "@tablefolk/ui",
   ],
   webpack: (config) => {
-    // Allow TypeScript .js relative imports in workspace packages to resolve .ts/.tsx cleanly
+    // Resolve TypeScript .js relative imports in workspace packages cleanly to .ts/.tsx
     config.resolve.extensionAlias = {
       ".js": [".ts", ".tsx", ".js", ".jsx"],
       ".mjs": [".mts", ".mjs"],
