@@ -24,9 +24,9 @@ git push -u origin main
 > **Why?** Cloud containers wipe local disk files on redeploy, so we use a real managed PostgreSQL database instead of local dev PGlite. TableFolk automatically creates all tables and seeds *Sunlit Oak Café* & *Treasure Trails* on first boot!
 
 - **Option A (Supabase — recommended since you plan to use Supabase later):**
-  1. Go to [supabase.com](https://supabase.com) → **New Project** (`tablefolk`).
-  2. Open **Project Settings → Database → Connection string → URI** (choose **Session Pooler** or **Direct**).
-  3. Copy the URI (`postgresql://postgres:YOUR_PASSWORD@...`).
+  1. Open your Supabase project dashboard → click the **Connect** button at the top (or **Project Settings → Database**).
+  2. Under **Connection String → URI**, choose **Session pooler** (`port 5432`, IPv4 compatible — *important for Render/Railway!*).
+  3. Copy the URI (`postgresql://postgres.<ref>:[YOUR-PASSWORD]@aws-0-<region>.pooler.supabase.com:5432/postgres`) and replace `[YOUR-PASSWORD]` with your database password!
 - **Option B (Neon):**
   1. Go to [neon.tech](https://neon.tech) → **Create Project** → copy the `DATABASE_URL` connection string.
 
