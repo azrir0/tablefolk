@@ -16,6 +16,7 @@ import {
   findTouchedUnrevealedVaults,
 } from "./board.js";
 import {
+  TOOL_DISPLAY_NAME,
   createExpeditionDeck,
   createRolePool,
   getOrientedEdges,
@@ -206,8 +207,8 @@ function finalizeRound(
       winningTeam:
         state.config.totalRounds === 1
           ? winningTeam === "TRAILBLAZER"
-            ? "Trailblazers"
-            : "Tricksters"
+            ? "Explorers"
+            : "Impostors"
           : "Expedition Champion",
       topScorerIds,
     });
@@ -241,11 +242,11 @@ function advanceTurnOrEndByExhaustion(
     }
   }
 
-  // Every player is out of cards and deck is empty -> Tricksters win!
+  // Every player is out of cards and deck is empty -> Impostors win!
   return finalizeRound(
     state,
     "TRICKSTER",
-    "The expedition deck and all hands ran dry before reaching the Golden Compass!",
+    "All expedition cards ran out before the trail reached the Treasure Chest!",
     null,
     events
   );
@@ -325,7 +326,7 @@ export const TreasureTrailsModule: GameModule<
           return {
             valid: false,
             code: "GEAR_BROKEN",
-            message: "Repair your broken gear (or use Field-Patch) before placing paths.",
+            message: "Fix your broken tool (or use Quick Fix) before placing paths.",
           };
         }
         const card = activePlayer.hand.find((c) => c.id === action.cardId);
@@ -342,7 +343,7 @@ export const TreasureTrailsModule: GameModule<
       case "PLAY_HAZARD": {
         const card = activePlayer.hand.find((c) => c.id === action.cardId);
         if (!card || card.kind !== "HAZARD") {
-          return { valid: false, code: "INVALID_CARD", message: "Selected card is not a hazard card." };
+          return { valid: false, code: "INVALID_CARD", message: "Selected card is not a Break Tool card." };
         }
         const target = state.players.find((p) => p.userId === action.targetUserId);
         if (!target) {
@@ -352,7 +353,7 @@ export const TreasureTrailsModule: GameModule<
           return {
             valid: false,
             code: "ALREADY_BROKEN",
-            message: `${target.displayName}'s ${card.gear} is already broken.`,
+            message: `${target.displayName}'s ${TOOL_DISPLAY_NAME[card.gear]} is already broken.`,
           };
         }
         return { valid: true };
@@ -361,13 +362,13 @@ export const TreasureTrailsModule: GameModule<
       case "PLAY_REPAIR": {
         const card = activePlayer.hand.find((c) => c.id === action.cardId);
         if (!card || card.kind !== "REPAIR") {
-          return { valid: false, code: "INVALID_CARD", message: "Selected card is not a repair card." };
+          return { valid: false, code: "INVALID_CARD", message: "Selected card is not a Fix Tool card." };
         }
         if (!card.gears.includes(action.gear)) {
           return {
             valid: false,
             code: "GEAR_MISMATCH",
-            message: `That repair card cannot fix a ${action.gear}.`,
+            message: `That Fix card cannot repair a ${TOOL_DISPLAY_NAME[action.gear]}.`,
           };
         }
         const target = state.players.find((p) => p.userId === action.targetUserId);
@@ -378,7 +379,7 @@ export const TreasureTrailsModule: GameModule<
           return {
             valid: false,
             code: "NOT_BROKEN",
-            message: `${target.displayName}'s ${action.gear} is already intact.`,
+            message: `${target.displayName}'s ${TOOL_DISPLAY_NAME[action.gear]} is already working.`,
           };
         }
         return { valid: true };
@@ -387,14 +388,14 @@ export const TreasureTrailsModule: GameModule<
       case "PLAY_SPYGLASS": {
         const card = activePlayer.hand.find((c) => c.id === action.cardId);
         if (!card || card.kind !== "SPYGLASS") {
-          return { valid: false, code: "INVALID_CARD", message: "Selected card is not a Spyglass." };
+          return { valid: false, code: "INVALID_CARD", message: "Selected card is not a Peek Vault card." };
         }
         const cell = state.board[coordKey(action.x, action.y)];
         if (!cell || cell.kind !== "VAULT" || cell.vaultRevealed) {
           return {
             valid: false,
             code: "INVALID_VAULT",
-            message: "Select an unrevealed Sealed Vault to scout.",
+            message: "Select an unrevealed Sealed Vault to peek inside.",
           };
         }
         return { valid: true };
@@ -403,14 +404,14 @@ export const TreasureTrailsModule: GameModule<
       case "PLAY_BOULDER_CLEAR": {
         const card = activePlayer.hand.find((c) => c.id === action.cardId);
         if (!card || card.kind !== "BOULDER_CLEAR") {
-          return { valid: false, code: "INVALID_CARD", message: "Selected card is not Boulder Clear." };
+          return { valid: false, code: "INVALID_CARD", message: "Selected card is not a Blast Tile card." };
         }
         const cell = state.board[coordKey(action.x, action.y)];
         if (!cell || cell.kind !== "PATH") {
           return {
             valid: false,
             code: "INVALID_TARGET",
-            message: "Boulder Clear can only remove placed path tiles (not Base Camp or Vaults).",
+            message: "Blast Tile can only remove placed path tiles (not Base Camp or Vaults).",
           };
         }
         return { valid: true };
@@ -427,13 +428,13 @@ export const TreasureTrailsModule: GameModule<
       case "FIELD_PATCH": {
         const [id1, id2] = action.cardIds;
         if (id1 === id2) {
-          return { valid: false, code: "DUPLICATE_CARD", message: "Pick two distinct cards to Field-Patch." };
+          return { valid: false, code: "DUPLICATE_CARD", message: "Pick two different cards for Quick Fix." };
         }
         if (activePlayer.gear[action.gear]) {
           return {
             valid: false,
             code: "NOT_BROKEN",
-            message: `Your ${action.gear} is not broken.`,
+            message: `Your ${TOOL_DISPLAY_NAME[action.gear]} is not broken.`,
           };
         }
         const has1 = activePlayer.hand.some((c) => c.id === id1);
@@ -666,7 +667,7 @@ export const TreasureTrailsModule: GameModule<
       const ended = finalizeRound(
         intermediateState,
         "TRAILBLAZER",
-        `${actor.displayName} connected Base Camp to the Golden Compass!`,
+        `${actor.displayName} connected Base Camp to the Treasure Chest!`,
         actor.userId,
         events
       );
@@ -829,8 +830,8 @@ export const TreasureTrailsModule: GameModule<
       winningTeam:
         state.config.totalRounds === 1
           ? lastWinner === "TRAILBLAZER"
-            ? "Trailblazers"
-            : "Tricksters"
+            ? "Explorers"
+            : "Impostors"
           : "Expedition Champions",
       headline:
         state.config.totalRounds === 1
@@ -844,7 +845,7 @@ export const TreasureTrailsModule: GameModule<
           state.config.totalRounds === 1
             ? p.role === lastWinner
             : p.score === maxScore,
-        roleLabel: p.role === "TRAILBLAZER" ? "Trailblazer" : "Trickster",
+        roleLabel: p.role === "TRAILBLAZER" ? "Explorer" : "Impostor",
       })),
     };
   },

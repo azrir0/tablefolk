@@ -8,6 +8,7 @@ import {
   fetchPublicCafes,
   resolvePrivateCafeCode,
 } from "@/lib/api";
+import { GameIcon } from "./GameIcons";
 
 interface CafeLobbySwitcherModalProps {
   currentRoomId: string;
@@ -66,8 +67,9 @@ export function CafeLobbySwitcherModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/45 p-4 backdrop-blur-sm">
       <div className="w-full max-w-xl overflow-hidden rounded-3xl border-2 border-oat-300 bg-oat-50 shadow-cozy">
         <div className="flex items-center justify-between border-b border-oat-200 px-6 py-4">
-          <h2 className="font-display text-xl font-bold text-espresso">
-            ☕ Switch or Create Café
+          <h2 className="inline-flex items-center gap-2 font-display text-xl font-bold text-espresso">
+            <GameIcon name="cafe-cup" className="h-6 w-6" />
+            Switch or Create Café
           </h2>
           <button
             type="button"

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { BookOpen, Clock, PackageCheck, Users, X } from "lucide-react";
 import type { GameCatalogueItemDTO } from "@tablefolk/shared";
 import { fetchGameCatalogue } from "@/lib/api";
+import { GameIcon, gameSlugToIconName } from "./GameIcons";
 
 interface WardrobeModalProps {
   carryingSlug: string;
@@ -38,8 +39,9 @@ export function WardrobeModal({
       <div className="flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border-2 border-oat-300 bg-oat-50 shadow-cozy">
         <div className="flex items-center justify-between border-b border-oat-200 px-6 py-4">
           <div>
-            <h2 className="font-display text-xl font-bold text-espresso">
-              📚 Game Wardrobe
+            <h2 className="inline-flex items-center gap-2 font-display text-xl font-bold text-espresso">
+              <GameIcon name="bookshelf" className="h-6 w-6" />
+              Game Wardrobe
             </h2>
             <p className="text-xs text-espresso-muted">
               Pick up a board game box and carry it to any compatible café table!
@@ -100,7 +102,13 @@ export function WardrobeModal({
                       {game.isAvailable ? "Playable Now" : "Coming Soon"}
                     </span>
                   </div>
-                  <h3 className="mt-3 font-display text-xl font-bold text-espresso">
+                  <h3 className="mt-3 flex items-center gap-2 font-display text-xl font-bold text-espresso">
+                    {game.isAvailable && (
+                      <GameIcon
+                        name={gameSlugToIconName(game.slug)}
+                        className="h-6 w-6"
+                      />
+                    )}
                     {game.title}
                   </h3>
                   <p className="mt-0.5 text-xs font-semibold text-espresso-soft">

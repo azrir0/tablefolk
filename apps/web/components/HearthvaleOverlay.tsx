@@ -6,18 +6,15 @@ import {
   BookOpen,
   Bot,
   Check,
-  Crown,
   Eye,
   Flame,
   Highlighter,
   LogOut,
-  Map as MapIcon,
   MessageCircle,
   RefreshCw,
   RotateCw,
   Send,
   Sparkles,
-  User,
   X,
   ZoomIn,
   ZoomOut,
@@ -46,6 +43,7 @@ import { WS_BASE_URL, getStoredToken } from "@/lib/api";
 import { soundEngine } from "@/lib/sound";
 import { FOLK_COLOR_STYLES, HearthvaleTileSvg } from "./HearthvaleTileSvg";
 import { BoardMarkerLayer, BoardMarkerToolbar } from "./BoardMarkerLayer";
+import { GameIcon, type GameIconName } from "./GameIcons";
 
 interface HearthvaleOverlayProps {
   gameRoomId: string;
@@ -112,10 +110,10 @@ function featureLabel(kind: SegmentKind): string {
   return "Windmill";
 }
 
-function featureEmoji(kind: SegmentKind): string {
-  if (kind === "TOWN") return "🏰";
-  if (kind === "ROAD") return "🛤️";
-  return "🌬️";
+function featureIconName(kind: SegmentKind): GameIconName {
+  if (kind === "TOWN") return "hv-town";
+  if (kind === "ROAD") return "hv-road";
+  return "hv-windmill";
 }
 
 function describeEvent(ev: HearthvaleEvent, nameOf: (id: string) => string): string {
@@ -129,16 +127,16 @@ function describeEvent(ev: HearthvaleEvent, nameOf: (id: string) => string): str
         : `${nameOf(ev.actorId)} placed ${tpl.name} at (${ev.x}, ${ev.y}).`;
     }
     case "FOLK_PLACED":
-      return `${nameOf(ev.actorId)} sent a ${ev.folkKind === "MAYOR" ? "👑 Mayor" : "Villager"} onto (${ev.x}, ${ev.y}).`;
+      return `${nameOf(ev.actorId)} sent a ${ev.folkKind === "MAYOR" ? "Mayor" : "Villager"} onto (${ev.x}, ${ev.y}).`;
     case "FEATURE_SCORED": {
       const names = ev.winners.map(nameOf).join(" & ");
-      return `${featureEmoji(ev.kind)} ${names} scored +${ev.points} ★ (${ev.isEndGame ? "Final " : ""}${featureLabel(ev.kind)})!`;
+      return `${names} scored +${ev.points} pts (${ev.isEndGame ? "Final " : ""}${featureLabel(ev.kind)})!`;
     }
     case "TILE_REDRAWN":
       return `${nameOf(ev.actorId)} swapped an unplaceable tile.`;
     case "MATCH_ENDED": {
       const names = ev.winners.map(nameOf).join(" & ");
-      return `🏆 Match complete — ${names} wins Hearthvale!`;
+      return `Match complete — ${names} wins Hearthvale!`;
     }
   }
 }
@@ -219,7 +217,9 @@ function HearthvaleChatPanel({
             <div className="min-w-0">
               {m.senderUserId !== "system" && (
                 <span className="font-bold text-sage-700">
-                  {m.isSpectator ? "👁️ " : ""}
+                  {m.isSpectator && (
+                    <Eye className="mr-0.5 inline h-3 w-3 align-text-bottom text-espresso-soft" />
+                  )}
                   {m.senderName}:{" "}
                 </span>
               )}
@@ -388,7 +388,7 @@ export function HearthvaleOverlay({
     const id = `hvcb_${seq}_${now}`;
     const bubble: FlyingChatBubble = {
       id,
-      senderName: msg.isSpectator ? `👁️ ${msg.senderName}` : msg.senderName,
+      senderName: msg.isSpectator ? `[Spec] ${msg.senderName}` : msg.senderName,
       message: msg.message,
       isQuickBluff: Boolean(msg.isQuickBluff),
       isMe: msg.senderUserId === localUserId,
@@ -469,7 +469,7 @@ export function HearthvaleOverlay({
           setScorePopup({
             id: popId,
             kind: ev.kind,
-            text: `${featureEmoji(ev.kind)} ${names} +${ev.points} ★`,
+            text: `${names} +${ev.points}`,
           });
           setTimeout(() => {
             setScorePopup((curr) => (curr?.id === popId ? null : curr));
@@ -915,7 +915,7 @@ export function HearthvaleOverlay({
   const statusHintText = !pub
     ? ""
     : markerMode
-      ? "✏️ Marker Mode ON — drag to draw or tap to ping! Tap Done when finished."
+      ? "Marker Mode ON — drag to draw or tap to ping! Tap Done when finished."
       : !isMyTurn
       ? `Waiting for ${nameOf(pub.activePlayerId)}...`
       : isPlaceFolkStep
@@ -974,11 +974,12 @@ export function HearthvaleOverlay({
         <div className="flex items-center justify-between gap-1.5">
           <div className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
             <div className="hidden items-center gap-1.5 font-display text-lg font-bold text-espresso sm:flex">
-              <MapIcon className="h-5 w-5 text-sage-700" />
+              <GameIcon name="game-hearthvale" className="h-5 w-5" />
               Hearthvale
             </div>
-            <span className="shrink-0 rounded-full bg-amberwarm-100 px-2 py-0.5 text-[10px] font-bold text-amberwarm-600 sm:px-2.5 sm:text-xs">
-              🗺️ {pub.deckCount} left
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amberwarm-100 px-2 py-0.5 text-[10px] font-bold text-amberwarm-600 sm:px-2.5 sm:text-xs">
+              <GameIcon name="card-deck" className="h-3.5 w-3.5" />
+              {pub.deckCount} left
             </span>
             {pub.phase === "IN_PROGRESS" && (
               <span
@@ -1107,7 +1108,7 @@ export function HearthvaleOverlay({
                       />
                       <span className="truncate">
                         {p.displayName}
-                        {isMe ? " ★" : ""}
+                        {isMe ? " (You)" : ""}
                       </span>
                       {isBotSub && (
                         <span
@@ -1118,21 +1119,35 @@ export function HearthvaleOverlay({
                         </span>
                       )}
                     </span>
-                    <span className="shrink-0 rounded-md bg-amberwarm-100 px-1.5 py-0.5 text-[10px] font-extrabold text-amberwarm-600">
-                      ★{p.score}
+                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-md bg-amberwarm-100 px-1.5 py-0.5 text-[10px] font-extrabold text-amberwarm-600">
+                      <GameIcon name="star-gold" className="h-3 w-3" />
+                      {p.score}
                     </span>
                   </div>
                   <div className="mt-1 flex items-center justify-between gap-1.5 text-[10px] font-bold text-espresso-muted">
-                    <span title="Remaining Villagers (strength 1)">
-                      🧑 {p.villagersLeft}
+                    <span
+                      title="Remaining Villagers (strength 1)"
+                      className="inline-flex items-center gap-0.5"
+                    >
+                      <GameIcon name="hv-villager" className="h-3.5 w-3.5" />
+                      {p.villagersLeft}
                     </span>
                     <span
                       title="Mayor Pawn (strength 2)"
-                      className={p.mayorsLeft > 0 ? "text-amberwarm-600" : "opacity-40"}
+                      className={`inline-flex items-center gap-0.5 ${
+                        p.mayorsLeft > 0 ? "text-amberwarm-600" : "opacity-40"
+                      }`}
                     >
-                      👑 {p.mayorsLeft}
+                      <GameIcon name="hv-mayor" className="h-3.5 w-3.5" />
+                      {p.mayorsLeft}
                     </span>
-                    <span title="Tiles in hand">🗺️ {p.handCount}</span>
+                    <span
+                      title="Tiles in hand"
+                      className="inline-flex items-center gap-0.5"
+                    >
+                      <GameIcon name="card-deck" className="h-3.5 w-3.5" />
+                      {p.handCount}
+                    </span>
                   </div>
                 </div>
               );
@@ -1186,8 +1201,10 @@ export function HearthvaleOverlay({
 
             {/* Big Celebratory Score Burst Pill */}
             {scorePopup && (
-              <div className="pointer-events-none absolute bottom-3 left-1/2 z-30 -translate-x-1/2 rounded-full border-2 border-amberwarm-400 bg-oat-50 px-4 py-1.5 font-display text-sm font-bold text-espresso shadow-2xl">
-                {scorePopup.text}
+              <div className="pointer-events-none absolute bottom-3 left-1/2 z-30 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border-2 border-amberwarm-400 bg-oat-50 px-4 py-1.5 font-display text-sm font-bold text-espresso shadow-2xl">
+                <GameIcon name={featureIconName(scorePopup.kind)} className="h-4 w-4" />
+                <span>{scorePopup.text}</span>
+                <GameIcon name="star-gold" className="h-4 w-4" />
               </div>
             )}
 
@@ -1281,9 +1298,12 @@ export function HearthvaleOverlay({
                                     left: `${seg.ax}%`,
                                     top: `${seg.ay}%`,
                                   }}
-                                  className="absolute z-30 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 animate-bounce items-center justify-center rounded-full border-2 border-white bg-amberwarm-400 text-xs shadow-lg transition hover:scale-125 hover:bg-sage-500 sm:h-8 sm:w-8 sm:text-sm"
+                                  className="absolute z-30 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 animate-bounce items-center justify-center rounded-full border-2 border-white bg-amberwarm-400 shadow-lg transition hover:scale-125 hover:bg-sage-500 sm:h-8 sm:w-8"
                                 >
-                                  {featureEmoji(seg.kind)}
+                                  <GameIcon
+                                    name={featureIconName(seg.kind)}
+                                    className="h-4 w-4 sm:h-5 sm:w-5"
+                                  />
                                 </button>
                               ))}
                           </>
@@ -1473,7 +1493,7 @@ export function HearthvaleOverlay({
                         : "bg-oat-200 text-espresso"
                     }`}
                   >
-                    <User className="h-3.5 w-3.5" /> Villager ({myPublic.villagersLeft})
+                    <GameIcon name="hv-villager" className="h-4 w-4" /> Villager ({myPublic.villagersLeft})
                   </button>
                   <button
                     type="button"
@@ -1485,7 +1505,7 @@ export function HearthvaleOverlay({
                         : "bg-oat-200 text-espresso"
                     }`}
                   >
-                    <Crown className="h-3.5 w-3.5" /> Mayor ×2 ({myPublic.mayorsLeft})
+                    <GameIcon name="hv-mayor" className="h-4 w-4" /> Mayor ×2 ({myPublic.mayorsLeft})
                   </button>
                   <button
                     type="button"
@@ -1543,18 +1563,18 @@ export function HearthvaleOverlay({
                       </div>
                       <div className="mt-0.5 flex flex-wrap gap-1 text-[10px] font-bold">
                         {tpl.hasCrest && (
-                          <span className="rounded bg-amberwarm-100 px-1 text-amberwarm-600">
-                            🛡️ +2
+                          <span className="inline-flex items-center gap-0.5 rounded bg-amberwarm-100 px-1 text-amberwarm-600">
+                            <GameIcon name="hv-crest" className="h-3 w-3" /> +2
                           </span>
                         )}
                         {tpl.hasLantern && (
-                          <span className="rounded bg-amberwarm-100 px-1 text-amberwarm-600">
-                            🏮 ×2 Road
+                          <span className="inline-flex items-center gap-0.5 rounded bg-amberwarm-100 px-1 text-amberwarm-600">
+                            <GameIcon name="hv-lantern" className="h-3 w-3" /> ×2 Road
                           </span>
                         )}
                         {tpl.hasShrine && (
-                          <span className="rounded bg-sage-100 px-1 text-sage-700">
-                            🌬️ 9★
+                          <span className="inline-flex items-center gap-0.5 rounded bg-sage-100 px-1 text-sage-700">
+                            <GameIcon name="hv-windmill" className="h-3 w-3" /> 9 pts
                           </span>
                         )}
                         {spotCount !== null && (
@@ -1570,9 +1590,20 @@ export function HearthvaleOverlay({
             </div>
 
             {/* Compact Scoring Legend on Desktop */}
-            <div className="hidden rounded-2xl bg-oat-100 px-3 py-2 text-[10px] font-bold text-espresso-soft md:block">
-              <div>🏰 Town: 3★ (2t) · 2★/t + 2★ 🛡️</div>
-              <div>🛤️ Road: 1★/t · 🏮 2★/t · 🌬️ 9★</div>
+            <div className="hidden space-y-0.5 rounded-2xl bg-oat-100 px-3 py-2 text-[10px] font-bold text-espresso-soft md:block">
+              <div className="flex items-center gap-1">
+                <GameIcon name="hv-town" className="h-3.5 w-3.5" />
+                <span>Town: 3 (2t) · 2/t + 2</span>
+                <GameIcon name="hv-crest" className="h-3.5 w-3.5" />
+              </div>
+              <div className="flex items-center gap-1">
+                <GameIcon name="hv-road" className="h-3.5 w-3.5" />
+                <span>Road: 1/t ·</span>
+                <GameIcon name="hv-lantern" className="h-3.5 w-3.5" />
+                <span>2/t ·</span>
+                <GameIcon name="hv-windmill" className="h-3.5 w-3.5" />
+                <span>9</span>
+              </div>
             </div>
           </div>
         </div>
@@ -1584,8 +1615,9 @@ export function HearthvaleOverlay({
         <div className="fixed inset-0 z-50 flex items-end bg-espresso/50 backdrop-blur-sm lg:hidden">
           <div className="flex h-[72dvh] w-full flex-col overflow-hidden rounded-t-3xl border-t-2 border-oat-300 bg-oat-50 shadow-2xl">
             <div className="flex items-center justify-between border-b border-oat-200 px-4 py-3">
-              <span className="font-display text-base font-bold text-espresso">
-                💬 Table Talk &amp; Valley Chronicle
+              <span className="inline-flex items-center gap-1.5 font-display text-base font-bold text-espresso">
+                <MessageCircle className="h-4 w-4 text-sage-700" />
+                Table Talk &amp; Valley Chronicle
               </span>
               <button
                 type="button"
@@ -1630,7 +1662,7 @@ export function HearthvaleOverlay({
               }`}
             >
               <div className="flex items-center justify-center gap-1 text-[9px] font-extrabold uppercase tracking-wide text-sage-700">
-                <span>{b.isQuickBluff ? "🗣️" : "💬"}</span>
+                <MessageCircle className="h-2.5 w-2.5 shrink-0" />
                 <span className="max-w-[110px] truncate">{b.senderName}</span>
                 {b.comboCount > 1 && (
                   <span className="rounded-full bg-amberwarm-400 px-1.5 py-[1px] text-[9px] font-black text-espresso shadow-sm">
@@ -1688,8 +1720,8 @@ export function HearthvaleOverlay({
       {pub.phase === "COMPLETED" && pub.endGameSummary && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/65 p-4 backdrop-blur-sm">
           <div className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-3xl border-2 border-amberwarm-400 bg-oat-50 p-5 text-center shadow-cozy sm:p-6">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amberwarm-100 text-3xl">
-              🏆
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amberwarm-100 shadow-inner">
+              <GameIcon name="trophy" className="h-11 w-11" />
             </div>
             <h2 className="mt-3 font-display text-2xl font-bold text-espresso sm:text-3xl">
               {pub.endGameSummary.winners.length > 1
@@ -1723,8 +1755,8 @@ export function HearthvaleOverlay({
                         />
                         <span>{p.displayName}</span>
                         {isWinner && (
-                          <span className="rounded-full bg-amberwarm-400 px-2 py-0.5 text-[10px] font-extrabold text-espresso">
-                            👑 Master Architect
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amberwarm-400 px-2 py-0.5 text-[10px] font-extrabold text-espresso">
+                            <GameIcon name="hv-mayor" className="h-3.5 w-3.5" /> Master Architect
                           </span>
                         )}
                       </div>
@@ -1732,8 +1764,9 @@ export function HearthvaleOverlay({
                         <span className="text-[10px] text-espresso-muted">
                           {p.completedFeatures} built
                         </span>
-                        <span className="rounded-lg bg-white px-2.5 py-0.5 text-xs font-extrabold text-amberwarm-600 shadow-sm">
-                          {p.score} ★
+                        <span className="inline-flex items-center gap-0.5 rounded-lg bg-white px-2.5 py-0.5 text-xs font-extrabold text-amberwarm-600 shadow-sm">
+                          {p.score}
+                          <GameIcon name="star-gold" className="h-3.5 w-3.5" />
                         </span>
                       </div>
                     </div>
@@ -1744,8 +1777,9 @@ export function HearthvaleOverlay({
             <div className="mt-5 flex flex-wrap justify-center gap-2.5">
               {isSpectator ? (
                 <>
-                  <span className="w-full text-center text-xs font-bold text-espresso-soft">
-                    👁️ You&apos;re spectating — waiting to see if the architects go for a rematch...
+                  <span className="inline-flex w-full items-center justify-center gap-1.5 text-center text-xs font-bold text-espresso-soft">
+                    <Eye className="h-3.5 w-3.5 text-sage-700" />
+                    You&apos;re spectating — waiting to see if the architects go for a rematch...
                   </span>
                   <button
                     type="button"

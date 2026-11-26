@@ -310,7 +310,9 @@ export function BoardMarkerLayer({
                 style={{ backgroundColor: s.color }}
                 className="h-2 w-2 shrink-0 rounded-full border border-white/80"
               />
-              {s.mode === "sticky" ? "📌 " : ""}
+              {s.mode === "sticky" && (
+                <Pin className="h-2.5 w-2.5 shrink-0 text-amberwarm-400" />
+              )}
               {s.displayName}
             </span>
           </div>

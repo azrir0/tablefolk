@@ -256,7 +256,7 @@ export type TreasureTrailsAction = z.infer<typeof TreasureTrailsActionSchema>;
 
 export const QUICK_BLUFF_PILLS = [
   "Trust me!",
-  "Suspicious 👀",
+  "Suspicious...",
   "Go North ↑",
   "Go Center →",
   "Go South ↓",

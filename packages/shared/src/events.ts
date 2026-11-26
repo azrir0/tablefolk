@@ -75,6 +75,7 @@ export const TableStartGamePayloadSchema = z.object({
   turnSeconds: z.union([z.literal(30), z.literal(45), z.literal(60), z.literal(90)]).default(45),
   mysteryRoles: z.boolean().default(false),
   deckSize: z.union([z.literal(36), z.literal(54)]).default(36),
+  targetCoins: z.union([z.literal(10), z.literal(13)]).default(13),
 });
 
 export const TableSpectatePayloadSchema = z.object({

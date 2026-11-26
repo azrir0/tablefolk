@@ -58,16 +58,16 @@ export function createRolePool(playerCount: number, mysteryRoles: boolean): Role
   return pool;
 }
 
-const GEAR_LABEL: Record<GearType, string> = {
+export const TOOL_DISPLAY_NAME: Record<GearType, string> = {
   lantern: "Lantern",
   compass: "Compass",
-  grapple: "Grapple",
+  grapple: "Pickaxe",
 };
 
 /**
  * Creates the exact balanced 66-card Expedition Deck:
  * - 40 Path cards (31 Open Paths + 9 Dead-End Blockers)
- * - 26 Action cards (9 Hazards, 6 Single Repairs, 3 Dual Multi-Tools, 5 Spyglasses, 3 Boulder Clears)
+ * - 26 Action cards (9 Break Tool, 6 Fix Tool, 3 Dual Fix, 5 Peek Vault, 3 Blast Tile)
  */
 export function createExpeditionDeck(): TreasureTrailsCard[] {
   const cards: TreasureTrailsCard[] = [];
@@ -95,29 +95,29 @@ export function createExpeditionDeck(): TreasureTrailsCard[] {
 
   // --- 31 Open Path Cards ---
   addPath("crossroads", "Crossroads", { N: true, E: true, S: true, W: true }, true, 5);
-  addPath("t_horiz", "Horizontal Fork", { N: true, E: true, S: false, W: true }, true, 5);
-  addPath("t_vert", "Vertical Fork", { N: true, E: true, S: true, W: false }, true, 5);
-  addPath("straight_h", "East-West Trail", { N: false, E: true, S: false, W: true }, true, 4);
-  addPath("straight_v", "North-South Trail", { N: true, E: false, S: true, W: false }, true, 3);
-  addPath("curve_se", "Bend (E-S)", { N: false, E: true, S: true, W: false }, true, 5);
-  addPath("curve_ne", "Bend (N-E)", { N: true, E: true, S: false, W: false }, true, 4);
+  addPath("t_horiz", "T-Fork (H)", { N: true, E: true, S: false, W: true }, true, 5);
+  addPath("t_vert", "T-Fork (V)", { N: true, E: true, S: true, W: false }, true, 5);
+  addPath("straight_h", "Straight (E-W)", { N: false, E: true, S: false, W: true }, true, 4);
+  addPath("straight_v", "Straight (N-S)", { N: true, E: false, S: true, W: false }, true, 3);
+  addPath("curve_se", "Corner (E-S)", { N: false, E: true, S: true, W: false }, true, 5);
+  addPath("curve_ne", "Corner (N-E)", { N: true, E: true, S: false, W: false }, true, 4);
 
   // --- 9 Dead-End / Blocker Path Cards ---
-  addPath("dead_n", "Bramble End (N)", { N: true, E: false, S: false, W: false }, false, 1);
-  addPath("dead_e", "Bramble End (E)", { N: false, E: true, S: false, W: false }, false, 1);
-  addPath("dead_ne", "Blocked Bend (N-E)", { N: true, E: true, S: false, W: false }, false, 1);
-  addPath("dead_es", "Blocked Bend (E-S)", { N: false, E: true, S: true, W: false }, false, 1);
-  addPath("dead_ns", "Split Trail (N-S)", { N: true, E: false, S: true, W: false }, false, 1);
-  addPath("dead_ew", "Split Trail (E-W)", { N: false, E: true, S: false, W: true }, false, 1);
-  addPath("dead_new", "Rockfall Fork (H)", { N: true, E: true, S: false, W: true }, false, 1);
-  addPath("dead_nes", "Rockfall Fork (V)", { N: true, E: true, S: true, W: false }, false, 1);
-  addPath("dead_all", "Boulder Cross", { N: true, E: true, S: true, W: true }, false, 1);
+  addPath("dead_n", "Dead End (N)", { N: true, E: false, S: false, W: false }, false, 1);
+  addPath("dead_e", "Dead End (E)", { N: false, E: true, S: false, W: false }, false, 1);
+  addPath("dead_ne", "Blocked Corner", { N: true, E: true, S: false, W: false }, false, 1);
+  addPath("dead_es", "Blocked Corner", { N: false, E: true, S: true, W: false }, false, 1);
+  addPath("dead_ns", "Blocked Path", { N: true, E: false, S: true, W: false }, false, 1);
+  addPath("dead_ew", "Blocked Path", { N: false, E: true, S: false, W: true }, false, 1);
+  addPath("dead_new", "Blocked Fork", { N: true, E: true, S: false, W: true }, false, 1);
+  addPath("dead_nes", "Blocked Fork", { N: true, E: true, S: true, W: false }, false, 1);
+  addPath("dead_all", "Blocked Cross", { N: true, E: true, S: true, W: true }, false, 1);
 
-  // --- 9 Hazard Cards ---
+  // --- 9 Break Tool Cards (Sabotage) ---
   const hazards: Array<[GearType, string]> = [
-    ["lantern", "Dim Lantern"],
-    ["compass", "Scrambled Compass"],
-    ["grapple", "Snapped Grapple"],
+    ["lantern", "Break Lantern"],
+    ["compass", "Break Compass"],
+    ["grapple", "Break Pickaxe"],
   ];
   for (const [gear, label] of hazards) {
     for (let i = 0; i < 3; i++) {
@@ -125,11 +125,11 @@ export function createExpeditionDeck(): TreasureTrailsCard[] {
     }
   }
 
-  // --- 6 Single-Gear Repair Cards ---
+  // --- 6 Single Fix Tool Cards ---
   const singleRepairs: Array<[GearType, string]> = [
-    ["lantern", "Fresh Wick"],
-    ["compass", "Calibrate Needle"],
-    ["grapple", "Splice Rope"],
+    ["lantern", "Fix Lantern"],
+    ["compass", "Fix Compass"],
+    ["grapple", "Fix Pickaxe"],
   ];
   for (const [gear, label] of singleRepairs) {
     for (let i = 0; i < 2; i++) {
@@ -137,7 +137,7 @@ export function createExpeditionDeck(): TreasureTrailsCard[] {
     }
   }
 
-  // --- 3 Dual-Gear Multi-Tool Cards ---
+  // --- 3 Dual Fix Tool Cards ---
   const dualPairs: Array<[GearType, GearType]> = [
     ["lantern", "compass"],
     ["compass", "grapple"],
@@ -148,18 +148,18 @@ export function createExpeditionDeck(): TreasureTrailsCard[] {
       id: nextId("multi"),
       kind: "REPAIR",
       gears: [g1, g2],
-      label: `Multi-Tool (${GEAR_LABEL[g1]}/${GEAR_LABEL[g2]})`,
+      label: `Fix ${TOOL_DISPLAY_NAME[g1]} / ${TOOL_DISPLAY_NAME[g2]}`,
     });
   }
 
-  // --- 5 Spyglass (Vault Scout) Cards ---
+  // --- 5 Peek Vault Cards ---
   for (let i = 0; i < 5; i++) {
-    cards.push({ id: nextId("spy"), kind: "SPYGLASS", label: "Spyglass" });
+    cards.push({ id: nextId("spy"), kind: "SPYGLASS", label: "Peek Vault" });
   }
 
-  // --- 3 Boulder Clear Cards ---
+  // --- 3 Blast Tile Cards ---
   for (let i = 0; i < 3; i++) {
-    cards.push({ id: nextId("clr"), kind: "BOULDER_CLEAR", label: "Boulder Clear" });
+    cards.push({ id: nextId("clr"), kind: "BOULDER_CLEAR", label: "Blast Tile" });
   }
 
   return cards;

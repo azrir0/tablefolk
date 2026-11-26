@@ -16,6 +16,7 @@
     "@tablefolk/game-engine": "workspace:*",
     "@tablefolk/game-hearthvale": "workspace:*",
     "@tablefolk/game-treasure-trails": "workspace:*",
+    "@tablefolk/game-velvet-masque": "workspace:*",
     "@tablefolk/shared": "workspace:*",
     "colyseus": "^0.15.57",
     "cors": "^2.8.5",

@@ -262,7 +262,7 @@ describe("Treasure Trails — Board Rules, Action Cards & Field-Patch", () => {
     expect(TreasureTrailsModule.isGameCompleted(res.state)).toBe(true);
     expect(res.state.lastRoundSummary?.winningTeam).toBe("TRAILBLAZER");
     expect(res.state.lastRoundSummary?.starsAwarded["p1"]).toBe(3); // +2 win +1 clutch star
-    expect(TreasureTrailsModule.getResults(res.state)?.winningTeam).toBe("Trailblazers");
+    expect(TreasureTrailsModule.getResults(res.state)?.winningTeam).toBe("Explorers");
   });
 
   it("awards Tricksters when deck and all hands exhaust, and handles AFK timeouts", () => {

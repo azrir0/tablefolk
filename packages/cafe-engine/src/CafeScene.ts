@@ -989,11 +989,23 @@ export class CozyCafeScene extends Phaser.Scene {
       if (boxG) {
         boxG.clear();
         if (state?.selectedGameSlug) {
-          boxG.fillStyle(0xf2c25b, 1);
+          const outerColor =
+            state.selectedGameSlug === "velvet-masque"
+              ? 0x7a1c34
+              : state.selectedGameSlug === "hearthvale"
+                ? 0xd97c5e
+                : 0xf2c25b;
+          const innerColor =
+            state.selectedGameSlug === "velvet-masque"
+              ? 0xf4c145
+              : state.selectedGameSlug === "hearthvale"
+                ? 0x7db37a
+                : 0x529b76;
+          boxG.fillStyle(outerColor, 1);
           boxG.lineStyle(1.8, 0x5c3e29, 1);
           boxG.fillRoundedRect(tblDef.x - 16, tblDef.y - 12, 32, 22, 4);
           boxG.strokeRoundedRect(tblDef.x - 16, tblDef.y - 12, 32, 22, 4);
-          boxG.fillStyle(0x529b76, 1);
+          boxG.fillStyle(innerColor, 1);
           boxG.fillRoundedRect(tblDef.x - 11, tblDef.y - 8, 22, 14, 2);
         }
       }

@@ -1,11 +1,12 @@
 import React from "react";
 import Link from "next/link";
 import { ArrowLeft, BookOpen, Clock, Compass, Crown, Map, Users } from "lucide-react";
+import { GameIcon } from "@/components/GameIcons";
 
 export const metadata = {
   title: "Game Wardrobe & Rules — TableFolk",
   description:
-    "Explore the TableFolk board game collection and learn how to play Treasure Trails and Hearthvale inside Sunlit Oak Café.",
+    "Explore the TableFolk board game collection and learn how to play Treasure Trails, Hearthvale, and Velvet Masque inside Sunlit Oak Café.",
 };
 
 export default function GamesCataloguePage() {
@@ -28,7 +29,8 @@ export default function GamesCataloguePage() {
         </div>
 
         <div>
-          <h1 className="font-display text-4xl font-bold text-espresso">
+          <h1 className="flex items-center gap-3 font-display text-4xl font-bold text-espresso">
+            <GameIcon name="bookshelf" className="h-9 w-9" />
             The Game Wardrobe
           </h1>
           <p className="mt-2 text-espresso-soft">
@@ -37,6 +39,77 @@ export default function GamesCataloguePage() {
           </p>
         </div>
 
+        {/* Game #3: Velvet Masque */}
+        <article className="rounded-3xl border-2 border-terracotta-500/70 bg-oat-50 p-7 shadow-cozy">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <span className="rounded-full bg-terracotta-100 px-3 py-1 text-xs font-bold text-terracotta-700">
+                New • Social Bluffing &amp; Memory
+              </span>
+              <h2 className="mt-2 flex items-center gap-2.5 font-display text-3xl font-bold text-espresso">
+                <GameIcon name="game-masque" className="h-8 w-8" />
+                Velvet Masque
+              </h2>
+              <p className="mt-1 text-espresso-soft">
+                Swap masks under the crimson curtain, bluff powers even when you forget
+                your own identity, and dare rivals into simultaneous Showdowns to hit 13 Gold!
+              </p>
+            </div>
+            <div className="flex gap-3 text-xs font-bold text-espresso-soft">
+              <span className="inline-flex items-center gap-1 rounded-xl bg-oat-100 px-3 py-2">
+                <Users className="h-4 w-4 text-sage-700" /> 3–8 Players
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-xl bg-oat-100 px-3 py-2">
+                <Clock className="h-4 w-4 text-amberwarm-600" /> 8–12 Min
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            <div className="rounded-2xl bg-oat-100 p-5">
+              <h3 className="flex items-center gap-2 font-display text-lg font-bold text-espresso">
+                <Compass className="h-5 w-5 text-terracotta-700" /> Under the Velvet Cloak
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-espresso-soft">
+                <li>
+                  <strong>6s Curtain Call + Fast Opening:</strong> Study every mask face-up,
+                  then after just 2 shuffle turns, full bluffing &amp; peeking unlock!
+                </li>
+                <li>
+                  <strong>Swap or Fake-Swap:</strong> Pull any rival or Velvet Stage card
+                  under the crimson curtain — everyone sees the same swirl, only you know
+                  whether the masks actually traded!
+                </li>
+                <li>
+                  <strong>Simultaneous 8s Showdowns:</strong> Announce any mask without
+                  peeking; everyone chooses <em>Let It Slide</em> or <em>Challenge</em> at once!
+                </li>
+              </ul>
+            </div>
+
+            <div className="rounded-2xl bg-oat-100 p-5">
+              <h3 className="flex items-center gap-2 font-display text-lg font-bold text-espresso">
+                <Crown className="h-5 w-5 text-amberwarm-600" /> Balanced 8-Mask Troupe
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-espresso-soft">
+                <li>
+                  <strong>Core 6 (3–6p):</strong> Monarch (+3g), Patron (+2g &amp; peek),
+                  Magistrate (up to 4g Fine Box), Trickster (±1g neighbors), Illusionist
+                  (fortune swap ≤4g), and Jester (+1g &amp; swap 2 masks!).
+                </li>
+                <li>
+                  <strong>Big Gala Extras (7–8p):</strong> Taxmaster (tax richest +2g) &amp;
+                  Smuggler (instant win heist at 10+ Gold!).
+                </li>
+                <li>
+                  <strong>Zero Bankruptcy Anti-Climax:</strong> Hitting 0 Gold never ends
+                  the match abruptly — bounce back on your turn!
+                </li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
         {/* Game #2: Hearthvale */}
         <article className="rounded-3xl border-2 border-amberwarm-400/70 bg-oat-50 p-7 shadow-cozy">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -44,8 +117,9 @@ export default function GamesCataloguePage() {
               <span className="rounded-full bg-amberwarm-100 px-3 py-1 text-xs font-bold text-amberwarm-600">
                 New • Cozy Tile-Laying Strategy
               </span>
-              <h2 className="mt-2 font-display text-3xl font-bold text-espresso">
-                🌾 Hearthvale
+              <h2 className="mt-2 flex items-center gap-2.5 font-display text-3xl font-bold text-espresso">
+                <GameIcon name="game-hearthvale" className="h-8 w-8" />
+                Hearthvale
               </h2>
               <p className="mt-1 text-espresso-soft">
                 Build a sunlit storybook valley of terracotta towns, lantern-lit
@@ -75,13 +149,18 @@ export default function GamesCataloguePage() {
                   with zero dead draws.
                 </li>
                 <li>
-                  <strong>Roadside Lanterns (🏮):</strong> Complete a road with at
-                  least 1 Lantern to double the entire road from 1 pt to{" "}
-                  <strong>2 pts per tile</strong>!
+                  <strong className="inline-flex items-center gap-1">
+                    <GameIcon name="hv-lantern" className="h-4 w-4" /> Roadside Lanterns:
+                  </strong>{" "}
+                  Complete a road with at least 1 Lantern to double the entire road from
+                  1 pt to <strong>2 pts per tile</strong>!
                 </li>
                 <li>
-                  <strong>Hilltop Windmills (🌬️):</strong> Surround a Windmill on all
-                  8 neighboring tiles for an instant <strong>9 points</strong>.
+                  <strong className="inline-flex items-center gap-1">
+                    <GameIcon name="hv-windmill" className="h-4 w-4" /> Hilltop Windmills:
+                  </strong>{" "}
+                  Surround a Windmill on all 8 neighboring tiles for an instant{" "}
+                  <strong>9 points</strong>.
                 </li>
               </ul>
             </div>
@@ -116,12 +195,13 @@ export default function GamesCataloguePage() {
               <span className="rounded-full bg-sage-100 px-3 py-1 text-xs font-bold text-sage-700">
                 Available Now • Hidden-Role
               </span>
-              <h2 className="mt-2 font-display text-3xl font-bold text-espresso">
-                🗺️ Treasure Trails
+              <h2 className="mt-2 flex items-center gap-2.5 font-display text-3xl font-bold text-espresso">
+                <GameIcon name="game-trails" className="h-8 w-8" />
+                Treasure Trails
               </h2>
               <p className="mt-1 text-espresso-soft">
-                Chart sunlit botanical ruins to the Golden Compass — while secret
-                Tricksters plot from inside the crew.
+                Chart sunlit botanical ruins to the hidden Treasure Chest — while secret
+                Impostors plot from inside the expedition crew.
               </p>
             </div>
             <div className="flex gap-3 text-xs font-bold text-espresso-soft">
@@ -137,17 +217,17 @@ export default function GamesCataloguePage() {
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             <div className="rounded-2xl bg-oat-100 p-5">
               <h3 className="flex items-center gap-2 font-display text-lg font-bold text-espresso">
-                <Compass className="h-5 w-5 text-sage-700" /> Roles &amp; Win Conditions
+                <GameIcon name="role-explorer" className="h-5 w-5" /> Roles &amp; Win Conditions
               </h3>
               <ul className="mt-3 space-y-2 text-sm text-espresso-soft">
                 <li>
-                  <strong>Trailblazers:</strong> Build an unbroken open trail from{" "}
+                  <strong>Explorers:</strong> Build an unbroken open trail from{" "}
                   <strong>Base Camp</strong> to the hidden{" "}
-                  <strong>Golden Compass Vault</strong> among 3 Sealed Vaults.
+                  <strong>Treasure Chest Vault</strong> among 3 Sealed Vaults.
                 </li>
                 <li>
-                  <strong>Tricksters:</strong> Secretly sabotage gear, drop
-                  dead-ends, and misdirect routes until the Expedition Deck and hands
+                  <strong>Impostors:</strong> Secretly break explorer tools, drop
+                  dead-ends, and stall routes until the Expedition Deck and hands
                   run dry!
                 </li>
               </ul>
@@ -163,13 +243,15 @@ export default function GamesCataloguePage() {
                   180° anytime!).
                 </li>
                 <li>
-                  <strong>Action Cards:</strong> Break/repair Lantern, Compass, or
-                  Grapple; peek privately with a <strong>Spyglass</strong>; remove
-                  tiles with <strong>Boulder Clear</strong>.
+                  <strong>Action Cards:</strong> Break or Fix a{" "}
+                  <strong>Lantern</strong>, <strong>Compass</strong>, or{" "}
+                  <strong>Pickaxe</strong>; scout a sealed vault with{" "}
+                  <strong>Peek Vault</strong>; remove a blocker with{" "}
+                  <strong>Blast Tile</strong>.
                 </li>
                 <li>
-                  <strong>Field-Patch Twist:</strong> Discard 2 cards face-down to
-                  patch 1 of your own broken gears — never get soft-locked!
+                  <strong>Quick Fix Twist:</strong> Discard 2 cards face-down to fix 1
+                  of your own broken tools — never get soft-locked!
                 </li>
               </ul>
             </div>

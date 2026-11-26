@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Bot, Check, Crown, LogOut, Play, Plus, Share2, Trash2 } from "lucide-react";
 import type { SyncedTableSnapshot } from "@tablefolk/cafe-engine";
+import { GameIcon } from "./GameIcons";
 
 interface TableLobbyDrawerProps {
   table: SyncedTableSnapshot;
@@ -18,6 +19,7 @@ interface TableLobbyDrawerProps {
     turnSeconds: 30 | 45 | 60 | 90;
     mysteryRoles: boolean;
     deckSize: 36 | 54;
+    targetCoins: 10 | 13;
   }) => void;
   onResumeGame?: (gameRoomId: string) => void;
   onShareInvite?: () => void;
@@ -40,6 +42,7 @@ export function TableLobbyDrawer({
 }: TableLobbyDrawerProps) {
   const [rounds, setRounds] = useState<1 | 3>(1);
   const [deckSize, setDeckSize] = useState<36 | 54>(36);
+  const [targetCoins, setTargetCoins] = useState<10 | 13>(13);
   const [turnSeconds, setTurnSeconds] = useState<30 | 45 | 60 | 90>(45);
   const [mysteryRoles, setMysteryRoles] = useState(false);
 
@@ -50,7 +53,12 @@ export function TableLobbyDrawer({
   const humanCount = occupied.filter((s) => !s.isBot).length;
 
   const isHearthvale = table.selectedGameSlug === "hearthvale" || table.capacity < 3;
-  const gameTitle = isHearthvale ? "Hearthvale" : "Treasure Trails";
+  const isVelvetMasque = !isHearthvale && table.selectedGameSlug === "velvet-masque";
+  const gameTitle = isHearthvale
+    ? "Hearthvale"
+    : isVelvetMasque
+      ? "Velvet Masque"
+      : "Treasure Trails";
   const minPlayers = isHearthvale ? 2 : 3;
   const maxPlayers = Math.min(table.capacity, isHearthvale ? 5 : 8);
   const hasEnoughPlayers = occupied.length >= minPlayers && occupied.length <= maxPlayers;
@@ -71,9 +79,25 @@ export function TableLobbyDrawer({
             </span>
           </div>
           <h3 className="mt-1 flex items-center gap-2 font-display text-lg font-bold text-espresso">
-            <span>{isHearthvale ? "🌾 Hearthvale" : "🗺️ Treasure Trails"}</span>
+            <span className="inline-flex items-center gap-1.5">
+              <GameIcon
+                name={
+                  isHearthvale
+                    ? "game-hearthvale"
+                    : isVelvetMasque
+                      ? "game-masque"
+                      : "game-trails"
+                }
+                className="h-5 w-5"
+              />
+              {gameTitle}
+            </span>
             <span className="rounded-full bg-oat-200 px-2 py-0.5 text-[10px] font-bold text-espresso-soft">
-              {isHearthvale ? "2–5p Tile Strategy" : "3–8p Hidden Role"}
+              {isHearthvale
+                ? "2–5p Tile Strategy"
+                : isVelvetMasque
+                  ? "3–8p Bluff & Memory"
+                  : "3–8p Hidden Role"}
             </span>
           </h3>
         </div>
@@ -194,35 +218,49 @@ export function TableLobbyDrawer({
 
               {/* Game Switcher (for 3+ seat tables) */}
               {table.capacity >= 3 && onSelectGame && (
-                <div className="grid grid-cols-2 gap-1 rounded-xl bg-white p-1 text-[11px] font-bold shadow-sm">
+                <div className="grid grid-cols-3 gap-1 rounded-xl bg-white p-1 text-[10px] font-bold shadow-sm sm:text-[11px]">
                   <button
                     type="button"
                     onClick={() => onSelectGame("treasure-trails")}
-                    className={`rounded-lg px-2 py-1.5 transition ${
-                      !isHearthvale
+                    className={`inline-flex items-center justify-center gap-1 rounded-lg px-1.5 py-1.5 transition ${
+                      !isHearthvale && !isVelvetMasque
                         ? "bg-sage-500 text-white shadow-sm"
                         : "text-espresso-soft hover:bg-oat-100"
                     }`}
                   >
-                    🗺️ Treasure Trails (3–8p)
+                    <GameIcon name="game-trails" className="h-3.5 w-3.5" /> Trails
                   </button>
                   <button
                     type="button"
                     onClick={() => onSelectGame("hearthvale")}
-                    className={`rounded-lg px-2 py-1.5 transition ${
+                    className={`inline-flex items-center justify-center gap-1 rounded-lg px-1.5 py-1.5 transition ${
                       isHearthvale
                         ? "bg-amberwarm-600 text-white shadow-sm"
                         : "text-espresso-soft hover:bg-oat-100"
                     }`}
                   >
-                    🌾 Hearthvale (2–5p)
+                    <GameIcon name="game-hearthvale" className="h-3.5 w-3.5" /> Hearthvale
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onSelectGame("velvet-masque")}
+                    className={`inline-flex items-center justify-center gap-1 rounded-lg px-1.5 py-1.5 transition ${
+                      isVelvetMasque
+                        ? "bg-terracotta-500 text-white shadow-sm"
+                        : "text-espresso-soft hover:bg-oat-100"
+                    }`}
+                  >
+                    <GameIcon name="game-masque" className="h-3.5 w-3.5" /> Masque
                   </button>
                 </div>
               )}
 
               {table.capacity < 3 && (
-                <div className="rounded-lg bg-amberwarm-100/80 px-2.5 py-1.5 text-[11px] font-semibold text-espresso-soft">
-                  🪟 Cozy 2-Seat Nook — perfect for head-to-head <strong>Hearthvale</strong>! Add a Bot to practice solo.
+                <div className="flex items-center gap-2 rounded-lg bg-amberwarm-100/80 px-2.5 py-1.5 text-[11px] font-semibold text-espresso-soft">
+                  <GameIcon name="window-nook" className="h-4 w-4 shrink-0" />
+                  <span>
+                    Cozy 2-Seat Nook — perfect for head-to-head <strong>Hearthvale</strong>! Add a Bot to practice solo.
+                  </span>
                 </div>
               )}
 
@@ -243,6 +281,28 @@ export function TableLobbyDrawer({
                         className={`rounded-md px-2.5 py-1 ${
                           deckSize === sz
                             ? "bg-amberwarm-600 text-white"
+                            : "text-espresso-soft"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                ) : isVelvetMasque ? (
+                  <div className="flex rounded-lg bg-white p-0.5 shadow-sm">
+                    {(
+                      [
+                        [10, "Blitz (10g)"],
+                        [13, "Classic (13g)"],
+                      ] as const
+                    ).map(([goal, label]) => (
+                      <button
+                        key={goal}
+                        type="button"
+                        onClick={() => setTargetCoins(goal)}
+                        className={`rounded-md px-2.5 py-1 ${
+                          targetCoins === goal
+                            ? "bg-terracotta-500 text-white"
                             : "text-espresso-soft"
                         }`}
                       >
@@ -280,7 +340,7 @@ export function TableLobbyDrawer({
                   <option value={90}>90s / turn</option>
                 </select>
 
-                {!isHearthvale && occupied.length >= 5 && (
+                {!isHearthvale && !isVelvetMasque && occupied.length >= 5 && (
                   <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-white px-2 py-1 shadow-sm">
                     <input
                       type="checkbox"
@@ -301,12 +361,20 @@ export function TableLobbyDrawer({
                 type="button"
                 disabled={!hasEnoughPlayers}
                 onClick={() =>
-                  onStartGame({ rounds, turnSeconds, mysteryRoles, deckSize })
+                  onStartGame({
+                    rounds,
+                    turnSeconds,
+                    mysteryRoles,
+                    deckSize,
+                    targetCoins,
+                  })
                 }
                 className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl py-2.5 font-display text-sm font-bold text-white shadow-sm transition disabled:bg-oat-300 disabled:text-espresso-muted ${
                   isHearthvale
                     ? "bg-amberwarm-600 hover:brightness-95"
-                    : "bg-sage-500 hover:bg-sage-700"
+                    : isVelvetMasque
+                      ? "bg-terracotta-500 hover:bg-terracotta-700"
+                      : "bg-sage-500 hover:bg-sage-700"
                 }`}
               >
                 <Play className="h-4 w-4" />

@@ -16,6 +16,7 @@ COPY packages/db/package.json packages/db/
 COPY packages/game-engine/package.json packages/game-engine/
 COPY packages/games/hearthvale/package.json packages/games/hearthvale/
 COPY packages/games/treasure-trails/package.json packages/games/treasure-trails/
+COPY packages/games/velvet-masque/package.json packages/games/velvet-masque/
 COPY packages/cafe-engine/package.json packages/cafe-engine/
 COPY packages/ui/package.json packages/ui/
 
@@ -29,6 +30,7 @@ COPY packages/db packages/db
 COPY packages/game-engine packages/game-engine
 COPY packages/games/hearthvale packages/games/hearthvale
 COPY packages/games/treasure-trails packages/games/treasure-trails
+COPY packages/games/velvet-masque packages/games/velvet-masque
 
 ENV NODE_ENV=production
 EXPOSE 2567

@@ -13,6 +13,7 @@
     "@tablefolk/game-engine": "workspace:*",
     "@tablefolk/game-hearthvale": "workspace:*",
     "@tablefolk/game-treasure-trails": "workspace:*",
+    "@tablefolk/game-velvet-masque": "workspace:*",
     "@tablefolk/shared": "workspace:*",
     "@tablefolk/ui": "workspace:*",
     "colyseus.js": "^0.15.28",

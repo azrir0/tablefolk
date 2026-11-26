@@ -15,6 +15,7 @@ import {
 import { generateRandomAvatarConfig, type AvatarConfig } from "@tablefolk/shared";
 import { AvatarSvg } from "@tablefolk/ui";
 import { loginAccount, loginAsGuest, registerAccount } from "@/lib/api";
+import { GameIcon } from "@/components/GameIcons";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -114,7 +115,8 @@ export default function LandingPage() {
             TableFolk recreates the warmth of visiting your favorite board game café.
             Stroll around in your customized character, learn rules from the cashier,
             grab a seat at a table, and play server-authoritative tabletop hits like{" "}
-            <strong>Treasure Trails</strong> and <strong>Hearthvale</strong>.
+            <strong>Treasure Trails</strong>, <strong>Hearthvale</strong>, and{" "}
+            <strong>Velvet Masque</strong>.
           </p>
 
           {/* Cozy Café Scene Preview Card */}
@@ -132,14 +134,24 @@ export default function LandingPage() {
               </div>
               <div className="flex-1 min-w-[200px]">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sage-700">
-                  <Compass className="h-4 w-4" /> 2 Playable Café Games
+                  <Compass className="h-4 w-4" /> 3 Playable Café Games
                 </div>
-                <h2 className="font-display text-xl font-bold text-espresso">
-                  🗺️ Treasure Trails &amp; 🌾 Hearthvale
+                <h2 className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 font-display text-lg font-bold text-espresso sm:text-xl">
+                  <span className="inline-flex items-center gap-1">
+                    <GameIcon name="game-trails" className="h-5 w-5" /> Treasure Trails
+                  </span>
+                  <span className="text-oat-300">·</span>
+                  <span className="inline-flex items-center gap-1">
+                    <GameIcon name="game-hearthvale" className="h-5 w-5" /> Hearthvale
+                  </span>
+                  <span className="text-oat-300">·</span>
+                  <span className="inline-flex items-center gap-1">
+                    <GameIcon name="game-masque" className="h-5 w-5" /> Velvet Masque
+                  </span>
                 </h2>
-                <p className="text-sm text-espresso-soft">
-                  Play hidden-role sabotage (3–8p) or cozy tile-laying valley
-                  strategy with Lantern Roads &amp; Mayor takeovers (2–5p)!
+                <p className="mt-1 text-sm text-espresso-soft">
+                  Play hidden-role sabotage (3–8p), cozy tile-laying valley strategy
+                  (2–5p), or chaotic mask-swapping bluffs (3–8p)!
                 </p>
               </div>
               <Link

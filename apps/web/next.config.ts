@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
     "@tablefolk/game-engine",
     "@tablefolk/game-hearthvale",
     "@tablefolk/game-treasure-trails",
+    "@tablefolk/game-velvet-masque",
     "@tablefolk/ui",
   ],
   webpack: (config) => {

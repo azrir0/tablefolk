@@ -5,7 +5,6 @@ import { Client as ColyseusClient, type Room } from "colyseus.js";
 import {
   BookOpen,
   Bot,
-  Compass,
   Eye,
   EyeOff,
   Flame,
@@ -17,7 +16,6 @@ import {
   Send,
   Sparkles,
   Trash2,
-  Wrench,
   X,
   ZoomIn,
   ZoomOut,
@@ -46,6 +44,13 @@ import {
 import { WS_BASE_URL, getStoredToken } from "@/lib/api";
 import { soundEngine } from "@/lib/sound";
 import { BoardMarkerLayer, BoardMarkerToolbar } from "./BoardMarkerLayer";
+import {
+  GameIcon,
+  ToolCardArt,
+  ToolSlotIcon,
+  gearToIconName,
+  type GameIconName,
+} from "./GameIcons";
 import { PathTileSvg } from "./TreasureTrailsTileSvg";
 
 interface TreasureTrailsOverlayProps {
@@ -87,7 +92,8 @@ interface FlyingCardEffect {
     | "DISCARD";
   label: string;
   sublabel?: string;
-  icon?: string;
+  gear?: GearType;
+  iconName?: GameIconName;
   edges?: PathEdges;
   connectedCenter?: boolean;
 }
@@ -97,7 +103,7 @@ interface ImpactBurst {
   x: number;
   y: number;
   colorClass: string;
-  icon: string;
+  iconName: GameIconName;
 }
 
 interface FlyingChatBubble {
@@ -111,10 +117,10 @@ interface FlyingChatBubble {
   comboCount: number;
 }
 
-const GEAR_META: Record<GearType, { label: string; icon: string }> = {
-  lantern: { label: "Lantern", icon: "🏮" },
-  compass: { label: "Compass", icon: "🧭" },
-  grapple: { label: "Grapple", icon: "🪝" },
+const GEAR_META: Record<GearType, { label: string }> = {
+  lantern: { label: "Lantern" },
+  compass: { label: "Compass" },
+  grapple: { label: "Pickaxe" },
 };
 
 function isRoomSocketOpen(room: Room | null): boolean {
@@ -138,19 +144,19 @@ function describeEvent(
     case "TILE_PLACED":
       return `${nameOf(ev.actorId)} placed a trail at (${ev.x}, ${ev.y}).`;
     case "TILE_CLEARED":
-      return `💥 ${nameOf(ev.actorId)} cleared the tile at (${ev.x}, ${ev.y})!`;
+      return `${nameOf(ev.actorId)} blasted the tile at (${ev.x}, ${ev.y})!`;
     case "GEAR_BROKEN":
-      return `⚡ ${nameOf(ev.actorId)} broke ${nameOf(ev.targetId)}'s ${ev.gear}!`;
+      return `${nameOf(ev.actorId)} broke ${nameOf(ev.targetId)}'s ${GEAR_META[ev.gear].label}!`;
     case "GEAR_REPAIRED":
-      return `🔧 ${nameOf(ev.actorId)} repaired ${nameOf(ev.targetId)}'s ${ev.gear}!`;
+      return `${nameOf(ev.actorId)} fixed ${nameOf(ev.targetId)}'s ${GEAR_META[ev.gear].label}!`;
     case "FIELD_PATCHED":
-      return `🛠️ ${nameOf(ev.actorId)} Field-Patched their ${ev.gear}!`;
+      return `${nameOf(ev.actorId)} Quick-Fixed their ${GEAR_META[ev.gear].label}!`;
     case "VAULT_SCOUTED":
-      return `🔭 ${nameOf(ev.actorId)} scouted Vault (${ev.x}, ${ev.y})!`;
+      return `${nameOf(ev.actorId)} peeked inside Vault (${ev.x}, ${ev.y})!`;
     case "VAULT_REVEALED":
       return ev.vaultKind === "TRUE_RELIC"
-        ? `🌟 ${nameOf(ev.actorId)} uncovered the GOLDEN COMPASS!`
-        : `🏺 ${nameOf(ev.actorId)} uncovered a Hollow Decoy at (${ev.x}, ${ev.y})!`;
+        ? `${nameOf(ev.actorId)} uncovered the TREASURE CHEST!`
+        : `${nameOf(ev.actorId)} uncovered Empty Ruins at (${ev.x}, ${ev.y})!`;
     case "CARD_DISCARDED":
       return ev.timedOut
         ? `${nameOf(ev.actorId)} timed out and discarded face-down.`
@@ -240,7 +246,9 @@ function GameChatAndLogPanel({
             <div className="min-w-0">
               {m.senderUserId !== "system" && (
                 <span className="font-bold text-sage-700">
-                  {m.isSpectator ? "👁️ " : ""}
+                  {m.isSpectator && (
+                    <Eye className="mr-0.5 inline h-3 w-3 align-text-bottom text-espresso-soft" />
+                  )}
                   {m.senderName}:{" "}
                 </span>
               )}
@@ -510,7 +518,7 @@ export function TreasureTrailsOverlay({
     const id = `cb_${seq}_${now}`;
     const bubble: FlyingChatBubble = {
       id,
-      senderName: msg.isSpectator ? `👁️ ${msg.senderName}` : msg.senderName,
+      senderName: msg.isSpectator ? `[Spec] ${msg.senderName}` : msg.senderName,
       message: msg.message,
       isQuickBluff: Boolean(msg.isQuickBluff),
       isMe: msg.senderUserId === localUserId,
@@ -631,10 +639,16 @@ export function TreasureTrailsOverlay({
   );
 
   const spawnImpact = useCallback(
-    (x: number, y: number, colorClass: string, icon: string, delayMs = 940) => {
+    (
+      x: number,
+      y: number,
+      colorClass: string,
+      iconName: GameIconName,
+      delayMs = 940
+    ) => {
       setTimeout(() => {
         const id = `imp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-        setImpactBursts((prev) => [...prev, { id, x, y, colorClass, icon }]);
+        setImpactBursts((prev) => [...prev, { id, x, y, colorClass, iconName }]);
         setTimeout(() => {
           setImpactBursts((prev) => prev.filter((b) => b.id !== id));
         }, 780);
@@ -678,7 +692,7 @@ export function TreasureTrailsOverlay({
             },
             1260
           );
-          spawnImpact(to.x, to.y, "border-emerald-400 bg-emerald-400/20", "✨", 940);
+          spawnImpact(to.x, to.y, "border-emerald-400 bg-emerald-400/20", "star-gold", 940);
           setActionBanner(describeEvent(ev, lookupName));
         } else if (ev.type === "GEAR_BROKEN") {
           const from = getActorOrigin(ev.actorId);
@@ -699,11 +713,17 @@ export function TreasureTrailsOverlay({
               actorName,
               kind: "HAZARD",
               label: `Break ${GEAR_META[ev.gear].label}`,
-              icon: "⚡",
+              gear: ev.gear,
             },
             1260
           );
-          spawnImpact(to.x, to.y, "border-terracotta-500 bg-terracotta-500/25", "💥", 960);
+          spawnImpact(
+            to.x,
+            to.y,
+            "border-terracotta-500 bg-terracotta-500/25",
+            gearToIconName(ev.gear),
+            960
+          );
           setTimeout(() => {
             setShakingPlayerId(ev.targetId);
             setTimeout(() => setShakingPlayerId(null), 550);
@@ -728,11 +748,17 @@ export function TreasureTrailsOverlay({
               actorName,
               kind: "REPAIR",
               label: `Fix ${GEAR_META[ev.gear].label}`,
-              icon: "🔧",
+              gear: ev.gear,
             },
             1260
           );
-          spawnImpact(to.x, to.y, "border-emerald-400 bg-emerald-400/25", "✨", 940);
+          spawnImpact(
+            to.x,
+            to.y,
+            "border-emerald-400 bg-emerald-400/25",
+            gearToIconName(ev.gear),
+            940
+          );
           setActionBanner(describeEvent(ev, lookupName));
         } else if (ev.type === "FIELD_PATCHED") {
           const from = getActorOrigin(ev.actorId);
@@ -752,13 +778,19 @@ export function TreasureTrailsOverlay({
               toY: to.y,
               actorName,
               kind: "FIELD_PATCH",
-              label: "Field-Patch",
+              label: "Quick Fix",
               sublabel: GEAR_META[ev.gear].label,
-              icon: "🛠️",
+              gear: ev.gear,
             },
             1260
           );
-          spawnImpact(to.x, to.y, "border-amberwarm-400 bg-amberwarm-400/25", "🔧", 940);
+          spawnImpact(
+            to.x,
+            to.y,
+            "border-amberwarm-400 bg-amberwarm-400/25",
+            gearToIconName(ev.gear),
+            940
+          );
           setActionBanner(describeEvent(ev, lookupName));
         } else if (ev.type === "VAULT_SCOUTED") {
           const actorPt = getActorOrigin(ev.actorId);
@@ -779,8 +811,8 @@ export function TreasureTrailsOverlay({
               toY: vaultPt.y,
               actorName,
               kind: "SPYGLASS",
-              label: "Spyglass",
-              icon: "🔭",
+              label: "Peek Vault",
+              iconName: "action-peek-vault",
             },
             1220
           );
@@ -798,7 +830,7 @@ export function TreasureTrailsOverlay({
                 actorName,
                 kind: "VAULT",
                 label: "Sealed Vault",
-                icon: "❓",
+                iconName: "action-peek-vault",
               },
               1900
             );
@@ -828,12 +860,18 @@ export function TreasureTrailsOverlay({
               toY: to.y,
               actorName,
               kind: "BOULDER_CLEAR",
-              label: "Boulder Clear",
-              icon: "💥",
+              label: "Blast Tile",
+              iconName: "action-blast-tile",
             },
             1260
           );
-          spawnImpact(to.x, to.y, "border-orange-400 bg-orange-400/30", "💥", 940);
+          spawnImpact(
+            to.x,
+            to.y,
+            "border-orange-400 bg-orange-400/30",
+            "action-blast-tile",
+            940
+          );
           setActionBanner(describeEvent(ev, lookupName));
         } else if (ev.type === "VAULT_REVEALED") {
           const pt = getCenterOf(cellRefs.current.get(coordKey(ev.x, ev.y)));
@@ -841,10 +879,22 @@ export function TreasureTrailsOverlay({
           const delayMs = hadTileFlight ? 980 : 220;
           if (ev.vaultKind === "TRUE_RELIC") {
             setTimeout(() => soundEngine.playVictory(), delayMs);
-            spawnImpact(pt.x, pt.y, "border-amberwarm-400 bg-amberwarm-400/45", "🧭", delayMs);
+            spawnImpact(
+              pt.x,
+              pt.y,
+              "border-amberwarm-400 bg-amberwarm-400/45",
+              "vault-treasure",
+              delayMs
+            );
           } else {
             setTimeout(() => soundEngine.playDecoyReveal(), delayMs);
-            spawnImpact(pt.x, pt.y, "border-oat-300 bg-oat-300/35", "🏺", delayMs);
+            spawnImpact(
+              pt.x,
+              pt.y,
+              "border-oat-300 bg-oat-300/35",
+              "vault-decoy",
+              delayMs
+            );
           }
           setActionBanner(describeEvent(ev, lookupName));
         } else if (ev.type === "CARD_DISCARDED") {
@@ -868,11 +918,17 @@ export function TreasureTrailsOverlay({
               kind: "DISCARD",
               label: "Face-Down",
               sublabel: ev.timedOut ? "Timed Out" : "Secret Discard",
-              icon: "🧭",
+              iconName: "game-trails",
             },
             1580
           );
-          spawnImpact(to.x, to.y, "border-amberwarm-400 bg-amberwarm-400/25", "🃏", 1320);
+          spawnImpact(
+            to.x,
+            to.y,
+            "border-amberwarm-400 bg-amberwarm-400/25",
+            "card-deck",
+            1320
+          );
           setActionBanner(describeEvent(ev, lookupName));
         } else if (ev.type === "ROUND_ENDED") {
           const hadTrueRelicReveal = events.some(
@@ -1373,27 +1429,27 @@ export function TreasureTrailsOverlay({
     ? "Get ready for the expedition!"
     : isRoundEnded
       ? endTrailHighlight?.reachedTreasure
-        ? "🧭 Trail reached the Golden Compass! Reviewing final map..."
-        : "🦊 Expedition ended — the trail never reached the Golden Compass!"
+        ? "Trail reached the Treasure Chest! Reviewing final map..."
+        : "Expedition ended — the trail never reached the Treasure Chest!"
       : !isMyTurn
         ? `Waiting for ${nameOf(pub?.activePlayerId ?? "")}...`
       : fieldPatchMode
-        ? "Tap any 2 cards in your hand to patch broken gear."
+        ? "Tap any 2 cards in your hand to Quick Fix a broken tool."
         : !selectedCard
           ? myBrokenGears.length > 0
-            ? "⚠️ Gear broken! Repair, Field-Patch (2 cards), or Discard."
+            ? "Tool broken! Play a Fix card, Quick Fix (2 cards), or Discard."
             : "Tap a card below to play or discard."
           : selectedCard.kind === "PATH"
             ? myBrokenGears.length > 0
-              ? "Repair broken gear before placing paths."
+              ? "Fix your broken tool before placing paths."
               : "Tap any glowing green cell on the map!"
             : selectedCard.kind === "HAZARD"
-              ? `Tap an intact ${selectedCard.gear} icon above to break it!`
+              ? `Tap an intact ${GEAR_META[selectedCard.gear].label} slot above to break it!`
               : selectedCard.kind === "REPAIR"
-                ? "Tap a broken gear icon above to repair!"
+                ? `Tap a broken ${selectedCard.gears.map((g) => GEAR_META[g].label).join(" or ")} slot above to fix!`
                 : selectedCard.kind === "SPYGLASS"
-                  ? "Tap any glowing Sealed Vault on the right edge!"
-                  : "Tap any placed path tile to clear it!";
+                  ? "Tap any glowing Sealed Vault on the right edge to peek!"
+                  : "Tap any placed path tile on the map to blast it!";
 
   if (!pub) {
     return (
@@ -1442,7 +1498,7 @@ export function TreasureTrailsOverlay({
           {/* Left: Title (Desktop) + Turn Status + Deck */}
           <div className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
             <div className="hidden items-center gap-1.5 font-display text-lg font-bold text-espresso sm:flex">
-              <Compass className="h-5 w-5 text-sage-700" />
+              <GameIcon name="game-trails" className="h-5 w-5" />
               Treasure Trails
             </div>
             <span className="shrink-0 rounded-full bg-oat-200 px-2 py-0.5 text-[10px] font-bold text-espresso-soft sm:text-xs">
@@ -1450,9 +1506,10 @@ export function TreasureTrailsOverlay({
             </span>
             <span
               ref={deckRef}
-              className="shrink-0 rounded-full bg-amberwarm-100 px-2 py-0.5 text-[10px] font-bold text-amberwarm-600 sm:px-2.5 sm:text-xs"
+              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amberwarm-100 px-2 py-0.5 text-[10px] font-bold text-amberwarm-600 sm:px-2.5 sm:text-xs"
             >
-              🃏{pub.deckCount}
+              <GameIcon name="card-deck" className="h-3.5 w-3.5" />
+              {pub.deckCount}
               <span className="hidden sm:inline"> · Disc {pub.discardCount}</span>
             </span>
             {pub.phase === "IN_PROGRESS" && (
@@ -1521,11 +1578,18 @@ export function TreasureTrailsOverlay({
                       : "bg-sage-500 text-white"
                 }`}
               >
-                {roleVisible ? <Eye className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> : <EyeOff className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
+                {roleVisible ? (
+                  <GameIcon
+                    name={priv.role === "TRICKSTER" ? "role-impostor" : "role-explorer"}
+                    className="h-3.5 w-3.5 sm:h-4 sm:w-4"
+                  />
+                ) : (
+                  <EyeOff className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                )}
                 {roleVisible
                   ? priv.role === "TRICKSTER"
-                    ? "TRICKSTER"
-                    : "TRAILBLAZER"
+                    ? "IMPOSTOR"
+                    : "EXPLORER"
                   : "Hidden"}
               </button>
             )}
@@ -1593,7 +1657,7 @@ export function TreasureTrailsOverlay({
                     if (el) playerRefs.current.set(p.userId, el);
                     else playerRefs.current.delete(p.userId);
                   }}
-                  className={`min-w-[118px] shrink-0 rounded-2xl border-2 px-2 py-1.5 transition sm:min-w-[152px] sm:px-3 sm:py-2 ${
+                  className={`min-w-[122px] shrink-0 rounded-2xl border-2 px-2 py-1.5 transition sm:min-w-[158px] sm:px-3 sm:py-2 ${
                     isShaking
                       ? "animate-tt-shake border-terracotta-500 bg-terracotta-100"
                       : isActive
@@ -1610,7 +1674,7 @@ export function TreasureTrailsOverlay({
                       />
                       <span className="truncate">
                         {p.displayName}
-                        {isMe ? " ★" : ""}
+                        {isMe ? " (You)" : ""}
                       </span>
                       {isBotSub && (
                         <span
@@ -1621,13 +1685,15 @@ export function TreasureTrailsOverlay({
                         </span>
                       )}
                     </span>
-                    <span className="shrink-0 rounded-md bg-amberwarm-100 px-1 py-0.5 text-[9px] text-amberwarm-600 sm:px-1.5 sm:text-[10px]">
-                      ★{p.score}
+                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-md bg-amberwarm-100 px-1 py-0.5 text-[9px] text-amberwarm-600 sm:px-1.5 sm:text-[10px]">
+                      <GameIcon name="star-gold" className="h-3 w-3" />
+                      {p.score}
                     </span>
                   </div>
                   <div className="mt-1 flex items-center justify-between gap-1">
-                    <span className="text-[10px] font-bold text-espresso-muted">
-                      🃏{p.handCount}
+                    <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-espresso-muted">
+                      <GameIcon name="card-deck" className="h-3 w-3" />
+                      {p.handCount}
                     </span>
                     <div className="flex gap-0.5 sm:gap-1">
                       {(["lantern", "compass", "grapple"] as GearType[]).map((g) => {
@@ -1651,7 +1717,7 @@ export function TreasureTrailsOverlay({
                             disabled={!clickable}
                             onClick={() => handlePlayerGearClick(p.userId, g)}
                             title={`${p.displayName}'s ${GEAR_META[g].label}: ${intact ? "Intact" : "BROKEN"}`}
-                            className={`flex h-5 w-5 items-center justify-center rounded-md border text-[11px] transition sm:h-6 sm:w-6 sm:rounded-lg sm:text-xs ${
+                            className={`flex h-6 w-6 items-center justify-center rounded-md border transition sm:h-7 sm:w-7 sm:rounded-lg ${
                               !intact
                                 ? "border-terracotta-500 bg-terracotta-100"
                                 : "border-oat-300 bg-oat-100"
@@ -1661,9 +1727,11 @@ export function TreasureTrailsOverlay({
                                 : "cursor-default"
                             }`}
                           >
-                            <span className={!intact ? "opacity-45" : ""}>
-                              {GEAR_META[g].icon}
-                            </span>
+                            <ToolSlotIcon
+                              gear={g}
+                              broken={!intact}
+                              className="h-4 w-4 sm:h-[18px] sm:w-[18px]"
+                            />
                           </button>
                         );
                       })}
@@ -1729,18 +1797,25 @@ export function TreasureTrailsOverlay({
                 <div className="absolute inset-x-2 bottom-2 z-40 mx-auto flex max-w-xl flex-wrap items-center justify-between gap-2 rounded-2xl border-2 border-amberwarm-400 bg-espresso/95 px-3.5 py-2.5 text-oat-50 shadow-2xl backdrop-blur sm:inset-x-4 sm:bottom-3 sm:px-4">
                   <div className="flex min-w-0 flex-1 items-center gap-2.5">
                     <span
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xl shadow-inner ${
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-inner ${
                         endTrailHighlight?.reachedTreasure
                           ? "bg-amberwarm-400/25 ring-2 ring-amberwarm-400"
                           : "bg-terracotta-500/25 ring-2 ring-terracotta-500"
                       }`}
                     >
-                      {endTrailHighlight?.reachedTreasure ? "🧭" : "🦊"}
+                      <GameIcon
+                        name={
+                          endTrailHighlight?.reachedTreasure
+                            ? "vault-treasure"
+                            : "role-impostor"
+                        }
+                        className="h-6 w-6"
+                      />
                     </span>
                     <div className="min-w-0">
                       <div className="font-display text-xs font-bold leading-tight text-amberwarm-400 sm:text-sm">
                         {endTrailHighlight?.reachedTreasure
-                          ? "Trail Connected to the Golden Compass!"
+                          ? "Trail Connected to the Treasure Chest!"
                           : "Trail Stopped Short — Treasure Unreached!"}
                       </div>
                       <div className="truncate text-[10px] font-semibold text-oat-200 sm:text-xs">
@@ -1760,18 +1835,25 @@ export function TreasureTrailsOverlay({
                 </div>
               )}
 
-            {/* Private Spyglass Vision Toast */}
+            {/* Private Peek Vault Vision Toast */}
             {spyglassVision && (
               <div className="pointer-events-none absolute bottom-3 left-1/2 z-30 w-[90%] max-w-sm -translate-x-1/2 rounded-2xl border-2 border-amberwarm-400 bg-oat-50 px-4 py-2.5 text-center shadow-2xl">
-                <div className="text-[10px] font-extrabold uppercase tracking-wider text-amberwarm-600">
-                  🔭 Secret Spyglass Intel (Only You See This!)
+                <div className="inline-flex items-center justify-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-amberwarm-600">
+                  <GameIcon name="action-peek-vault" className="h-3.5 w-3.5" />
+                  Secret Peek Vault Intel (Only You See This!)
                 </div>
-                <div className="mt-0.5 font-display text-base font-bold text-espresso sm:text-lg">
-                  Vault ({spyglassVision.coord}):{" "}
+                <div className="mt-0.5 flex items-center justify-center gap-1.5 font-display text-base font-bold text-espresso sm:text-lg">
+                  <span>Vault ({spyglassVision.coord}):</span>
                   {spyglassVision.kind === "TRUE_RELIC" ? (
-                    <span className="text-sage-700">★ GOLDEN COMPASS!</span>
+                    <span className="inline-flex items-center gap-1 text-sage-700">
+                      <GameIcon name="vault-treasure" className="h-5 w-5" />
+                      TREASURE CHEST!
+                    </span>
                   ) : (
-                    <span className="text-terracotta-700">🏺 Hollow Decoy</span>
+                    <span className="inline-flex items-center gap-1 text-terracotta-700">
+                      <GameIcon name="vault-decoy" className="h-5 w-5" />
+                      Empty Ruins
+                    </span>
                   )}
                 </div>
               </div>
@@ -1911,7 +1993,9 @@ export function TreasureTrailsOverlay({
                             +
                           </span>
                         ) : isLastCleared ? (
-                          <span className="text-[10px] opacity-75">💥</span>
+                          <span className="flex items-center justify-center opacity-80">
+                            <GameIcon name="action-blast-tile" className="h-5 w-5" />
+                          </span>
                         ) : null}
                       </button>
                     );
@@ -2031,7 +2115,7 @@ export function TreasureTrailsOverlay({
           <div className="flex flex-wrap items-center justify-between gap-1.5">
             <div className="text-[11px] font-bold text-espresso-soft sm:text-xs">
               {markerMode
-                ? "✏️ Marker Mode ON — drag to draw or tap to ping! Tap Done when finished."
+                ? "Marker Mode ON — drag to draw or tap to ping! Tap Done when finished."
                 : statusHintText}
             </div>
 
@@ -2074,11 +2158,32 @@ export function TreasureTrailsOverlay({
                         : "bg-terracotta-100 text-terracotta-700"
                     }`}
                   >
-                    <Wrench className="h-3.5 w-3.5" />
+                    <GameIcon name="quick-fix" className="h-3.5 w-3.5" />
                     {fieldPatchMode
                       ? `Pick 2 (${patchCardIds.length}/2)`
-                      : "Field-Patch"}
+                      : "Quick Fix"}
                   </button>
+
+                  {fieldPatchMode && myBrokenGears.length > 1 && (
+                    <div className="inline-flex items-center gap-1 rounded-xl bg-oat-200/80 px-1.5 py-1">
+                      {myBrokenGears.map((g) => (
+                        <button
+                          key={g}
+                          type="button"
+                          onClick={() => setPatchGear(g)}
+                          title={`Select ${GEAR_META[g].label} to fix`}
+                          className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-bold transition ${
+                            patchGear === g
+                              ? "bg-white text-espresso shadow-sm ring-1 ring-sage-500"
+                              : "text-espresso-soft hover:bg-white/60"
+                          }`}
+                        >
+                          <ToolSlotIcon gear={g} broken className="h-3.5 w-3.5" />
+                          <span>{GEAR_META[g].label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
                   {fieldPatchMode && patchCardIds.length === 2 && (
                     <button
@@ -2090,8 +2195,9 @@ export function TreasureTrailsOverlay({
                           gear: patchGear,
                         })
                       }
-                      className="rounded-xl bg-sage-500 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sage-700 sm:text-xs"
+                      className="inline-flex items-center gap-1 rounded-xl bg-sage-500 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sage-700 sm:text-xs"
                     >
+                      <GameIcon name={gearToIconName(patchGear)} className="h-3.5 w-3.5" />
                       Fix {GEAR_META[patchGear].label}!
                     </button>
                   )}
@@ -2114,14 +2220,15 @@ export function TreasureTrailsOverlay({
                   key={card.id}
                   type="button"
                   onClick={() => handleCardSelect(card)}
-                  className={`relative flex h-[88px] w-[62px] shrink-0 flex-col items-center justify-between rounded-xl border-2 p-1 text-center transition sm:h-28 sm:w-20 sm:rounded-2xl sm:p-1.5 ${
+                  title={card.label}
+                  className={`relative flex h-[92px] w-[68px] shrink-0 flex-col items-center justify-between rounded-xl border-2 p-1 text-center transition sm:h-[116px] sm:w-[86px] sm:rounded-2xl sm:p-1.5 ${
                     isSelected
                       ? "-translate-y-2 border-sage-500 bg-sage-100 shadow-lg"
                       : "border-oat-300 bg-white hover:-translate-y-1 hover:border-amberwarm-400"
                   }`}
                 >
                   {card.kind === "PATH" ? (
-                    <div className="h-[62px] w-[48px] sm:h-20 sm:w-16">
+                    <div className="h-[64px] w-[50px] sm:h-20 sm:w-16">
                       <PathTileSvg
                         edges={getOrientedEdges(
                           card.edges,
@@ -2132,18 +2239,42 @@ export function TreasureTrailsOverlay({
                       />
                     </div>
                   ) : (
-                    <div className="flex flex-1 flex-col items-center justify-center gap-0.5">
-                      <span className="text-xl sm:text-2xl">
+                    <div className="flex flex-1 flex-col items-center justify-center gap-1">
+                      {card.kind === "HAZARD" ? (
+                        <ToolCardArt kind="HAZARD" gears={[card.gear]} />
+                      ) : card.kind === "REPAIR" ? (
+                        <ToolCardArt kind="REPAIR" gears={card.gears} />
+                      ) : card.kind === "SPYGLASS" ? (
+                        <GameIcon
+                          name="action-peek-vault"
+                          className="h-8 w-8 sm:h-9 sm:w-9"
+                        />
+                      ) : (
+                        <GameIcon
+                          name="action-blast-tile"
+                          className="h-8 w-8 sm:h-9 sm:w-9"
+                        />
+                      )}
+                      <span
+                        className={`text-[7px] font-extrabold uppercase tracking-wider sm:text-[8.5px] ${
+                          card.kind === "HAZARD"
+                            ? "text-terracotta-700"
+                            : card.kind === "REPAIR"
+                              ? "text-sage-700"
+                              : card.kind === "SPYGLASS"
+                                ? "text-amberwarm-600"
+                                : "text-orange-700"
+                        }`}
+                      >
                         {card.kind === "HAZARD"
-                          ? "⚡"
+                          ? "BREAK"
                           : card.kind === "REPAIR"
-                            ? "🔧"
+                            ? card.gears.length > 1
+                              ? "FIX 1 OF 2"
+                              : "FIX"
                             : card.kind === "SPYGLASS"
-                              ? "🔭"
-                              : "💥"}
-                      </span>
-                      <span className="text-[7.5px] font-extrabold uppercase tracking-tight text-espresso-muted sm:text-[9px]">
-                        {card.kind.replace("_", " ")}
+                              ? "INTEL"
+                              : "BLAST"}
                       </span>
                     </div>
                   )}
@@ -2163,8 +2294,9 @@ export function TreasureTrailsOverlay({
         <div className="fixed inset-0 z-50 flex items-end bg-espresso/50 backdrop-blur-sm lg:hidden">
           <div className="flex h-[72dvh] w-full flex-col overflow-hidden rounded-t-3xl border-t-2 border-oat-300 bg-oat-50 shadow-2xl">
             <div className="flex items-center justify-between border-b border-oat-200 px-4 py-3">
-              <span className="font-display text-base font-bold text-espresso">
-                💬 Table Talk &amp; Expedition Log
+              <span className="inline-flex items-center gap-1.5 font-display text-base font-bold text-espresso">
+                <MessageCircle className="h-4 w-4 text-sage-700" />
+                Table Talk &amp; Expedition Log
               </span>
               <button
                 type="button"
@@ -2212,7 +2344,7 @@ export function TreasureTrailsOverlay({
               }`}
             >
               <div className="flex items-center justify-center gap-1 text-[9px] font-extrabold uppercase tracking-wide text-sage-700">
-                <span>{b.isQuickBluff ? "🗣️" : "💬"}</span>
+                <MessageCircle className="h-2.5 w-2.5 shrink-0" />
                 <span className="max-w-[110px] truncate">{b.senderName}</span>
                 {b.comboCount > 1 && (
                   <span className="rounded-full bg-amberwarm-400 px-1.5 py-[1px] text-[9px] font-black text-espresso shadow-sm">
@@ -2262,7 +2394,7 @@ export function TreasureTrailsOverlay({
                   ? "animate-tt-discard h-[100px] w-[76px] border-amberwarm-400 bg-gradient-to-br from-[#4A3528] via-[#2C1F18] to-[#3E2B20] p-1.5 text-oat-50 sm:h-[114px] sm:w-[86px]"
                   : fx.mode === "vault-peek"
                     ? "animate-tt-vault-peek h-[90px] w-[68px] border-amberwarm-400 bg-[#5D4A3E] text-oat-50 sm:h-[104px] sm:w-[78px]"
-                    : `animate-tt-fly h-[90px] w-[68px] sm:h-[104px] sm:w-[78px] ${
+                    : `animate-tt-fly h-[92px] w-[72px] sm:h-[106px] sm:w-[82px] ${
                         fx.kind === "HAZARD" || fx.kind === "BOULDER_CLEAR"
                           ? "border-terracotta-500 bg-terracotta-100"
                           : fx.kind === "REPAIR" || fx.kind === "FIELD_PATCH"
@@ -2283,8 +2415,8 @@ export function TreasureTrailsOverlay({
                   <span className="text-[7px] font-black uppercase tracking-widest text-amberwarm-400">
                     FACE-DOWN
                   </span>
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full border border-amberwarm-400/60 bg-amberwarm-400/15 text-xl shadow-inner sm:h-10 sm:w-10 sm:text-2xl">
-                    🧭
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full border border-amberwarm-400/60 bg-amberwarm-400/15 shadow-inner sm:h-10 sm:w-10">
+                    <GameIcon name="game-trails" className="h-6 w-6" />
                   </div>
                   <span className="w-full truncate text-[8px] font-extrabold leading-tight text-oat-100 sm:text-[9px]">
                     {fx.sublabel ?? "Secret Discard"}
@@ -2304,10 +2436,32 @@ export function TreasureTrailsOverlay({
                   vaultRevealed={false}
                   compact
                 />
+              ) : fx.gear &&
+                (fx.kind === "HAZARD" ||
+                  fx.kind === "REPAIR" ||
+                  fx.kind === "FIELD_PATCH") ? (
+                <>
+                  <ToolCardArt
+                    kind={fx.kind === "HAZARD" ? "HAZARD" : "REPAIR"}
+                    gears={[fx.gear]}
+                    size="sm"
+                  />
+                  <span className="mt-1 px-1 text-center text-[8px] font-extrabold leading-tight text-espresso sm:text-[9px]">
+                    {fx.label}
+                  </span>
+                  {fx.sublabel && (
+                    <span className="text-[7px] font-bold text-espresso-muted">
+                      {fx.sublabel}
+                    </span>
+                  )}
+                </>
               ) : (
                 <>
-                  <span className="text-2xl sm:text-3xl">{fx.icon}</span>
-                  <span className="mt-0.5 px-1 text-center text-[8px] font-extrabold leading-tight sm:text-[9px]">
+                  <GameIcon
+                    name={fx.iconName ?? "star-gold"}
+                    className="h-8 w-8 sm:h-9 sm:w-9"
+                  />
+                  <span className="mt-0.5 px-1 text-center text-[8px] font-extrabold leading-tight text-espresso sm:text-[9px]">
                     {fx.label}
                   </span>
                   {fx.sublabel && (
@@ -2325,9 +2479,9 @@ export function TreasureTrailsOverlay({
           <div
             key={b.id}
             style={{ left: b.x, top: b.y }}
-            className={`animate-tt-impact fixed flex h-14 w-14 items-center justify-center rounded-full border-4 text-xl sm:h-16 sm:w-16 sm:text-2xl ${b.colorClass}`}
+            className={`animate-tt-impact fixed flex h-14 w-14 items-center justify-center rounded-full border-4 sm:h-16 sm:w-16 ${b.colorClass}`}
           >
-            {b.icon}
+            <GameIcon name={b.iconName} className="h-7 w-7 sm:h-8 sm:w-8" />
           </div>
         ))}
       </div>
@@ -2356,25 +2510,28 @@ export function TreasureTrailsOverlay({
                 Your Secret Role • Round {pub.currentRound}
               </div>
               <div
-                className={`mx-auto mt-3 flex h-20 w-20 items-center justify-center rounded-3xl text-4xl shadow-inner sm:mt-4 sm:h-24 sm:w-24 sm:text-5xl ${
+                className={`mx-auto mt-3 flex h-20 w-20 items-center justify-center rounded-3xl shadow-inner sm:mt-4 sm:h-24 sm:w-24 ${
                   priv.role === "TRICKSTER"
                     ? "bg-terracotta-100 ring-4 ring-terracotta-500/30"
                     : "bg-sage-100 ring-4 ring-sage-500/30"
                 }`}
               >
-                {priv.role === "TRICKSTER" ? "🦊" : "🧭"}
+                <GameIcon
+                  name={priv.role === "TRICKSTER" ? "role-impostor" : "role-explorer"}
+                  className="h-14 w-14 sm:h-16 sm:w-16"
+                />
               </div>
               <h2
                 className={`mt-3 font-display text-3xl font-bold tracking-tight sm:mt-4 sm:text-4xl ${
                   priv.role === "TRICKSTER" ? "text-terracotta-700" : "text-sage-700"
                 }`}
               >
-                {priv.role === "TRICKSTER" ? "TRICKSTER" : "TRAILBLAZER"}
+                {priv.role === "TRICKSTER" ? "IMPOSTOR" : "EXPLORER"}
               </h2>
               <p className="mt-2.5 text-xs font-semibold leading-relaxed text-espresso-soft sm:text-sm">
                 {priv.role === "TRICKSTER"
-                  ? "Work in secret to jam explorer gear, drop dead-ends, and misdirect the crew until the Expedition Deck runs dry!"
-                  : "Team up to build an unbroken open trail from Base Camp to the hidden Golden Compass Vault before supplies run out!"}
+                  ? "Work in secret to break explorer tools, block the trail with dead-ends, and stall the crew until the deck runs dry!"
+                  : "Team up to build an unbroken path from Base Camp to the hidden Treasure Chest Vault before supplies run out!"}
               </p>
               <div className="mt-4 rounded-2xl bg-oat-100 px-4 py-2 text-xs font-bold text-espresso-muted">
                 Keep your screen private! First turn:{" "}
@@ -2414,13 +2571,20 @@ export function TreasureTrailsOverlay({
                 <Eye className="h-3.5 w-3.5" /> View Board
               </button>
 
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amberwarm-100 text-3xl">
-                {pub.lastRoundSummary.winningTeam === "TRAILBLAZER" ? "🧭" : "🦊"}
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amberwarm-100 shadow-inner">
+                <GameIcon
+                  name={
+                    pub.lastRoundSummary.winningTeam === "TRAILBLAZER"
+                      ? "vault-treasure"
+                      : "role-impostor"
+                  }
+                  className="h-11 w-11"
+                />
               </div>
               <h2 className="mt-3 font-display text-2xl font-bold text-espresso sm:text-3xl">
                 {pub.lastRoundSummary.winningTeam === "TRAILBLAZER"
-                  ? "Trailblazers Win!"
-                  : "Tricksters Win!"}
+                  ? "Explorers Win!"
+                  : "Impostors Win!"}
               </h2>
               <p className="mt-1 text-xs font-semibold text-espresso-soft sm:text-sm">
                 {pub.lastRoundSummary.reason}
@@ -2443,21 +2607,29 @@ export function TreasureTrailsOverlay({
                         />
                         <span>{p.displayName}</span>
                         <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] ${
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] ${
                             role === "TRICKSTER"
                               ? "bg-terracotta-100 text-terracotta-700"
                               : "bg-sage-100 text-sage-700"
                           }`}
                         >
-                          {role === "TRICKSTER" ? "Trickster" : "Trailblazer"}
+                          <GameIcon
+                            name={role === "TRICKSTER" ? "role-impostor" : "role-explorer"}
+                            className="h-3 w-3"
+                          />
+                          {role === "TRICKSTER" ? "Impostor" : "Explorer"}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         {earned > 0 && (
-                          <span className="text-xs text-sage-700">+{earned} ★</span>
+                          <span className="inline-flex items-center gap-0.5 text-xs text-sage-700">
+                            +{earned}
+                            <GameIcon name="star-gold" className="h-3.5 w-3.5" />
+                          </span>
                         )}
-                        <span className="rounded-lg bg-amberwarm-100 px-2 py-0.5 text-xs text-amberwarm-600">
-                          {p.score} ★
+                        <span className="inline-flex items-center gap-0.5 rounded-lg bg-amberwarm-100 px-2 py-0.5 text-xs text-amberwarm-600">
+                          {p.score}
+                          <GameIcon name="star-gold" className="h-3.5 w-3.5" />
                         </span>
                       </div>
                     </div>
@@ -2468,8 +2640,9 @@ export function TreasureTrailsOverlay({
               <div className="mt-5 flex flex-wrap justify-center gap-2.5">
                 {isSpectator ? (
                   <>
-                    <span className="w-full text-center text-xs font-bold text-espresso-soft">
-                      👁️ You&apos;re spectating —{" "}
+                    <span className="inline-flex w-full items-center justify-center gap-1.5 text-center text-xs font-bold text-espresso-soft">
+                      <Eye className="h-3.5 w-3.5 text-sage-700" />
+                      You&apos;re spectating —{" "}
                       {pub.phase === "ROUND_END"
                         ? "waiting for the players to start the next round..."
                         : "waiting to see if the players go for a rematch..."}

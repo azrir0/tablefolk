@@ -59,9 +59,15 @@ import { soundEngine } from "@/lib/sound";
 import { AvatarCustomizerModal } from "./AvatarCustomizerModal";
 import { CafeLobbySwitcherModal } from "./CafeLobbySwitcherModal";
 import { CashierTutorialModal } from "./CashierTutorialModal";
+import {
+  GameIcon,
+  emoteIdToIconName,
+  gameSlugToIconName,
+} from "./GameIcons";
 import { HearthvaleOverlay } from "./HearthvaleOverlay";
 import { TableLobbyDrawer } from "./TableLobbyDrawer";
 import { TreasureTrailsOverlay } from "./TreasureTrailsOverlay";
+import { VelvetMasqueOverlay } from "./VelvetMasqueOverlay";
 import { VirtualJoystick } from "./VirtualJoystick";
 import { WardrobeModal } from "./WardrobeModal";
 
@@ -648,7 +654,7 @@ export function CafeExperience() {
             gameSlug: string;
           }) => {
             const slug = p.gameSlug || "treasure-trails";
-            showToast(`👁️ Spectating ${p.tableName || "live match"}!`);
+            showToast(`Spectating ${p.tableName || "live match"}!`);
             setActiveGame({
               gameRoomId: p.gameRoomId,
               gameSlug: slug,
@@ -1062,10 +1068,18 @@ export function CafeExperience() {
       {effectiveRejoinGame && !activeGame && (
         <div className="fixed left-1/2 top-16 z-30 flex w-[calc(100%-24px)] max-w-md -translate-x-1/2 items-center justify-between gap-2.5 rounded-2xl border-2 border-amberwarm-400 bg-oat-50/95 px-3.5 py-2 shadow-cozy backdrop-blur sm:top-20">
           <div className="min-w-0 text-left">
-            <div className="truncate font-display text-xs font-bold text-espresso sm:text-sm">
-              {effectiveRejoinGame.gameSlug === "hearthvale"
-                ? "🌾 Active Hearthvale Match"
-                : "🗺️ Active Treasure Trails Match"}
+            <div className="flex items-center gap-1.5 truncate font-display text-xs font-bold text-espresso sm:text-sm">
+              <GameIcon
+                name={gameSlugToIconName(effectiveRejoinGame.gameSlug)}
+                className="h-4 w-4 shrink-0"
+              />
+              <span className="truncate">
+                {effectiveRejoinGame.gameSlug === "hearthvale"
+                  ? "Active Hearthvale Match"
+                  : effectiveRejoinGame.gameSlug === "velvet-masque"
+                    ? "Active Velvet Masque Gala"
+                    : "Active Treasure Trails Match"}
+              </span>
             </div>
             <div className="truncate text-[10px] font-semibold text-espresso-muted">
               A Café Bot subs in while you&apos;re away — rejoin anytime!
@@ -1346,9 +1360,9 @@ export function CafeExperience() {
                     cafeRoomRef.current?.send("player.emote", { emote: em.id });
                     setEmoteOpen(false);
                   }}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl text-xl transition hover:scale-125 hover:bg-oat-200"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl transition hover:scale-125 hover:bg-oat-200"
                 >
-                  {em.icon}
+                  <GameIcon name={emoteIdToIconName(em.id)} className="h-7 w-7" />
                 </button>
               ))}
             </div>
@@ -1432,8 +1446,9 @@ export function CafeExperience() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/45 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-3xl border-2 border-oat-300 bg-oat-50 p-6 shadow-cozy">
             <div className="flex items-center justify-between">
-              <h2 className="font-display text-xl font-bold text-espresso">
-                📌 Open Café Tables
+              <h2 className="inline-flex items-center gap-2 font-display text-xl font-bold text-espresso">
+                <GameIcon name="notice-pin" className="h-6 w-6" />
+                Open Café Tables
               </h2>
               <button
                 type="button"
@@ -1457,12 +1472,24 @@ export function CafeExperience() {
                   >
                     <div className="min-w-0">
                       <div className="text-sm text-espresso">{t.name}</div>
-                      <div className="text-espresso-muted">
-                        {t.selectedGameSlug === "hearthvale"
-                          ? "🌾 Hearthvale (2–5p)"
-                          : t.selectedGameSlug === "treasure-trails"
-                            ? "🗺️ Treasure Trails (3–8p)"
-                            : "Casual Chat Table"}
+                      <div className="flex items-center gap-1.5 text-espresso-muted">
+                        {t.selectedGameSlug ? (
+                          <>
+                            <GameIcon
+                              name={gameSlugToIconName(t.selectedGameSlug)}
+                              className="h-4 w-4 shrink-0"
+                            />
+                            <span>
+                              {t.selectedGameSlug === "hearthvale"
+                                ? "Hearthvale (2–5p)"
+                                : t.selectedGameSlug === "velvet-masque"
+                                  ? "Velvet Masque (3–8p)"
+                                  : "Treasure Trails (3–8p)"}
+                            </span>
+                          </>
+                        ) : (
+                          <span>Casual Chat Table</span>
+                        )}
                       </div>
                       {hostSeat && (
                         <div className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold text-amberwarm-600">
@@ -1630,7 +1657,7 @@ export function CafeExperience() {
         </div>
       )}
 
-      {/* ACTIVE BOARD GAME OVERLAY (Hearthvale / Treasure Trails) */}
+      {/* ACTIVE BOARD GAME OVERLAY (Hearthvale / Velvet Masque / Treasure Trails) */}
       {activeGame && profile &&
         (activeGame.gameSlug === "hearthvale" ? (
           <HearthvaleOverlay
@@ -1651,6 +1678,28 @@ export function CafeExperience() {
             }}
             onOpenTutorial={() => {
               setTutorialGameSlug("hearthvale");
+              setShowCashierModal(true);
+            }}
+          />
+        ) : activeGame.gameSlug === "velvet-masque" ? (
+          <VelvetMasqueOverlay
+            gameRoomId={activeGame.gameRoomId}
+            myUserId={profile.userId}
+            onExitGame={(info) => {
+              const wasSpectator = Boolean(activeGame.isSpectator);
+              setActiveGame(null);
+              if (info?.notice) showToast(info.notice);
+              if (wasSpectator) return;
+              if (info?.finished) {
+                setRejoinGame(null);
+              } else {
+                void fetchMyActiveGame()
+                  .then((ag) => setRejoinGame(ag))
+                  .catch(() => {});
+              }
+            }}
+            onOpenTutorial={() => {
+              setTutorialGameSlug("velvet-masque");
               setShowCashierModal(true);
             }}
           />

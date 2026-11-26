@@ -96,7 +96,12 @@ export class CafeRoom extends Room<CafeRoomState> {
       tbl.category = tableDef.category;
       tbl.capacity = tableDef.capacity;
       tbl.status = "AVAILABLE";
-      tbl.selectedGameSlug = tableDef.capacity >= 3 ? "treasure-trails" : "hearthvale";
+      tbl.selectedGameSlug =
+        tableDef.capacity < 3
+          ? "hearthvale"
+          : tableDef.id === "table_floor_1"
+            ? "velvet-masque"
+            : "treasure-trails";
 
       for (const seatDef of tableDef.seats) {
         const seat = new SeatSchema();
@@ -466,9 +471,17 @@ export class CafeRoom extends Room<CafeRoomState> {
 
       // If player walked over carrying a compatible game box, place it on the table!
       if (player.carryingGameSlug) {
-        if (player.carryingGameSlug === "treasure-trails" && table.capacity < 3) {
+        if (
+          (player.carryingGameSlug === "treasure-trails" ||
+            player.carryingGameSlug === "velvet-masque") &&
+          table.capacity < 3
+        ) {
+          const title =
+            player.carryingGameSlug === "velvet-masque"
+              ? "Velvet Masque"
+              : "Treasure Trails";
           client.send("cafe.notice", {
-            message: `${table.name} only fits ${table.capacity} players — Treasure Trails needs 3–8 seats!`,
+            message: `${table.name} only fits ${table.capacity} players — ${title} needs 3–8 seats!`,
           });
         } else {
           table.selectedGameSlug = player.carryingGameSlug;
@@ -495,12 +508,25 @@ export class CafeRoom extends Room<CafeRoomState> {
 
       const table = this.state.tables.get(parsed.data.tableId);
       if (!table || table.hostUserId !== player.userId || table.status === "IN_PROGRESS") return;
-      if (parsed.data.gameSlug !== "treasure-trails" && parsed.data.gameSlug !== "hearthvale") {
+      if (
+        parsed.data.gameSlug !== "treasure-trails" &&
+        parsed.data.gameSlug !== "hearthvale" &&
+        parsed.data.gameSlug !== "velvet-masque"
+      ) {
         client.send("cafe.error", { message: "That board game is coming soon!" });
         return;
       }
-      if (parsed.data.gameSlug === "treasure-trails" && table.capacity < 3) {
-        client.send("cafe.error", { message: "Treasure Trails requires a 3–8 seat table." });
+      if (
+        (parsed.data.gameSlug === "treasure-trails" ||
+          parsed.data.gameSlug === "velvet-masque") &&
+        table.capacity < 3
+      ) {
+        client.send("cafe.error", {
+          message:
+            parsed.data.gameSlug === "velvet-masque"
+              ? "Velvet Masque requires a 3–8 seat table."
+              : "Treasure Trails requires a 3–8 seat table.",
+        });
         return;
       }
       table.selectedGameSlug = parsed.data.gameSlug;
@@ -613,7 +639,7 @@ export class CafeRoom extends Room<CafeRoomState> {
       const parsed = TableStartGamePayloadSchema.safeParse(raw);
       if (!parsed.success) return;
 
-      const { tableId, rounds, turnSeconds, mysteryRoles, deckSize } = parsed.data;
+      const { tableId, rounds, turnSeconds, mysteryRoles, deckSize, targetCoins } = parsed.data;
       const table = this.state.tables.get(tableId);
       if (!table || table.status === "IN_PROGRESS") return;
 
@@ -623,8 +649,14 @@ export class CafeRoom extends Room<CafeRoomState> {
       }
 
       const slug = table.selectedGameSlug;
-      if (slug !== "treasure-trails" && slug !== "hearthvale") {
-        client.send("cafe.error", { message: "Select Treasure Trails or Hearthvale to play!" });
+      if (
+        slug !== "treasure-trails" &&
+        slug !== "hearthvale" &&
+        slug !== "velvet-masque"
+      ) {
+        client.send("cafe.error", {
+          message: "Select Treasure Trails, Hearthvale, or Velvet Masque to play!",
+        });
         return;
       }
 
@@ -632,7 +664,12 @@ export class CafeRoom extends Room<CafeRoomState> {
       const minP = slug === "hearthvale" ? 2 : 3;
       const maxP = slug === "hearthvale" ? 5 : 8;
       if (occupiedSeats.length < minP || occupiedSeats.length > maxP) {
-        const gameTitle = slug === "hearthvale" ? "Hearthvale" : "Treasure Trails";
+        const gameTitle =
+          slug === "hearthvale"
+            ? "Hearthvale"
+            : slug === "velvet-masque"
+              ? "Velvet Masque"
+              : "Treasure Trails";
         client.send("cafe.error", {
           message: `${gameTitle} needs ${minP}–${maxP} players (currently ${occupiedSeats.length}). Invite friends or adjust Practice Bots!`,
         });
@@ -668,17 +705,28 @@ export class CafeRoom extends Room<CafeRoomState> {
               },
               players: seatedPlayers,
             })
-          : await matchMaker.createRoom("game", {
-              cafeRoomId: this.roomId,
-              tableId: table.tableId,
-              gameSlug: "treasure-trails",
-              config: {
-                totalRounds: rounds,
-                turnSeconds,
-                mysteryRoles,
-              },
-              players: seatedPlayers,
-            });
+          : slug === "velvet-masque"
+            ? await matchMaker.createRoom("velvet-masque", {
+                cafeRoomId: this.roomId,
+                tableId: table.tableId,
+                gameSlug: "velvet-masque",
+                config: {
+                  targetCoins,
+                  turnSeconds,
+                },
+                players: seatedPlayers,
+              })
+            : await matchMaker.createRoom("game", {
+                cafeRoomId: this.roomId,
+                tableId: table.tableId,
+                gameSlug: "treasure-trails",
+                config: {
+                  totalRounds: rounds,
+                  turnSeconds,
+                  mysteryRoles,
+                },
+                players: seatedPlayers,
+              });
 
       table.status = "IN_PROGRESS";
       table.activeGameRoomId = gameRoom.roomId;

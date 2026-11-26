@@ -215,6 +215,9 @@ importers:
       '@tablefolk/game-treasure-trails':
         specifier: workspace:*
         version: link:../../packages/games/treasure-trails
+      '@tablefolk/game-velvet-masque':
+        specifier: workspace:*
+        version: link:../../packages/games/velvet-masque
       '@tablefolk/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -264,6 +267,9 @@ importers:
       '@tablefolk/game-treasure-trails':
         specifier: workspace:*
         version: link:../../packages/games/treasure-trails
+      '@tablefolk/game-velvet-masque':
+        specifier: workspace:*
+        version: link:../../packages/games/velvet-masque
       '@tablefolk/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -369,6 +375,22 @@ importers:
         version: 3.2.7(@types/node@22.20.5)(jiti@1.21.7)(tsx@4.23.15)
 
   packages/games/treasure-trails:
+    dependencies:
+      '@tablefolk/game-engine':
+        specifier: workspace:*
+        version: link:../../game-engine
+      zod:
+        specifier: ^3.24.2
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.8.2
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.8
+        version: 3.2.7(@types/node@22.20.5)(jiti@1.21.7)(tsx@4.23.15)
+
+  packages/games/velvet-masque:
     dependencies:
       '@tablefolk/game-engine':
         specifier: workspace:*

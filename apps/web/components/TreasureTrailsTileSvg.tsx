@@ -2,6 +2,7 @@
 
 import React from "react";
 import type { PathEdges, VaultKind } from "@tablefolk/game-treasure-trails";
+import { renderIconArt } from "./GameIcons";
 
 interface PathTileSvgProps {
   edges: PathEdges;
@@ -51,8 +52,8 @@ export function PathTileSvg({
               stroke="#3B2B26"
               strokeWidth="1.6"
             />
-            <text x="30" y="17.5" textAnchor="middle" fontSize="9.5" fontWeight="900" fill="#3B2B26">
-              {privateScoutHint === "TRUE_RELIC" ? "★ RELIC" : "✕ DECOY"}
+            <text x="30" y="17.5" textAnchor="middle" fontSize="8.2" fontWeight="900" fill="#3B2B26">
+              {privateScoutHint === "TRUE_RELIC" ? "★ CHEST" : "✕ EMPTY"}
             </text>
           </g>
         )}
@@ -60,7 +61,7 @@ export function PathTileSvg({
     );
   }
 
-  // Revealed Vault (True Relic or Decoy Sanctuary)
+  // Revealed Vault (Treasure Chest or Empty Ruins)
   if (kind === "VAULT" && vaultRevealed) {
     const isRelic = vaultKind === "TRUE_RELIC";
     return (
@@ -82,17 +83,17 @@ export function PathTileSvg({
         {edges.E && <rect x="34" y="33" width="24" height="14" fill="#E6C999" />}
         <circle
           cx="30"
-          cy="40"
-          r="16"
+          cy="39"
+          r="18"
           fill={isRelic ? "#F5B82E" : "#A99B89"}
           stroke="#3B2B26"
           strokeWidth="2"
         />
-        <text x="30" y="46" textAnchor="middle" fontSize="18">
-          {isRelic ? "🧭" : "🏺"}
-        </text>
-        <text x="30" y="70" textAnchor="middle" fontSize="7" fontWeight="800" fill="#3B2B26">
-          {isRelic ? "GOLDEN COMPASS" : "DECOY"}
+        <g transform="translate(15, 24) scale(0.94)">
+          {renderIconArt(isRelic ? "vault-treasure" : "vault-decoy")}
+        </g>
+        <text x="30" y="70" textAnchor="middle" fontSize="7.5" fontWeight="900" fill="#3B2B26">
+          {isRelic ? "TREASURE!" : "EMPTY"}
         </text>
       </svg>
     );
@@ -169,11 +170,11 @@ export function PathTileSvg({
       {/* Center Hub: Open Path vs Blocked Rockfall vs Base Camp */}
       {kind === "BASE_CAMP" ? (
         <g>
-          <circle cx="30" cy="40" r="16" fill="#F2B84B" stroke="#5A3E24" strokeWidth="2.2" />
-          <text x="30" y="45" textAnchor="middle" fontSize="16">
-            ⛺
-          </text>
-          <text x="30" y="71" textAnchor="middle" fontSize="7" fontWeight="800" fill="#3B2B26">
+          <circle cx="30" cy="39" r="17" fill="#F2B84B" stroke="#5A3E24" strokeWidth="2.2" />
+          <g transform="translate(16.5, 25) scale(0.84)">
+            {renderIconArt("base-camp")}
+          </g>
+          <text x="30" y="71" textAnchor="middle" fontSize="7.4" fontWeight="900" fill="#3B2B26">
             CAMP
           </text>
         </g>

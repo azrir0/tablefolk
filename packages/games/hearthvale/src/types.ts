@@ -17,14 +17,14 @@ export const PLAYER_COLORS: readonly PlayerColorId[] = [
 ] as const;
 
 export const HEARTHVALE_QUICK_REACTIONS = [
-  "Nice town! 🏰",
-  "Hands off my road! 😂",
-  "Mayor incoming! 👑",
-  "Let's share it! 🤝",
-  "Nooo my windmill! 😱",
-  "Big brain move! 🧠",
-  "Lantern road! 🏮",
-  "Good game! ✨",
+  "Nice town!",
+  "Hands off my road!",
+  "Mayor incoming!",
+  "Let's share it!",
+  "Nooo my windmill!",
+  "Big brain move!",
+  "Lantern road!",
+  "Good game!",
 ] as const;
 
 export interface TileSegmentDef {
