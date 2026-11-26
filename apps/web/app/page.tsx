@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -28,6 +28,11 @@ export default function LandingPage() {
   );
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Give every visitor a freshly randomized default character on mount (SSR-safe)
+  useEffect(() => {
+    setAvatar(generateRandomAvatarConfig());
+  }, []);
 
   const previewFriends = useMemo(
     () => [
@@ -212,7 +217,7 @@ export default function LandingPage() {
                   </p>
                   <button
                     type="button"
-                    onClick={() => setAvatar(generateRandomAvatarConfig(Date.now()))}
+                    onClick={() => setAvatar(generateRandomAvatarConfig())}
                     className="inline-flex items-center gap-1.5 rounded-xl bg-oat-200 px-3 py-1.5 text-xs font-bold text-espresso transition hover:bg-oat-300"
                   >
                     <Shuffle className="h-3.5 w-3.5" /> Randomize Look

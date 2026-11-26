@@ -114,12 +114,21 @@ function pick<T>(arr: readonly T[], seed: number): T {
   return arr[idx]!;
 }
 
-export function generateRandomAvatarConfig(seed = Date.now()): AvatarConfig {
-  let s = seed >>> 0;
+export function generateRandomAvatarConfig(
+  seed: number = Math.floor(Math.random() * 0x7fffffff) ^ Date.now()
+): AvatarConfig {
+  // Xorshift32 with non-zero seed ensures uniform distribution across all traits
+  let s = (seed ^ 0x9e3779b9) >>> 0;
+  if (s === 0) s = 0x6d2b79f5;
   const next = () => {
-    s = (s * 1664525 + 1013904223) >>> 0;
-    return s;
+    s ^= s << 13;
+    s ^= s >>> 17;
+    s ^= s << 5;
+    return s >>> 0;
   };
+  // Warm up state so close numeric seeds diverge cleanly
+  next();
+  next();
   return {
     skinTone: pick(SKIN_TONES, next()).hex,
     hairStyle: pick(HAIR_STYLES, next()).id,

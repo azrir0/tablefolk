@@ -2,11 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Eraser, Pin, Sparkles, X } from "lucide-react";
-import {
-  MARKER_COLOR_SWATCHES,
-  type BoardMarkerMode,
-  type BoardMarkerStroke,
-} from "@tablefolk/shared";
+import type { BoardMarkerMode, BoardMarkerStroke } from "@tablefolk/shared";
 
 interface BoardMarkerLayerProps {
   /** Tile-space coordinate bounds matching the underlying grid */
@@ -215,13 +211,13 @@ export function BoardMarkerLayer({
                   : undefined
               }
             >
-              {/* Soft dark halo so light colors pop on sunlit tiles AND dark tabletop */}
+              {/* Crisp light halo so every player color pops on dark tabletop AND sunlit tiles */}
               <path
                 d={d}
                 fill="none"
-                stroke="#1E140F"
-                strokeOpacity={0.55}
-                strokeWidth={7}
+                stroke="#FFF8EC"
+                strokeOpacity={0.74}
+                strokeWidth={7.5}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 vectorEffect="non-scaling-stroke"
@@ -230,8 +226,8 @@ export function BoardMarkerLayer({
                 d={d}
                 fill="none"
                 stroke={s.color}
-                strokeOpacity={0.95}
-                strokeWidth={4}
+                strokeOpacity={0.98}
+                strokeWidth={4.2}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 vectorEffect="non-scaling-stroke"
@@ -246,9 +242,9 @@ export function BoardMarkerLayer({
             <path
               d={buildSvgPath(draftPoints)}
               fill="none"
-              stroke="#1E140F"
-              strokeOpacity={0.5}
-              strokeWidth={7}
+              stroke="#FFF8EC"
+              strokeOpacity={0.7}
+              strokeWidth={7.5}
               strokeLinecap="round"
               strokeLinejoin="round"
               vectorEffect="non-scaling-stroke"
@@ -257,8 +253,8 @@ export function BoardMarkerLayer({
               d={buildSvgPath(draftPoints)}
               fill="none"
               stroke={activeColor}
-              strokeOpacity={0.95}
-              strokeWidth={4}
+              strokeOpacity={0.98}
+              strokeWidth={4.2}
               strokeLinecap="round"
               strokeLinejoin="round"
               vectorEffect="non-scaling-stroke"
@@ -296,20 +292,24 @@ export function BoardMarkerLayer({
               <div className="relative flex items-center justify-center">
                 <span
                   style={{ borderColor: s.color }}
-                  className="animate-tt-marker-ping h-9 w-9 rounded-full border-[3px] shadow-[0_0_12px_rgba(0,0,0,0.65)] sm:h-11 sm:w-11"
+                  className="animate-tt-marker-ping h-9 w-9 rounded-full border-[3px] shadow-[0_0_12px_rgba(255,248,236,0.75)] sm:h-11 sm:w-11"
                 />
                 <span
                   style={{ backgroundColor: s.color }}
-                  className="absolute h-2.5 w-2.5 rounded-full border border-espresso shadow"
+                  className="absolute h-3 w-3 rounded-full border-2 border-white shadow"
                 />
               </div>
             )}
             <span
               style={{ borderColor: s.color }}
-              className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border bg-espresso/90 px-1.5 py-[1px] text-[8px] font-extrabold leading-tight text-oat-50 shadow-md sm:text-[9px] ${
+              className={`absolute left-1/2 inline-flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-full border bg-espresso/92 px-1.5 py-[1px] text-[8px] font-extrabold leading-tight text-oat-50 shadow-md sm:text-[9px] ${
                 ping ? "top-5 sm:top-6" : "-top-4"
               }`}
             >
+              <span
+                style={{ backgroundColor: s.color }}
+                className="h-2 w-2 shrink-0 rounded-full border border-white/80"
+              />
               {s.mode === "sticky" ? "📌 " : ""}
               {s.displayName}
             </span>
@@ -322,10 +322,10 @@ export function BoardMarkerLayer({
 
 interface BoardMarkerToolbarProps {
   activeColor: string;
+  colorLabel?: string;
   activeMode: BoardMarkerMode;
   myStrokeCount: number;
   totalStrokeCount: number;
-  onSelectColor: (hex: string) => void;
   onSelectMode: (mode: BoardMarkerMode) => void;
   onClearMine: () => void;
   onClearAll: () => void;
@@ -334,10 +334,10 @@ interface BoardMarkerToolbarProps {
 
 export function BoardMarkerToolbar({
   activeColor,
+  colorLabel,
   activeMode,
   myStrokeCount,
   totalStrokeCount,
-  onSelectColor,
   onSelectMode,
   onClearMine,
   onClearAll,
@@ -345,22 +345,16 @@ export function BoardMarkerToolbar({
 }: BoardMarkerToolbarProps) {
   return (
     <div className="absolute left-1/2 top-2 z-30 flex max-w-[calc(100%-16px)] -translate-x-1/2 flex-wrap items-center justify-center gap-1.5 rounded-2xl border-2 border-amberwarm-400 bg-espresso/95 px-2.5 py-1.5 text-[10px] font-bold text-oat-50 shadow-2xl backdrop-blur sm:gap-2 sm:px-3 sm:text-[11px]">
-      {/* Color Swatches */}
-      <div className="flex items-center gap-1">
-        {MARKER_COLOR_SWATCHES.map((sw) => (
-          <button
-            key={sw.id}
-            type="button"
-            title={sw.label}
-            onClick={() => onSelectColor(sw.hex)}
-            style={{ backgroundColor: sw.hex }}
-            className={`h-4 w-4 rounded-full border-2 transition sm:h-5 sm:w-5 ${
-              activeColor === sw.hex
-                ? "scale-110 border-white ring-2 ring-amberwarm-400"
-                : "border-espresso/60 opacity-75 hover:opacity-100"
-            }`}
-          />
-        ))}
+      {/* Fixed Player Color Pen Indicator */}
+      <div
+        title="Your personal marker color matches your player badge"
+        className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 px-2 py-0.5 text-oat-50"
+      >
+        <span
+          style={{ backgroundColor: activeColor }}
+          className="h-3.5 w-3.5 shrink-0 rounded-full border-2 border-white shadow-sm"
+        />
+        <span>{colorLabel ? `${colorLabel} Pen` : "Your Pen"}</span>
       </div>
 
       <span className="hidden h-4 w-px bg-oat-300/30 sm:inline-block" />

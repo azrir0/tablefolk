@@ -280,4 +280,28 @@ describe("Treasure Trails — Board Rules, Action Cards & Field-Patch", () => {
     const trickster = timed.state.players.find((p) => p.role === "TRICKSTER")!;
     expect(trickster.score).toBe(4); // Solo trickster earns +4 stars
   });
+
+  it("assigns distinct per-player colors matching Hearthvale and preserves them across rounds", () => {
+    const eightPlayers = Array.from({ length: 8 }, (_, i) => ({
+      userId: `u${i + 1}`,
+      displayName: `Explorer ${i + 1}`,
+      seatIndex: i,
+    }));
+    const state = TreasureTrailsModule.createInitialState(
+      eightPlayers,
+      { totalRounds: 3 },
+      606
+    );
+    const pub = TreasureTrailsModule.getPublicState(state);
+    const colors = pub.players.map((p) => p.color);
+    expect(new Set(colors).size).toBe(8);
+    expect(colors.slice(0, 5)).toEqual(["terracotta", "sage", "ocean", "honey", "plum"]);
+
+    // Advance to Round 2 and confirm each player keeps their exact color
+    const endedState: TreasureTrailsState = { ...state, phase: "ROUND_END" };
+    const nextRound = TreasureTrailsModule.applyAction(endedState, "u1", {
+      type: "ADVANCE_ROUND",
+    }).state;
+    expect(nextRound.players.map((p) => p.color)).toEqual(colors);
+  });
 });

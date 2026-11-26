@@ -146,8 +146,12 @@ export function CafeExperience() {
   const [authChecked, setAuthChecked] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [guestAvatar, setGuestAvatar] = useState<AvatarConfig>(() =>
-    generateRandomAvatarConfig()
+    generateRandomAvatarConfig(2026)
   );
+
+  useEffect(() => {
+    setGuestAvatar(generateRandomAvatarConfig());
+  }, []);
 
   // Colyseus + Phaser refs
   const mountRef = useRef<HTMLDivElement>(null);
@@ -857,7 +861,7 @@ export function CafeExperience() {
             <AvatarSvg config={guestAvatar} size={96} />
             <button
               type="button"
-              onClick={() => setGuestAvatar(generateRandomAvatarConfig(Date.now()))}
+              onClick={() => setGuestAvatar(generateRandomAvatarConfig())}
               className="mt-2 rounded-xl bg-oat-200 px-3 py-1 text-xs font-bold text-espresso hover:bg-oat-300"
             >
               Shuffle Look

@@ -5,6 +5,7 @@ import { eq, gamePlayers, gameSessions, getDb } from "@tablefolk/db";
 import {
   BoardMarkerAddPayloadSchema,
   BoardMarkerClearPayloadSchema,
+  getPlayerColorMeta,
   type BoardMarkerStroke,
 } from "@tablefolk/shared";
 import {
@@ -503,11 +504,17 @@ export class HearthvaleRoom extends Room {
       this.markerTimestamps.set(auth.userId, recent);
 
       this.pruneExpiredMarkers();
+      const playerIdx = this.gameState.players.findIndex((p) => p.userId === auth.userId);
+      const player = playerIdx >= 0 ? this.gameState.players[playerIdx] : undefined;
+      const authoritativeColor = getPlayerColorMeta(
+        player?.color ?? (playerIdx >= 0 ? playerIdx : 0)
+      ).hex;
+
       const stroke: BoardMarkerStroke = {
         id: `mk_${now}_${Math.random().toString(36).slice(2, 7)}`,
         userId: auth.userId,
         displayName: auth.displayName,
-        color: parsed.data.color,
+        color: authoritativeColor,
         mode: parsed.data.mode,
         points: parsed.data.points,
         createdAt: now,

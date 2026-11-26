@@ -81,13 +81,34 @@ export const TableSpectatePayloadSchema = z.object({
   tableId: z.string().min(1).max(64),
 });
 
-export const MARKER_COLOR_SWATCHES = [
-  { id: "sun", label: "Yellow Highlighter", hex: "#FDE047" },
-  { id: "coral", label: "Coral Red", hex: "#FB7185" },
-  { id: "mint", label: "Mint Green", hex: "#4ADE80" },
-  { id: "sky", label: "Sky Blue", hex: "#38BDF8" },
-  { id: "chalk", label: "Chalk White", hex: "#FFFFFF" },
+/**
+ * Canonical per-player color palette shared across Hearthvale (seats 0-4) and
+ * Treasure Trails (seats 0-7) for player badges, pawns, and single-color board markers.
+ */
+export const PLAYER_COLOR_PALETTE = [
+  { id: "terracotta", label: "Red", hex: "#D9594C" },
+  { id: "sage", label: "Green", hex: "#3D9468" },
+  { id: "ocean", label: "Blue", hex: "#3A7CC4" },
+  { id: "honey", label: "Gold", hex: "#E5A020" },
+  { id: "plum", label: "Plum", hex: "#8E5BB5" },
+  { id: "teal", label: "Teal", hex: "#1FA6A0" },
+  { id: "rose", label: "Rose", hex: "#DF5E99" },
+  { id: "amber", label: "Orange", hex: "#EA7828" },
 ] as const;
+
+export type SharedPlayerColorId = (typeof PLAYER_COLOR_PALETTE)[number]["id"];
+
+export function getPlayerColorMeta(colorIdOrIndex: string | number) {
+  if (typeof colorIdOrIndex === "number") {
+    const len = PLAYER_COLOR_PALETTE.length;
+    const idx = ((Math.floor(colorIdOrIndex) % len) + len) % len;
+    return PLAYER_COLOR_PALETTE[idx]!;
+  }
+  return (
+    PLAYER_COLOR_PALETTE.find((c) => c.id === colorIdOrIndex) ??
+    PLAYER_COLOR_PALETTE[0]!
+  );
+}
 
 export const BoardMarkerModeSchema = z.enum(["fade", "sticky"]);
 export type BoardMarkerMode = z.infer<typeof BoardMarkerModeSchema>;
@@ -99,7 +120,8 @@ export const BoardMarkerPointSchema = z.object({
 
 export const BoardMarkerAddPayloadSchema = z.object({
   points: z.array(BoardMarkerPointSchema).min(1).max(64),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+  /** Optional hint; the server authoritatively stamps the sender's assigned player color. */
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   mode: BoardMarkerModeSchema.default("fade"),
 });
 

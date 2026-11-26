@@ -81,6 +81,27 @@ export interface PublicBoardCell {
   vaultKind?: VaultKind; // Only present when vaultRevealed === true
 }
 
+export type TreasureTrailsColorId =
+  | "terracotta"
+  | "sage"
+  | "ocean"
+  | "honey"
+  | "plum"
+  | "teal"
+  | "rose"
+  | "amber";
+
+export const TREASURE_TRAILS_PLAYER_COLORS: readonly TreasureTrailsColorId[] = [
+  "terracotta",
+  "sage",
+  "ocean",
+  "honey",
+  "plum",
+  "teal",
+  "rose",
+  "amber",
+] as const;
+
 export interface PlayerGearState {
   lantern: boolean; // true = INTACT, false = BROKEN
   compass: boolean;
@@ -91,6 +112,7 @@ export interface PlayerInternalState {
   userId: string;
   displayName: string;
   seatIndex: number;
+  color: TreasureTrailsColorId;
   role: RoleType;
   hand: TreasureTrailsCard[];
   gear: PlayerGearState;
@@ -104,6 +126,7 @@ export interface PublicPlayerView {
   userId: string;
   displayName: string;
   seatIndex: number;
+  color: TreasureTrailsColorId;
   handCount: number;
   gear: PlayerGearState;
   score: number;

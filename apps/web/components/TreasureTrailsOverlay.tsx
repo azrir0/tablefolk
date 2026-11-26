@@ -23,7 +23,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import {
-  MARKER_COLOR_SWATCHES,
+  getPlayerColorMeta,
   type BoardMarkerMode,
   type BoardMarkerStroke,
 } from "@tablefolk/shared";
@@ -294,6 +294,83 @@ function GameChatAndLogPanel({
   );
 }
 
+interface EndTrailHighlight {
+  reachableKeys: Set<string>;
+  winningPathStep: Map<string, number>;
+  trueRelicCoord: string | null;
+  reachedTreasure: boolean;
+}
+
+function computeEndTrailHighlight(
+  board: TreasureTrailsPublicState["board"],
+  winningTeam: "TRAILBLAZER" | "TRICKSTER" | undefined
+): EndTrailHighlight {
+  const startKey = coordKey(0, 2);
+  const reachableKeys = new Set<string>();
+  const parent = new Map<string, string | null>();
+  let trueRelicCoord: string | null = null;
+
+  for (const [k, cell] of Object.entries(board)) {
+    if (cell.kind === "VAULT" && cell.vaultKind === "TRUE_RELIC") {
+      trueRelicCoord = k;
+    }
+  }
+
+  const startCell = board[startKey];
+  if (startCell && startCell.connectedCenter && startCell.edges) {
+    const queue: string[] = [startKey];
+    reachableKeys.add(startKey);
+    parent.set(startKey, null);
+
+    const dirs = [
+      { dir: "N" as const, opp: "S" as const, dx: 0, dy: -1 },
+      { dir: "E" as const, opp: "W" as const, dx: 1, dy: 0 },
+      { dir: "S" as const, opp: "N" as const, dx: 0, dy: 1 },
+      { dir: "W" as const, opp: "E" as const, dx: -1, dy: 0 },
+    ];
+
+    while (queue.length > 0) {
+      const currKey = queue.shift()!;
+      const curr = board[currKey];
+      if (!curr || !curr.edges || !curr.connectedCenter) continue;
+
+      for (const { dir, opp, dx, dy } of dirs) {
+        if (!curr.edges[dir]) continue;
+        const nKey = coordKey(curr.x + dx, curr.y + dy);
+        if (reachableKeys.has(nKey)) continue;
+        const neighbor = board[nKey];
+        if (!neighbor || !neighbor.edges) continue;
+        if (neighbor.kind === "VAULT" && !neighbor.vaultRevealed) continue;
+        if (!neighbor.edges[opp]) continue;
+        if (neighbor.connectedCenter) {
+          reachableKeys.add(nKey);
+          parent.set(nKey, currKey);
+          queue.push(nKey);
+        }
+      }
+    }
+  }
+
+  const winningPathStep = new Map<string, number>();
+  const reachedTreasure = Boolean(
+    trueRelicCoord &&
+      reachableKeys.has(trueRelicCoord) &&
+      winningTeam === "TRAILBLAZER"
+  );
+  if (reachedTreasure && trueRelicCoord) {
+    const chain: string[] = [];
+    let cursor: string | null = trueRelicCoord;
+    while (cursor) {
+      chain.push(cursor);
+      cursor = parent.get(cursor) ?? null;
+    }
+    chain.reverse();
+    chain.forEach((k, idx) => winningPathStep.set(k, idx));
+  }
+
+  return { reachableKeys, winningPathStep, trueRelicCoord, reachedTreasure };
+}
+
 export function TreasureTrailsOverlay({
   gameRoomId,
   myUserId,
@@ -322,8 +399,15 @@ export function TreasureTrailsOverlay({
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [markers, setMarkers] = useState<BoardMarkerStroke[]>([]);
   const [markerMode, setMarkerMode] = useState(false);
-  const [markerColor, setMarkerColor] = useState<string>(MARKER_COLOR_SWATCHES[0].hex);
   const [markerDrawMode, setMarkerDrawMode] = useState<BoardMarkerMode>("fade");
+
+  // Round-end board trail reveal pacing: show trail & vault outcome BEFORE popping Winner Modal
+  const [roundResultStage, setRoundResultStage] = useState<
+    "hidden" | "revealing" | "modal" | "inspecting"
+  >("hidden");
+  const [revealEndsAt, setRevealEndsAt] = useState(0);
+  const roundEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevPhaseRef = useRef<TreasureTrailsPublicState["phase"] | null>(null);
 
   // Pre-round dramatic ceremony state (keyed by sessionId:round so Rematch replays cleanly!)
   const [introStage, setIntroStage] = useState<"none" | "countdown" | "role">("none");
@@ -753,12 +837,14 @@ export function TreasureTrailsOverlay({
           setActionBanner(describeEvent(ev, lookupName));
         } else if (ev.type === "VAULT_REVEALED") {
           const pt = getCenterOf(cellRefs.current.get(coordKey(ev.x, ev.y)));
+          const hadTileFlight = events.some((e) => e.type === "TILE_PLACED");
+          const delayMs = hadTileFlight ? 980 : 220;
           if (ev.vaultKind === "TRUE_RELIC") {
-            soundEngine.playVictory();
-            spawnImpact(pt.x, pt.y, "border-amberwarm-400 bg-amberwarm-400/40", "🧭", 200);
+            setTimeout(() => soundEngine.playVictory(), delayMs);
+            spawnImpact(pt.x, pt.y, "border-amberwarm-400 bg-amberwarm-400/45", "🧭", delayMs);
           } else {
-            soundEngine.playDecoyReveal();
-            spawnImpact(pt.x, pt.y, "border-oat-300 bg-oat-300/30", "🏺", 200);
+            setTimeout(() => soundEngine.playDecoyReveal(), delayMs);
+            spawnImpact(pt.x, pt.y, "border-oat-300 bg-oat-300/35", "🏺", delayMs);
           }
           setActionBanner(describeEvent(ev, lookupName));
         } else if (ev.type === "CARD_DISCARDED") {
@@ -788,8 +874,14 @@ export function TreasureTrailsOverlay({
           );
           spawnImpact(to.x, to.y, "border-amberwarm-400 bg-amberwarm-400/25", "🃏", 1320);
           setActionBanner(describeEvent(ev, lookupName));
-        } else if (ev.type === "ROUND_ENDED" || ev.type === "MATCH_ENDED") {
-          soundEngine.playVictory();
+        } else if (ev.type === "ROUND_ENDED") {
+          const hadTrueRelicReveal = events.some(
+            (e) => e.type === "VAULT_REVEALED" && e.vaultKind === "TRUE_RELIC"
+          );
+          if (!hadTrueRelicReveal) {
+            // Exhaustion end: play chime right after final card animation finishes
+            setTimeout(() => soundEngine.playVictory(), 1100);
+          }
         }
       }
     },
@@ -909,6 +1001,40 @@ export function TreasureTrailsOverlay({
             }
 
             const evs = payload.events ?? [];
+            const nextPhase = payload.state.phase;
+            const isRoundEnded = nextPhase === "ROUND_END" || nextPhase === "COMPLETED";
+
+            if (!isRoundEnded) {
+              if (roundEndTimerRef.current) {
+                clearTimeout(roundEndTimerRef.current);
+                roundEndTimerRef.current = null;
+              }
+              setRoundResultStage("hidden");
+              setRevealEndsAt(0);
+            } else {
+              const justEndedLive =
+                prevPhaseRef.current === "IN_PROGRESS" ||
+                evs.some((e) => e.type === "ROUND_ENDED");
+
+              if (justEndedLive) {
+                setMarkerMode(false);
+                if (roundEndTimerRef.current) {
+                  clearTimeout(roundEndTimerRef.current);
+                }
+                const REVEAL_MS = 4200;
+                setRoundResultStage("revealing");
+                setRevealEndsAt(Date.now() + REVEAL_MS);
+                roundEndTimerRef.current = setTimeout(() => {
+                  roundEndTimerRef.current = null;
+                  setRoundResultStage((cur) => (cur === "revealing" ? "modal" : cur));
+                }, REVEAL_MS);
+              } else if (prevPhaseRef.current === null) {
+                // Joined or reloaded into an already-completed round
+                setRoundResultStage("modal");
+              }
+            }
+            prevPhaseRef.current = nextPhase;
+
             if (evs.length > 0) {
               requestAnimationFrame(() => {
                 animateEvents(evs, payload.state);
@@ -1092,6 +1218,10 @@ export function TreasureTrailsOverlay({
       disposed = true;
       connectSeq += 1;
       clearTimers();
+      if (roundEndTimerRef.current) {
+        clearTimeout(roundEndTimerRef.current);
+        roundEndTimerRef.current = null;
+      }
       manualReconnectRef.current = null;
       document.removeEventListener("visibilitychange", handleResume);
       window.removeEventListener("pageshow", handleResume);
@@ -1107,10 +1237,30 @@ export function TreasureTrailsOverlay({
     [pub, myUserId]
   );
   const isSpectator = Boolean(pub && !myPublic);
+  const myColorMeta = useMemo(
+    () => getPlayerColorMeta(myPublic?.color ?? myPublic?.seatIndex ?? 0),
+    [myPublic]
+  );
   const myMarkerCount = useMemo(
     () => markers.filter((m) => m.userId === myUserId).length,
     [markers, myUserId]
   );
+
+  const isRoundEnded = pub?.phase === "ROUND_END" || pub?.phase === "COMPLETED";
+  const endTrailHighlight = useMemo<EndTrailHighlight | null>(() => {
+    if (!pub || !isRoundEnded) return null;
+    return computeEndTrailHighlight(pub.board, pub.lastRoundSummary?.winningTeam);
+  }, [pub, isRoundEnded]);
+
+  const openRoundResultsModal = useCallback(() => {
+    if (roundEndTimerRef.current) {
+      clearTimeout(roundEndTimerRef.current);
+      roundEndTimerRef.current = null;
+    }
+    setRoundResultStage("modal");
+  }, []);
+
+  const revealSecondsLeft = Math.max(0, Math.ceil((revealEndsAt - nowMs) / 1000));
 
   const isIntroBlocking = !isSpectator && introStage !== "none";
   const isMyTurn =
@@ -1221,8 +1371,12 @@ export function TreasureTrailsOverlay({
 
   const statusHintText = isIntroBlocking
     ? "Get ready for the expedition!"
-    : !isMyTurn
-      ? `Waiting for ${nameOf(pub?.activePlayerId ?? "")}...`
+    : isRoundEnded
+      ? endTrailHighlight?.reachedTreasure
+        ? "🧭 Trail reached the Golden Compass! Reviewing final map..."
+        : "🦊 Expedition ended — the trail never reached the Golden Compass!"
+      : !isMyTurn
+        ? `Waiting for ${nameOf(pub?.activePlayerId ?? "")}...`
       : fieldPatchMode
         ? "Tap any 2 cards in your hand to patch broken gear."
         : !selectedCard
@@ -1346,6 +1500,10 @@ export function TreasureTrailsOverlay({
                     : "bg-oat-200 text-espresso hover:bg-amberwarm-100"
                 }`}
               >
+                <span
+                  style={{ backgroundColor: myColorMeta.hex }}
+                  className="h-2.5 w-2.5 shrink-0 rounded-full border border-white shadow-sm"
+                />
                 <Highlighter className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">{markerMode ? "Drawing" : "Mark"}</span>
               </button>
@@ -1426,6 +1584,7 @@ export function TreasureTrailsOverlay({
               const isMe = p.userId === myUserId;
               const isShaking = shakingPlayerId === p.userId;
               const isBotSub = botControlledUserIds.includes(p.userId);
+              const pColor = getPlayerColorMeta(p.color ?? p.seatIndex);
 
               return (
                 <div
@@ -1443,7 +1602,12 @@ export function TreasureTrailsOverlay({
                   }`}
                 >
                   <div className="flex items-center justify-between gap-1 text-[11px] font-bold sm:text-xs">
-                    <span className="flex min-w-0 items-center gap-1 truncate text-espresso">
+                    <span className="flex min-w-0 items-center gap-1.5 truncate text-espresso">
+                      <span
+                        title={`${p.displayName}'s color (${pColor.label})`}
+                        className="h-2.5 w-2.5 shrink-0 rounded-full border border-white shadow-sm"
+                        style={{ backgroundColor: pColor.hex }}
+                      />
                       <span className="truncate">
                         {p.displayName}
                         {isMe ? " ★" : ""}
@@ -1532,11 +1696,11 @@ export function TreasureTrailsOverlay({
             {/* Live Board Marker Floating Toolbar (shown only when Drawing is toggled ON!) */}
             {markerMode && !isSpectator && (
               <BoardMarkerToolbar
-                activeColor={markerColor}
+                activeColor={myColorMeta.hex}
+                colorLabel={myColorMeta.label}
                 activeMode={markerDrawMode}
                 myStrokeCount={myMarkerCount}
                 totalStrokeCount={markers.length}
-                onSelectColor={setMarkerColor}
                 onSelectMode={setMarkerDrawMode}
                 onClearMine={() =>
                   roomRef.current?.send("game.markerClear", { scope: "mine" })
@@ -1549,11 +1713,52 @@ export function TreasureTrailsOverlay({
             )}
 
             {/* Live Floating Action Banner */}
-            {actionBanner && !isIntroBlocking && !markerMode && (
-              <div className="pointer-events-none absolute left-1/2 top-2 z-20 max-w-[78%] -translate-x-1/2 truncate rounded-full border border-amberwarm-400/50 bg-espresso/90 px-3 py-1 text-[11px] font-bold text-oat-50 shadow-lg backdrop-blur sm:px-4 sm:py-1.5 sm:text-xs">
-                {actionBanner}
-              </div>
-            )}
+            {actionBanner &&
+              !isIntroBlocking &&
+              !markerMode &&
+              roundResultStage === "hidden" && (
+                <div className="pointer-events-none absolute left-1/2 top-2 z-20 max-w-[78%] -translate-x-1/2 truncate rounded-full border border-amberwarm-400/50 bg-espresso/90 px-3 py-1 text-[11px] font-bold text-oat-50 shadow-lg backdrop-blur sm:px-4 sm:py-1.5 sm:text-xs">
+                  {actionBanner}
+                </div>
+              )}
+
+            {/* Non-Blocking Trail & Treasure Reveal Banner (Shown BEFORE Winner Modal & during Board Inspection!) */}
+            {isRoundEnded &&
+              pub.lastRoundSummary &&
+              (roundResultStage === "revealing" || roundResultStage === "inspecting") && (
+                <div className="absolute inset-x-2 bottom-2 z-40 mx-auto flex max-w-xl flex-wrap items-center justify-between gap-2 rounded-2xl border-2 border-amberwarm-400 bg-espresso/95 px-3.5 py-2.5 text-oat-50 shadow-2xl backdrop-blur sm:inset-x-4 sm:bottom-3 sm:px-4">
+                  <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                    <span
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xl shadow-inner ${
+                        endTrailHighlight?.reachedTreasure
+                          ? "bg-amberwarm-400/25 ring-2 ring-amberwarm-400"
+                          : "bg-terracotta-500/25 ring-2 ring-terracotta-500"
+                      }`}
+                    >
+                      {endTrailHighlight?.reachedTreasure ? "🧭" : "🦊"}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="font-display text-xs font-bold leading-tight text-amberwarm-400 sm:text-sm">
+                        {endTrailHighlight?.reachedTreasure
+                          ? "Trail Connected to the Golden Compass!"
+                          : "Trail Stopped Short — Treasure Unreached!"}
+                      </div>
+                      <div className="truncate text-[10px] font-semibold text-oat-200 sm:text-xs">
+                        {pub.lastRoundSummary.reason}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={openRoundResultsModal}
+                    className="shrink-0 rounded-xl bg-amberwarm-400 px-3 py-1.5 font-display text-xs font-extrabold text-espresso shadow-sm transition hover:bg-amberwarm-600 hover:text-white"
+                  >
+                    {roundResultStage === "revealing" && revealSecondsLeft > 0
+                      ? `See Results (${revealSecondsLeft}s) →`
+                      : "See Results →"}
+                  </button>
+                </div>
+              )}
 
             {/* Private Spyglass Vision Toast */}
             {spyglassVision && (
@@ -1616,6 +1821,18 @@ export function TreasureTrailsOverlay({
                       lastBoardCoord.kind === "cleared" &&
                       !cell;
 
+                    // End-of-round trail outcome highlights (winning golden path vs missed treasure)
+                    const winStep = endTrailHighlight?.winningPathStep.get(key);
+                    const isOnWinningTrail = winStep !== undefined;
+                    const isTrueRelicEnd =
+                      Boolean(endTrailHighlight) && endTrailHighlight?.trueRelicCoord === key;
+                    const isMissedRelic =
+                      isTrueRelicEnd && !endTrailHighlight?.reachedTreasure;
+                    const isEndReachable =
+                      Boolean(endTrailHighlight) &&
+                      !endTrailHighlight?.reachedTreasure &&
+                      Boolean(endTrailHighlight?.reachableKeys.has(key));
+
                     return (
                       <button
                         key={key}
@@ -1626,6 +1843,11 @@ export function TreasureTrailsOverlay({
                         type="button"
                         onClick={() => handleCellClick(x, y)}
                         disabled={!interactive}
+                        style={
+                          isOnWinningTrail
+                            ? { animationDelay: `${winStep * 110}ms` }
+                            : undefined
+                        }
                         className={`relative aspect-[3/4] rounded-lg transition sm:rounded-xl ${
                           cell
                             ? ""
@@ -1635,7 +1857,15 @@ export function TreasureTrailsOverlay({
                                 ? "border-2 border-dashed border-terracotta-500/80 bg-terracotta-500/15"
                                 : "border border-white/10 bg-white/[0.04]"
                         } ${
-                          isLastPlaced ? "animate-tt-last-tile z-10" : ""
+                          isOnWinningTrail
+                            ? "animate-tt-last-tile z-20 ring-2 ring-amberwarm-400"
+                            : isMissedRelic
+                              ? "animate-pulse z-20 ring-2 ring-terracotta-500 sm:ring-4"
+                              : isEndReachable
+                                ? "z-10 ring-1 ring-sage-300/80"
+                                : isLastPlaced
+                                  ? "animate-tt-last-tile z-10"
+                                  : ""
                         } ${
                           canScoutHere
                             ? "cursor-pointer ring-2 ring-amberwarm-400 sm:ring-4"
@@ -1657,7 +1887,20 @@ export function TreasureTrailsOverlay({
                               privateScoutHint={priv?.scoutedVaults[key]}
                               compact
                             />
-                            {isLastPlaced && (
+                            {isTrueRelicEnd && (
+                              <span
+                                className={`pointer-events-none absolute -top-1.5 left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-[1px] text-[7px] font-black uppercase leading-tight shadow-md sm:text-[8px] ${
+                                  endTrailHighlight?.reachedTreasure
+                                    ? "bg-amberwarm-400 text-espresso"
+                                    : "bg-terracotta-500 text-white"
+                                }`}
+                              >
+                                {endTrailHighlight?.reachedTreasure
+                                  ? "★ FOUND!"
+                                  : "✕ MISSED"}
+                              </span>
+                            )}
+                            {isLastPlaced && !isTrueRelicEnd && (
                               <span className="pointer-events-none absolute -right-1 -top-1 z-20 rounded-full bg-amberwarm-400 px-1 py-[1px] text-[7px] font-black uppercase leading-none text-espresso shadow sm:text-[8px]">
                                 NEW
                               </span>
@@ -1683,7 +1926,7 @@ export function TreasureTrailsOverlay({
                   rows={BOARD_ROWS}
                   strokes={markers}
                   drawingEnabled={markerMode && !isSpectator}
-                  activeColor={markerColor}
+                  activeColor={myColorMeta.hex}
                   activeMode={markerDrawMode}
                   onCommitStroke={(points, color, mode) =>
                     roomRef.current?.send("game.markerAdd", {
@@ -2157,11 +2400,20 @@ export function TreasureTrailsOverlay({
         </div>
       )}
 
-      {/* Round End / Victory Celebration Modal */}
-      {(pub.phase === "ROUND_END" || pub.phase === "COMPLETED") &&
+      {/* Round End / Victory Celebration Modal (appears AFTER the board trail & treasure reveal!) */}
+      {isRoundEnded &&
+        roundResultStage === "modal" &&
         pub.lastRoundSummary && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/65 p-4 backdrop-blur-sm">
-            <div className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-3xl border-2 border-amberwarm-400 bg-oat-50 p-5 text-center shadow-cozy sm:p-6">
+            <div className="relative max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-3xl border-2 border-amberwarm-400 bg-oat-50 p-5 text-center shadow-cozy sm:p-6">
+              <button
+                type="button"
+                onClick={() => setRoundResultStage("inspecting")}
+                className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-xl bg-oat-200 px-2.5 py-1 text-[11px] font-bold text-espresso transition hover:bg-oat-300"
+              >
+                <Eye className="h-3.5 w-3.5" /> View Board
+              </button>
+
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amberwarm-100 text-3xl">
                 {pub.lastRoundSummary.winningTeam === "TRAILBLAZER" ? "🧭" : "🦊"}
               </div>
@@ -2178,12 +2430,17 @@ export function TreasureTrailsOverlay({
                 {pub.players.map((p) => {
                   const role = pub.lastRoundSummary!.revealedRoles[p.userId];
                   const earned = pub.lastRoundSummary!.starsAwarded[p.userId] ?? 0;
+                  const pColor = getPlayerColorMeta(p.color ?? p.seatIndex);
                   return (
                     <div
                       key={p.userId}
                       className="flex items-center justify-between rounded-2xl bg-oat-100 px-3.5 py-2 text-xs font-bold sm:px-4 sm:py-2.5 sm:text-sm"
                     >
                       <div className="flex items-center gap-2">
+                        <span
+                          className="h-2.5 w-2.5 shrink-0 rounded-full border border-white shadow-sm"
+                          style={{ backgroundColor: pColor.hex }}
+                        />
                         <span>{p.displayName}</span>
                         <span
                           className={`rounded-full px-2 py-0.5 text-[10px] ${

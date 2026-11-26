@@ -55,10 +55,13 @@ describe("Cozy Café Map & Shared Contracts", () => {
     expect(pathToWardrobe.length).toBeGreaterThan(2);
   });
 
-  it("generates schema-valid random procedural avatars", () => {
-    for (let seed = 1; seed <= 10; seed++) {
-      const cfg = generateRandomAvatarConfig(seed * 777);
+  it("generates schema-valid random procedural avatars that vary across default calls", () => {
+    const serialized = new Set<string>();
+    for (let i = 0; i < 12; i++) {
+      const cfg = generateRandomAvatarConfig();
       expect(AvatarConfigSchema.safeParse(cfg).success).toBe(true);
+      serialized.add(JSON.stringify(cfg));
     }
+    expect(serialized.size).toBeGreaterThan(8);
   });
 });

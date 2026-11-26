@@ -21,21 +21,23 @@ import {
   getOrientedEdges,
   getStartingHandSize,
 } from "./cards.js";
-import type {
-  BoardCell,
-  PlayerGearState,
-  PlayerInternalState,
-  PublicBoardCell,
-  RoleType,
-  RoundSummary,
-  TreasureTrailsAction,
-  TreasureTrailsConfig,
-  TreasureTrailsDisplayState,
-  TreasureTrailsEvent,
-  TreasureTrailsPrivateState,
-  TreasureTrailsPublicState,
-  TreasureTrailsState,
-  VaultKind,
+import {
+  TREASURE_TRAILS_PLAYER_COLORS,
+  type BoardCell,
+  type PlayerGearState,
+  type PlayerInternalState,
+  type PublicBoardCell,
+  type RoleType,
+  type RoundSummary,
+  type TreasureTrailsAction,
+  type TreasureTrailsColorId,
+  type TreasureTrailsConfig,
+  type TreasureTrailsDisplayState,
+  type TreasureTrailsEvent,
+  type TreasureTrailsPrivateState,
+  type TreasureTrailsPublicState,
+  type TreasureTrailsState,
+  type VaultKind,
 } from "./types.js";
 
 export const DEFAULT_TREASURE_TRAILS_CONFIG: TreasureTrailsConfig = {
@@ -54,6 +56,7 @@ function buildRoundState(
     displayName: string;
     seatIndex: number;
     score: number;
+    color?: TreasureTrailsColorId;
   }>,
   config: TreasureTrailsConfig,
   currentRound: number,
@@ -86,6 +89,9 @@ function buildRoundState(
     userId: p.userId,
     displayName: p.displayName,
     seatIndex: p.seatIndex,
+    color:
+      p.color ??
+      TREASURE_TRAILS_PLAYER_COLORS[idx % TREASURE_TRAILS_PLAYER_COLORS.length]!,
     role: shuffledRoles.shuffled[idx]!,
     hand: deck.splice(0, handSize),
     gear: { lantern: true, compass: true, grapple: true },
@@ -457,6 +463,7 @@ export const TreasureTrailsModule: GameModule<
           displayName: p.displayName,
           seatIndex: p.seatIndex,
           score: p.score,
+          color: p.color,
         })),
         state.config,
         state.currentRound + 1,
@@ -765,6 +772,7 @@ export const TreasureTrailsModule: GameModule<
         userId: p.userId,
         displayName: p.displayName,
         seatIndex: p.seatIndex,
+        color: p.color,
         handCount: p.hand.length,
         gear: { ...p.gear },
         score: p.score,

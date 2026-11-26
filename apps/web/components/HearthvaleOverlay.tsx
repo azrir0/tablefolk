@@ -38,7 +38,7 @@ import {
   type TileRotation,
 } from "@tablefolk/game-hearthvale";
 import {
-  MARKER_COLOR_SWATCHES,
+  getPlayerColorMeta,
   type BoardMarkerMode,
   type BoardMarkerStroke,
 } from "@tablefolk/shared";
@@ -320,7 +320,6 @@ export function HearthvaleOverlay({
   const [spectatorCount, setSpectatorCount] = useState(0);
   const [markers, setMarkers] = useState<BoardMarkerStroke[]>([]);
   const [markerMode, setMarkerMode] = useState(false);
-  const [markerColor, setMarkerColor] = useState<string>(MARKER_COLOR_SWATCHES[0].hex);
   const [markerDrawMode, setMarkerDrawMode] = useState<BoardMarkerMode>("fade");
 
   const playerRefs = useRef(new Map<string, HTMLDivElement>());
@@ -766,6 +765,10 @@ export function HearthvaleOverlay({
     [pub, myUserId]
   );
   const isSpectator = Boolean(pub && !myPublic);
+  const myColorMeta = useMemo(
+    () => getPlayerColorMeta(myPublic?.color ?? myPublic?.seatIndex ?? 0),
+    [myPublic]
+  );
   const myMarkerCount = useMemo(
     () => markers.filter((m) => m.userId === myUserId).length,
     [markers, myUserId]
@@ -1021,6 +1024,10 @@ export function HearthvaleOverlay({
                     : "bg-oat-200 text-espresso hover:bg-amberwarm-100"
                 }`}
               >
+                <span
+                  style={{ backgroundColor: myColorMeta.hex }}
+                  className="h-2.5 w-2.5 shrink-0 rounded-full border border-white shadow-sm"
+                />
                 <Highlighter className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">{markerMode ? "Drawing" : "Mark"}</span>
               </button>
@@ -1153,23 +1160,21 @@ export function HearthvaleOverlay({
 
             {/* Live Board Marker Floating Toolbar */}
             {markerMode && !isSpectator && (
-              <div className="absolute left-1/2 top-2 z-40 -translate-x-1/2">
-                <BoardMarkerToolbar
-                  activeColor={markerColor}
-                  activeMode={markerDrawMode}
-                  myStrokeCount={myMarkerCount}
-                  totalStrokeCount={markers.length}
-                  onSelectColor={setMarkerColor}
-                  onSelectMode={setMarkerDrawMode}
-                  onClearMine={() =>
-                    roomRef.current?.send("game.markerClear", { scope: "mine" })
-                  }
-                  onClearAll={() =>
-                    roomRef.current?.send("game.markerClear", { scope: "all" })
-                  }
-                  onClose={() => setMarkerMode(false)}
-                />
-              </div>
+              <BoardMarkerToolbar
+                activeColor={myColorMeta.hex}
+                colorLabel={myColorMeta.label}
+                activeMode={markerDrawMode}
+                myStrokeCount={myMarkerCount}
+                totalStrokeCount={markers.length}
+                onSelectMode={setMarkerDrawMode}
+                onClearMine={() =>
+                  roomRef.current?.send("game.markerClear", { scope: "mine" })
+                }
+                onClearAll={() =>
+                  roomRef.current?.send("game.markerClear", { scope: "all" })
+                }
+                onClose={() => setMarkerMode(false)}
+              />
             )}
 
             {/* Live Action Banner */}
@@ -1323,7 +1328,7 @@ export function HearthvaleOverlay({
                   rows={rows}
                   strokes={markers}
                   drawingEnabled={markerMode && !isSpectator}
-                  activeColor={markerColor}
+                  activeColor={myColorMeta.hex}
                   activeMode={markerDrawMode}
                   onCommitStroke={(points, color, mode) =>
                     roomRef.current?.send("game.markerAdd", { points, color, mode })
