@@ -120,8 +120,12 @@ export class CozyCafeScene extends Phaser.Scene {
     super("CozyCafeScene");
   }
 
-  public configure(callbacks: CafeEngineCallbacks) {
+  /** Device pixel ratio used to render the canvas at native (HD/Retina) resolution */
+  private renderDpr = 1;
+
+  public configure(callbacks: CafeEngineCallbacks, renderDpr = 1) {
     this.callbacks = callbacks;
+    this.renderDpr = Math.max(1, renderDpr);
   }
 
   public setLocalSessionId(sessionId: string) {
@@ -274,6 +278,22 @@ export class CozyCafeScene extends Phaser.Scene {
 
   create() {
     const map = COZY_CAFE_MAP;
+
+    // HD / Retina: rasterize every Text (labels, nameplates, speech) at native DPR
+    const dpr = this.renderDpr;
+    if (dpr > 1) {
+      const factory = this.add;
+      const originalText = factory.text.bind(factory);
+      factory.text = ((
+        x: number,
+        y: number,
+        text: string | string[],
+        style?: Phaser.Types.GameObjects.Text.TextStyle
+      ) => originalText(x, y, text, { ...(style ?? {}), resolution: dpr })) as typeof factory.text;
+    }
+
+    // Backing canvas is DPR× larger than its CSS size, so zoom the camera to keep the same view
+    this.cameras.main.setZoom(dpr);
     this.cameras.main.setBackgroundColor("#F3E7D3");
     this.cameras.main.setBounds(0, 0, map.width, map.height);
     this.cameras.main.centerOn(map.spawnPoint.x, map.spawnPoint.y);
