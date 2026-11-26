@@ -44,7 +44,7 @@ export class PaperDollAvatar {
   private readonly speechContainer: Phaser.GameObjects.Container;
   private readonly speechBg: Phaser.GameObjects.Graphics;
   private readonly speechLabel: Phaser.GameObjects.Text;
-  private readonly emoteText: Phaser.GameObjects.Text;
+  private readonly emoteGfx: Phaser.GameObjects.Graphics;
 
   private state: AvatarRenderState;
   private animPhase = Math.random() * Math.PI * 2;
@@ -139,12 +139,9 @@ export class PaperDollAvatar {
     this.speechContainer.add([this.speechBg, this.speechLabel]);
     this.root.add(this.speechContainer);
 
-    // Floating emote icon
-    this.emoteText = scene.add
-      .text(0, -66, "", { fontSize: "24px" })
-      .setOrigin(0.5, 1)
-      .setVisible(false);
-    this.root.add(this.emoteText);
+    // Floating custom-drawn vector emote medallion
+    this.emoteGfx = scene.add.graphics().setPosition(0, -76).setVisible(false);
+    this.root.add(this.emoteGfx);
 
     this.redrawStaticParts();
     this.syncBadges();
@@ -198,12 +195,13 @@ export class PaperDollAvatar {
   public triggerEmote(emoteId: string) {
     const found = EMOTE_LIST.find((e) => e.id === emoteId);
     if (!found) return;
-    this.emoteText.setText(found.icon).setVisible(true).setY(-64).setScale(0.6);
+    this.drawVectorEmote(found.id);
+    this.emoteGfx.setVisible(true).setY(-74).setScale(0.55);
     this.emoteHideAt = this.scene.time.now + 2600;
     this.scene.tweens.add({
-      targets: this.emoteText,
-      y: -82,
-      scale: 1.15,
+      targets: this.emoteGfx,
+      y: -90,
+      scale: 1.08,
       duration: 320,
       ease: "Back.easeOut",
     });
@@ -215,6 +213,98 @@ export class PaperDollAvatar {
       repeat: 1,
       ease: "Sine.easeInOut",
     });
+  }
+
+  private drawVectorEmote(emoteId: string) {
+    const g = this.emoteGfx;
+    g.clear();
+
+    // Soft speech medallion backdrop matching TableFolk's ink & cream aesthetic
+    const bgMap: Record<string, number> = {
+      wave: 0xfde68a,
+      laugh: 0xfde047,
+      dance: 0xfbcfe8,
+      party: 0xfff3d6,
+      cry: 0xbae6fd,
+      love: 0xffe4e6,
+      wow: 0xfde047,
+      cheers: 0xd5f0df,
+    };
+    g.fillStyle(bgMap[emoteId] ?? 0xfff8ec, 1);
+    g.lineStyle(2, OUTLINE, 1);
+    g.fillCircle(0, 0, 14);
+    g.strokeCircle(0, 0, 14);
+
+    if (emoteId === "love") {
+      g.fillStyle(0xe05a4e, 1);
+      g.fillCircle(-3.6, -2, 4.2);
+      g.fillCircle(3.6, -2, 4.2);
+      g.fillTriangle(-7.6, -0.5, 7.6, -0.5, 0, 7.5);
+    } else if (emoteId === "laugh") {
+      g.lineStyle(2, OUTLINE, 1);
+      g.beginPath();
+      g.arc(-4.5, -2.5, 2.5, Math.PI, Math.PI * 2, false);
+      g.strokePath();
+      g.beginPath();
+      g.arc(4.5, -2.5, 2.5, Math.PI, Math.PI * 2, false);
+      g.strokePath();
+      g.fillStyle(0xd9594c, 1);
+      g.fillRoundedRect(-5.5, 1.5, 11, 5.5, 3);
+      g.strokeRoundedRect(-5.5, 1.5, 11, 5.5, 3);
+    } else if (emoteId === "cry") {
+      g.fillStyle(OUTLINE, 1);
+      g.fillCircle(-4.5, -2.5, 1.8);
+      g.fillCircle(4.5, -2.5, 1.8);
+      g.lineStyle(2, OUTLINE, 1);
+      g.beginPath();
+      g.arc(0, 6, 3.8, Math.PI + 0.3, Math.PI * 2 - 0.3, false);
+      g.strokePath();
+      g.fillStyle(0x3b82f6, 1);
+      g.fillCircle(6, 3, 2.5);
+    } else if (emoteId === "wow") {
+      g.fillStyle(OUTLINE, 1);
+      g.fillCircle(-4.5, -3, 1.9);
+      g.fillCircle(4.5, -3, 1.9);
+      g.fillStyle(0x7a4e33, 1);
+      g.lineStyle(1.6, OUTLINE, 1);
+      g.fillEllipse(0, 4, 6, 7.5);
+      g.strokeEllipse(0, 4, 6, 7.5);
+    } else if (emoteId === "dance") {
+      g.lineStyle(2.2, OUTLINE, 1);
+      g.lineBetween(-3, 5, -3, -5);
+      g.lineBetween(-3, -5, 5, -7);
+      g.lineBetween(5, -7, 5, 3);
+      g.fillStyle(0xbe185d, 1);
+      g.fillCircle(-5, 5, 2.8);
+      g.fillCircle(3, 3, 2.8);
+    } else if (emoteId === "party") {
+      g.fillStyle(0xf4c145, 1);
+      g.lineStyle(1.6, OUTLINE, 1);
+      g.fillTriangle(-6, 7, -1, -5, 6, 2);
+      g.strokeTriangle(-6, 7, -1, -5, 6, 2);
+      g.fillStyle(0x529b76, 1);
+      g.fillCircle(4, -6, 2.2);
+      g.fillStyle(0xd9594c, 1);
+      g.fillCircle(8, -1, 1.8);
+    } else if (emoteId === "cheers") {
+      g.fillStyle(0xf4c145, 1);
+      g.lineStyle(1.6, OUTLINE, 1);
+      g.fillRoundedRect(-5, -3, 10, 9, 2.5);
+      g.strokeRoundedRect(-5, -3, 10, 9, 2.5);
+      g.lineStyle(1.8, 0xd97706, 1);
+      g.lineBetween(0, -8, 0, -5);
+      g.lineBetween(-6, -6, -4, -4);
+      g.lineBetween(6, -6, 4, -4);
+    } else {
+      // Friendly wave / star sparkle
+      g.fillStyle(0xfff8ec, 1);
+      g.lineStyle(1.8, OUTLINE, 1);
+      g.fillRoundedRect(-5.5, -5.5, 11, 12, 4.5);
+      g.strokeRoundedRect(-5.5, -5.5, 11, 12, 4.5);
+      g.lineStyle(1.8, 0xd97706, 1);
+      g.lineBetween(-9, -4, -7, -7);
+      g.lineBetween(7, -7, 9, -4);
+    }
   }
 
   public tick(dtSec: number) {
@@ -243,8 +333,8 @@ export class PaperDollAvatar {
     if (this.speechContainer.visible && now >= this.speechHideAt) {
       this.speechContainer.setVisible(false);
     }
-    if (this.emoteText.visible && now >= this.emoteHideAt) {
-      this.emoteText.setVisible(false);
+    if (this.emoteGfx.visible && now >= this.emoteHideAt) {
+      this.emoteGfx.setVisible(false);
     }
 
     // Pure GPU transform animations (zero geometry redraw while walking!)
@@ -294,9 +384,9 @@ export class PaperDollAvatar {
 
   private syncBadges() {
     const nextText = this.state.inGame
-      ? "🎲 Playing"
+      ? "Playing"
       : this.state.carryingGameSlug
-        ? "📦 Carrying Game"
+        ? "Carrying Game"
         : "";
     if (nextText === this.lastBadgeText) return;
     this.lastBadgeText = nextText;
@@ -548,3 +638,267 @@ export class PaperDollAvatar {
     this.root.destroy(true);
   }
 }
+
+export interface CafeBotRenderOptions {
+  displayName: string;
+  facing: Direction;
+  variantIndex: number;
+}
+
+const BOT_PALETTES = [
+  { chassis: 0xf4e8d2, shade: 0xe3d1b3, apron: 0xe5a94e, visorEye: 0xa8e6cf, bulb: 0xf6c945 },
+  { chassis: 0xf1ebde, shade: 0xdfd5c2, apron: 0x8ab696, visorEye: 0xfde68a, bulb: 0xf6c945 },
+  { chassis: 0xf5e9dc, shade: 0xe4d1be, apron: 0xd98a73, visorEye: 0xa8e6cf, bulb: 0xf6c945 },
+  { chassis: 0xeeeae3, shade: 0xdcd5ca, apron: 0x7d9fc4, visorEye: 0xfde68a, bulb: 0xf6c945 },
+] as const;
+
+/**
+ * Standardized Cozy Chibi Café Bot companion for Practice Bot seats.
+ * Uses the exact same espresso ink line weight, seated proportions, depth sorting,
+ * directional facing, breathing cadence, and pill nameplate as PaperDollAvatar.
+ */
+export class CafeBotAvatar {
+  public readonly root: Phaser.GameObjects.Container;
+  private readonly bodyContainer: Phaser.GameObjects.Container;
+  private readonly shadowGfx: Phaser.GameObjects.Graphics;
+  private readonly dollGfx: Phaser.GameObjects.Graphics;
+  private readonly nameTag: Phaser.GameObjects.Text;
+
+  private readonly facing: Direction;
+  private readonly variantIndex: number;
+  private animPhase = Math.random() * Math.PI * 2;
+  private blinkTimer = 2.2 + Math.random() * 3.2;
+  private isBlinking = false;
+  private lastDrawSignature = "";
+  private lastDisplayName = "";
+
+  constructor(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    options: CafeBotRenderOptions
+  ) {
+    this.facing = options.facing;
+    this.variantIndex = Math.abs(options.variantIndex);
+    this.lastDisplayName = options.displayName;
+
+    this.root = scene.add.container(x, y);
+    this.root.setDepth(y);
+
+    this.shadowGfx = scene.add.graphics();
+    this.shadowGfx.fillStyle(0x3a2a20, 0.18);
+    this.shadowGfx.fillEllipse(0, 4, 34, 14);
+    this.root.add(this.shadowGfx);
+
+    this.bodyContainer = scene.add.container(0, 4);
+    this.bodyContainer.scaleX = this.facing === "west" ? -1 : 1;
+    this.dollGfx = scene.add.graphics();
+    this.bodyContainer.add(this.dollGfx);
+    this.root.add(this.bodyContainer);
+
+    // Warm amber nameplate matching TableLobbyDrawer bot pills
+    this.nameTag = scene.add
+      .text(0, 14, options.displayName, {
+        fontFamily: "system-ui, -apple-system, sans-serif",
+        fontSize: "10.5px",
+        fontStyle: "700",
+        color: "#6B4423",
+        backgroundColor: "rgba(255, 243, 214, 0.94)",
+        padding: { left: 6, right: 6, top: 2, bottom: 2 },
+      })
+      .setOrigin(0.5, 0);
+    this.root.add(this.nameTag);
+
+    this.redraw();
+  }
+
+  public setVisible(visible: boolean) {
+    this.root.setVisible(visible);
+    return this;
+  }
+
+  public setDisplayName(name: string) {
+    const clean = name.trim() || "Café Bot";
+    if (clean === this.lastDisplayName) return;
+    this.lastDisplayName = clean;
+    this.nameTag.setText(clean);
+  }
+
+  public tick(dtSec: number) {
+    if (!this.root.visible) return;
+
+    this.animPhase += dtSec * 2.4;
+    this.bodyContainer.scaleY = 1 + Math.sin(this.animPhase) * 0.015;
+
+    this.blinkTimer -= dtSec;
+    if (this.blinkTimer <= 0) {
+      if (this.isBlinking) {
+        this.isBlinking = false;
+        this.blinkTimer = 2.6 + Math.random() * 3.4;
+      } else {
+        this.isBlinking = true;
+        this.blinkTimer = 0.13;
+      }
+      this.redraw();
+    }
+  }
+
+  private redraw() {
+    const isBack = this.facing === "north";
+    const isSide = this.facing === "east" || this.facing === "west";
+    const sig = `${this.variantIndex}|${isBack}|${isSide}|${this.isBlinking}`;
+    if (sig === this.lastDrawSignature) return;
+    this.lastDrawSignature = sig;
+
+    const palette = BOT_PALETTES[this.variantIndex % BOT_PALETTES.length]!;
+    const g = this.dollGfx;
+    g.clear();
+
+    // 1. Seated bronze boots (matches PaperDollAvatar shoe coordinates)
+    g.fillStyle(0x6b5344, 1);
+    g.lineStyle(1.8, OUTLINE, 1);
+    g.fillRoundedRect(-10, -5, 8, 6, 3);
+    g.strokeRoundedRect(-10, -5, 8, 6, 3);
+    g.fillRoundedRect(2, -5, 8, 6, 3);
+    g.strokeRoundedRect(2, -5, 8, 6, 3);
+
+    // 2. Porcelain arms with warm brass wrist cuffs
+    g.fillStyle(palette.chassis, 1);
+    g.lineStyle(1.8, OUTLINE, 1);
+    g.fillRoundedRect(-16, -29, 6, 13, 3);
+    g.strokeRoundedRect(-16, -29, 6, 13, 3);
+    g.fillRoundedRect(10, -29, 6, 13, 3);
+    g.strokeRoundedRect(10, -29, 6, 13, 3);
+    g.fillStyle(0xdba34d, 1);
+    g.fillRoundedRect(-15.5, -20.5, 5, 3, 1.2);
+    g.fillRoundedRect(10.5, -20.5, 5, 3, 1.2);
+
+    // 3. Lower chassis base
+    g.fillStyle(0x8a796c, 1);
+    g.lineStyle(1.8, OUTLINE, 1);
+    g.fillRoundedRect(-10, -15, 20, 11, 4);
+    g.strokeRoundedRect(-10, -15, 20, 11, 4);
+
+    // 4. Rounded porcelain torso + café apron (or brass wind-up key on back)
+    g.fillStyle(palette.chassis, 1);
+    g.lineStyle(2, OUTLINE, 1);
+    g.fillRoundedRect(-13, -31, 26, 20, 8);
+    g.strokeRoundedRect(-13, -31, 26, 20, 8);
+
+    if (!isBack) {
+      g.fillStyle(palette.apron, 1);
+      g.lineStyle(1.4, OUTLINE, 0.9);
+      g.fillRoundedRect(-8, -26, 16, 15, 3);
+      g.strokeRoundedRect(-8, -26, 16, 15, 3);
+
+      // Brass café crest button
+      g.fillStyle(0xf6c945, 1);
+      g.lineStyle(1.2, OUTLINE, 1);
+      g.fillCircle(0, -20.5, 2.8);
+      g.strokeCircle(0, -20.5, 2.8);
+    } else {
+      g.fillStyle(palette.apron, 1);
+      g.lineStyle(1.4, OUTLINE, 0.85);
+      g.fillRoundedRect(-8, -26, 16, 11, 3);
+      g.strokeRoundedRect(-8, -26, 16, 11, 3);
+
+      // Cute brass wind-up key on back
+      g.fillStyle(0xf6c945, 1);
+      g.lineStyle(1.4, OUTLINE, 1);
+      g.fillCircle(-3.4, -20.5, 2.6);
+      g.strokeCircle(-3.4, -20.5, 2.6);
+      g.fillCircle(3.4, -20.5, 2.6);
+      g.strokeCircle(3.4, -20.5, 2.6);
+      g.fillCircle(0, -20.5, 1.7);
+      g.strokeCircle(0, -20.5, 1.7);
+    }
+
+    // 5. Top brass antenna + glowing amber lantern bulb
+    g.lineStyle(2.2, OUTLINE, 1);
+    g.lineBetween(0, -55, 0, -63);
+    g.fillStyle(palette.bulb, 1);
+    g.lineStyle(1.6, OUTLINE, 1);
+    g.fillCircle(0, -64.5, 3.6);
+    g.strokeCircle(0, -64.5, 3.6);
+    g.fillStyle(0xfffdf5, 0.95);
+    g.fillCircle(-1, -65.5, 1.1);
+
+    // 6. Side brass ear-caps
+    g.fillStyle(0xdba34d, 1);
+    g.lineStyle(1.6, OUTLINE, 1);
+    g.fillRoundedRect(-17.5, -47, 4.5, 8.5, 2);
+    g.strokeRoundedRect(-17.5, -47, 4.5, 8.5, 2);
+    g.fillRoundedRect(13, -47, 4.5, 8.5, 2);
+    g.strokeRoundedRect(13, -47, 4.5, 8.5, 2);
+
+    // 7. Rounded chibi porcelain head
+    g.fillStyle(palette.chassis, 1);
+    g.lineStyle(2, OUTLINE, 1);
+    g.fillRoundedRect(-15, -56, 30, 26, 11);
+    g.strokeRoundedRect(-15, -56, 30, 26, 11);
+
+    // Soft pastel top trim
+    g.fillStyle(palette.apron, 0.85);
+    g.fillRoundedRect(-9, -54, 18, 3.5, 1.8);
+
+    // 8. Face visor or rear vent plate
+    if (!isBack) {
+      const fx = isSide ? 2.5 : 0;
+
+      // Dark warm espresso glass visor
+      g.fillStyle(0x362825, 1);
+      g.lineStyle(1.6, OUTLINE, 1);
+      g.fillRoundedRect(-11 + fx, -48.5, 22, 13.5, 5.5);
+      g.strokeRoundedRect(-11 + fx, -48.5, 22, 13.5, 5.5);
+
+      // Subtle glass sheen
+      g.fillStyle(0xffffff, 0.14);
+      g.fillRoundedRect(-8.5 + fx, -47, 8, 2.2, 1);
+
+      // Expressive glowing eyes
+      if (this.isBlinking) {
+        g.lineStyle(1.8, palette.visorEye, 1);
+        g.lineBetween(-6.8 + fx, -43, -2.5 + fx, -43);
+        g.lineBetween(2.5 + fx, -43, 6.8 + fx, -43);
+      } else {
+        g.fillStyle(palette.visorEye, 1);
+        g.fillCircle(-4.6 + fx, -43.2, 2.2);
+        g.fillCircle(4.6 + fx, -43.2, 2.2);
+        g.fillStyle(0xffffff, 0.9);
+        g.fillCircle(-3.9 + fx, -44, 0.8);
+        g.fillCircle(5.3 + fx, -44, 0.8);
+      }
+
+      // Friendly smile curve inside visor
+      g.lineStyle(1.5, palette.visorEye, 0.95);
+      g.beginPath();
+      g.arc(fx, -40.6, 2.8, 0.25, Math.PI - 0.25, false);
+      g.strokePath();
+
+      // Rosy porcelain cheeks
+      g.fillStyle(0xf29ca3, 0.65);
+      g.fillCircle(-9.5 + fx, -33.5, 2.1);
+      g.fillCircle(9.5 + fx, -33.5, 2.1);
+    } else {
+      // Back panel with warm vents & status LED
+      g.fillStyle(palette.shade, 1);
+      g.lineStyle(1.4, OUTLINE, 0.6);
+      g.fillRoundedRect(-9, -48.5, 18, 12.5, 5);
+      g.strokeRoundedRect(-9, -48.5, 18, 12.5, 5);
+
+      g.lineStyle(1.5, OUTLINE, 0.45);
+      g.lineBetween(-5, -44.5, 5, -44.5);
+      g.lineBetween(-5, -41, 5, -41);
+
+      g.fillStyle(palette.visorEye, 1);
+      g.lineStyle(1, OUTLINE, 0.8);
+      g.fillCircle(0, -38, 1.8);
+      g.strokeCircle(0, -38, 1.8);
+    }
+  }
+
+  public destroy() {
+    this.root.destroy(true);
+  }
+}
+

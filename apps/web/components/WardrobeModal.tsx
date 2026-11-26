@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { BookOpen, Clock, PackageCheck, Users, X } from "lucide-react";
+import { BookOpen, Clock, Film, PackageCheck, Users, X } from "lucide-react";
 import type { GameCatalogueItemDTO } from "@tablefolk/shared";
 import { fetchGameCatalogue } from "@/lib/api";
 import { GameIcon, gameSlugToIconName } from "./GameIcons";
@@ -9,7 +9,7 @@ import { GameIcon, gameSlugToIconName } from "./GameIcons";
 interface WardrobeModalProps {
   carryingSlug: string;
   onCarryGame: (slug: string | null) => void;
-  onOpenTutorial: (slug: string) => void;
+  onOpenTutorial: (slug: string, initialTab?: "rules" | "clips") => void;
   onClose: () => void;
 }
 
@@ -44,7 +44,7 @@ export function WardrobeModal({
               Game Wardrobe
             </h2>
             <p className="text-xs text-espresso-muted">
-              Pick up a board game box and carry it to any compatible café table!
+              Check rules &amp; video walkthroughs first, then pick up a box to carry to any table!
             </p>
           </div>
           <button
@@ -82,6 +82,7 @@ export function WardrobeModal({
 
           {filtered.map((game) => {
             const isCarrying = carryingSlug === game.slug;
+            const canOpenRules = game.isAvailable || game.tutorialAvailable;
             return (
               <div
                 key={game.id}
@@ -121,7 +122,7 @@ export function WardrobeModal({
                     <p className="text-xs leading-relaxed text-espresso-soft">
                       {game.description}
                     </p>
-                    <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold text-espresso-muted">
+                    <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-bold text-espresso-muted">
                       <span className="inline-flex items-center gap-1 rounded-lg bg-oat-100 px-2 py-1">
                         <Users className="h-3.5 w-3.5 text-sage-700" />
                         {game.minPlayers}–{game.maxPlayers} Players
@@ -133,6 +134,19 @@ export function WardrobeModal({
                       <span className="rounded-lg bg-oat-100 px-2 py-1">
                         {game.difficulty}
                       </span>
+                      {canOpenRules && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose();
+                            onOpenTutorial(game.slug, "clips");
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg bg-amberwarm-100 px-2 py-1 text-espresso transition hover:bg-amberwarm-400/35"
+                        >
+                          <Film className="h-3 w-3 text-amberwarm-600" />
+                          Video &amp; Clips
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -144,7 +158,7 @@ export function WardrobeModal({
                           onCarryGame(isCarrying ? null : game.slug);
                           if (!isCarrying) onClose();
                         }}
-                        className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition ${
+                        className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-2xl py-2 text-xs font-bold transition ${
                           isCarrying
                             ? "bg-terracotta-100 text-terracotta-700 hover:bg-terracotta-500 hover:text-white"
                             : "bg-sage-500 text-white hover:bg-sage-700"
@@ -157,22 +171,22 @@ export function WardrobeModal({
                       <button
                         type="button"
                         disabled
-                        className="flex-1 cursor-not-allowed rounded-xl bg-oat-200 py-2 text-xs font-bold text-espresso-muted"
+                        className="flex-1 cursor-not-allowed rounded-2xl bg-oat-200 py-2 text-xs font-bold text-espresso-muted"
                       >
                         Arriving in Wave 2
                       </button>
                     )}
 
-                    {game.tutorialAvailable && (
+                    {canOpenRules && (
                       <button
                         type="button"
                         onClick={() => {
                           onClose();
-                          onOpenTutorial(game.slug);
+                          onOpenTutorial(game.slug, "rules");
                         }}
-                        className="inline-flex items-center gap-1 rounded-xl border border-oat-300 bg-oat-100 px-3 py-2 text-xs font-bold text-espresso hover:bg-oat-200"
+                        className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-2xl border border-oat-300 bg-oat-50 px-3.5 py-2 text-xs font-bold text-espresso shadow-sm transition hover:bg-oat-100"
                       >
-                        <BookOpen className="h-3.5 w-3.5" /> Rules
+                        <BookOpen className="h-3.5 w-3.5 text-sage-700" /> Rules
                       </button>
                     )}
                   </div>

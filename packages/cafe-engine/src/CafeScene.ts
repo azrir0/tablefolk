@@ -8,7 +8,7 @@ import {
   type Direction,
   type InteractableDefinition,
 } from "@tablefolk/shared";
-import { PaperDollAvatar } from "./avatarRenderer.js";
+import { CafeBotAvatar, PaperDollAvatar } from "./avatarRenderer.js";
 
 export interface SyncedPlayerSnapshot {
   sessionId: string;
@@ -69,7 +69,7 @@ interface ChairVisual {
   x: number;
   y: number;
   glowRing: Phaser.GameObjects.Arc;
-  botBadge: Phaser.GameObjects.Text;
+  botAvatar: CafeBotAvatar;
   hitZone: Phaser.GameObjects.Zone;
 }
 
@@ -355,6 +355,9 @@ export class CozyCafeScene extends Phaser.Scene {
 
     for (const avatar of this.avatars.values()) {
       avatar.tick(dt);
+    }
+    for (const cv of this.chairVisuals) {
+      cv.botAvatar.tick(dt);
     }
     this.baristaNpc?.tick(dt);
   }
@@ -871,11 +874,11 @@ export class CozyCafeScene extends Phaser.Scene {
           .setDepth(seat.y - 5)
           .setVisible(false);
 
-        const botBadge = this.add
-          .text(seat.x, seat.y - 4, "🤖", { fontSize: "20px" })
-          .setOrigin(0.5)
-          .setDepth(seat.y + 2)
-          .setVisible(false);
+        const botAvatar = new CafeBotAvatar(this, seat.x, seat.y, {
+          displayName: "Café Bot",
+          facing: seat.facing,
+          variantIndex: seat.seatIndex,
+        }).setVisible(false);
 
         const hitZone = this.add
           .zone(seat.x, seat.y, 38, 38)
@@ -899,7 +902,7 @@ export class CozyCafeScene extends Phaser.Scene {
           x: seat.x,
           y: seat.y,
           glowRing,
-          botBadge,
+          botAvatar,
           hitZone,
         });
       }
@@ -929,7 +932,7 @@ export class CozyCafeScene extends Phaser.Scene {
       const boxG = this.add.graphics().setDepth(tableDepth + 2);
       this.tableGameBoxes.set(tbl.id, boxG);
 
-      // Floating Table Status Pill ("Grand Lantern Table • 0/8" or clickable "👁️ Live · Watch")
+      // Floating Table Status Pill ("Grand Lantern Table • 0/8" or clickable "LIVE • ... · Watch")
       const label = this.add
         .text(tx + tw / 2, ty + th / 2, `${tbl.name} • 0/${tbl.capacity}`, {
           fontFamily: "system-ui, sans-serif",
@@ -966,7 +969,7 @@ export class CozyCafeScene extends Phaser.Scene {
 
       if (label) {
         if (state?.status === "IN_PROGRESS") {
-          label.setText(`👁️ ${tblDef.name} • Live (${occupied}) · Watch`);
+          label.setText(`LIVE • ${tblDef.name} (${occupied}) · Watch`);
           label.setStyle({
             backgroundColor: "rgba(254, 243, 199, 0.96)",
             color: "#7C4A03",
@@ -1015,7 +1018,11 @@ export class CozyCafeScene extends Phaser.Scene {
     for (const cv of this.chairVisuals) {
       const state = this.tableSnapshots.get(cv.tableId);
       const seat = state?.seats[cv.seatIndex];
-      cv.botBadge.setVisible(Boolean(seat?.isBot));
+      const isBot = Boolean(seat?.isBot);
+      cv.botAvatar.setVisible(isBot);
+      if (isBot && seat?.occupantName) {
+        cv.botAvatar.setDisplayName(seat.occupantName);
+      }
     }
   }
 
@@ -1043,9 +1050,9 @@ export class CozyCafeScene extends Phaser.Scene {
 
     // Periodic cozy greeting bubble from our friendly café guide
     const lines = [
-      "Welcome to TableFolk! ☕",
+      "Welcome to TableFolk!",
       "Walk up to me for game rules & guides!",
-      "Tap any Live table to spectate a match! 👁️",
+      "Tap any Live table to watch a match!",
       "Grab a game box from the Wardrobe!",
     ];
     let idx = 0;

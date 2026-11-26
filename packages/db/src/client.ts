@@ -273,76 +273,80 @@ export async function seedDefaultData(db: TableFolkDb): Promise<void> {
     gameSlug: "treasure-trails",
     locale: "en",
     summary:
-      "Explorers work together to build an unbroken trail from Base Camp to the hidden Treasure Chest. Secret Impostors try to break tools, block paths, and run the deck out before the chest is reached.",
+      "Explorers build an unbroken trail from Base Camp to the hidden Treasure Chest among 3 Sealed Vaults. Secret Impostors break tools, drop Dead-Ends, and bluff Peek Vault intel to run the deck dry.",
     rulesMarkdown: `### Goal of the Game
-- **Explorers** win the round the instant an unbroken open trail connects **Base Camp (0,2)** to the **Treasure Chest** hidden among the 3 Sealed Vaults on the right edge.
+- **Explorers** win the round the instant an unbroken open trail connects **Base Camp (0,2)** to the hidden **Treasure Chest** among the 3 Sealed Vaults.
 - **Impostors** win if the **Expedition Deck** and all player hands run empty without reaching the Treasure Chest.
 
 ### On Your Turn (Choose 1 Action)
-1. **Place a Path Tile** on a highlighted green cell (requires all 3 of your tools working: **Lantern**, **Compass**, and **Pickaxe**). You can **Flip 180°** before placing!
-2. **Play an Action Card** — break a rival's tool with a **Break** card, repair an ally's tool with a **Fix** card (matching the exact tool icon!), peek privately inside a Sealed Vault with **Peek Vault**, or destroy any placed tile with **Blast Tile**.
-3. **Discard 1 Card** face-down to pass quietly.
-4. **Quick Fix (Self-Rescue):** Stuck with a broken tool? Discard **2 cards** face-down to repair 1 of your own broken tools immediately!
+1. **Place a Path Tile:** Requires all 3 tools working (**Lantern**, **Compass**, **Pickaxe**). Tap **Flip 180°** before dropping onto a glowing green cell linked to Base Camp.
+2. **Play an Action Card:** **Break** or **Fix** a matching tool icon, privately scout a vault with **Peek Vault**, or clear a blocking tile with **Blast Tile**.
+3. **Discard 1 Card:** Toss 1 card face-down to pass quietly and draw a fresh card.
+4. **Quick Fix (Self-Rescue):** Discard **2 cards** face-down to immediately repair 1 of your own broken tools!
 
 ### Scoring
-- **Explorers Win:** +2 Stars each, plus **+1 Clutch Star** to the Explorer who placed the final connecting tile.
-- **Impostors Win:** +4 Stars (if 1 Impostor), +3 Stars each (if 2), or +2 Stars each (if 3).`,
+- **Explorers Win:** **+2 Stars** each, plus **+1 Clutch Star** to the Explorer who connects the Treasure Chest.
+- **Impostors Win:** **+4 Stars** (1 Impostor), **+3 Stars** each (2 Impostors), or **+2 Stars** each (3 Impostors).`,
     cardReferenceJson: [
       {
         name: "Open Path Tiles (31)",
         category: "Path",
         icon: "game-trails",
         description:
-          "Crossroads, T-forks, straights, and corners that extend the trail from Base Camp.",
+          "Crossroads, T-forks, straights, and corners that extend the open route from Base Camp toward the Vaults.",
       },
       {
         name: "Blocked Dead-Ends (9)",
-        category: "Path",
+        category: "Sabotage Path",
         icon: "boulder",
         description:
-          "Rockfalls and blocked corners that legally attach to a path and stop progress until blasted.",
+          "Rockfalls and blocked corners that legally snap to paths and halt progress until cleared by Blast Tile.",
       },
       {
         name: "Break Tool Cards (9)",
         category: "Sabotage",
         icon: "break-pickaxe",
         description:
-          "Break a player's Lantern, Compass, or Pickaxe (exact matching tool icon!). Broken players cannot place paths.",
+          "Break a rival's Lantern, Compass, or Pickaxe (exact matching tool icon). Broken players cannot lay path tiles.",
       },
       {
-        name: "Fix Tool & Dual Fix Cards (9)",
+        name: "Fix Tool & Dual Fix (9)",
         category: "Support",
         icon: "fix-lantern",
         description:
-          "Repair 1 broken tool on yourself or a trusted teammate. Dual Fix cards can repair either of 2 shown tools.",
+          "Repair 1 broken tool on yourself or an ally. Dual Fix cards mend either of the 2 icons shown.",
       },
       {
         name: "Peek Vault (5)",
         category: "Intel",
         icon: "action-peek-vault",
         description:
-          "Secretly peek inside 1 unrevealed Sealed Vault to spot the Treasure Chest — share the truth or bluff!",
+          "Privately inspect 1 unrevealed Sealed Vault to learn whether it hides the Treasure Chest or Empty Ruins.",
       },
       {
         name: "Blast Tile (3)",
         category: "Clear",
         icon: "action-blast-tile",
         description:
-          "Remove any placed path or dead-end tile from the board (Base Camp and Vaults are protected).",
+          "Destroy any placed Path or Dead-End tile on the board (Base Camp and Vaults stay protected).",
       },
     ],
     faqJson: [
       {
         q: "Can I place a path tile next to a Dead-End to go past it?",
-        a: "No! Every new tile must connect to an unbroken Open Path traceable back to Base Camp. Clear dead-ends with Blast Tile or route around them.",
+        a: "No! Every new tile must connect to an unbroken Open Path traceable back to Base Camp. Clear Dead-Ends with Blast Tile or route around them.",
       },
       {
-        q: "What happens if I uncover an Empty Ruins decoy vault?",
-        a: "The decoy flips into an open tile and the round keeps going! Now everyone knows the Treasure Chest is in one of the remaining vaults.",
+        q: "What happens if we connect an Empty Ruins decoy vault?",
+        a: "The decoy flips open into a regular connector and the round keeps going! Now the whole table knows the Treasure Chest is in one of the remaining vaults.",
       },
       {
-        q: "What if nobody fixes my broken tool?",
-        a: "Use Quick Fix! Discard any 2 cards from your hand on your turn to repair 1 of your own broken tools.",
+        q: "What if I have 2 broken tools and use Quick Fix?",
+        a: "Quick Fix lets you pick which broken tool to repair in exchange for discarding 2 cards face-down. You can still be fixed by teammates too!",
+      },
+      {
+        q: "Can an Impostor use Peek Vault and lie in chat?",
+        a: "100% yes! Peek Vault badges only appear on the caster's screen, so bluffing vault locations is a classic Impostor move.",
       },
     ],
     videoUrl: null,
@@ -366,77 +370,81 @@ export async function seedDefaultData(db: TableFolkDb): Promise<void> {
     gameSlug: "hearthvale",
     locale: "en",
     summary:
-      "Lay scenic landscape tiles to grow walled Towns, Lantern Roads, and Hilltop Windmills. Claim features with your Villagers and double-strength Mayor to earn the most Stars when the final tile is placed!",
+      "Lay scenic valley tiles from a 2-tile hand to build Walled Towns, double-scoring Lantern Roads, and 9-Star Hilltop Windmills. Deploy Villagers and your Strength-2 Mayor to claim the most Stars!",
     rulesMarkdown: `### Goal of the Game
 - Score the most **Stars** by placing tiles and claiming **Walled Towns**, **Cobble Roads**, and **Hilltop Windmills**.
-- Choose **Cozy (36 tiles, ~5m)** for a quick café session or **Grand (54 tiles, ~9m)** for sprawling shared kingdoms!
+- Pick **Cozy (36 tiles, ~5m)** for a fast café match or **Grand (54 tiles, ~9m)** for sprawling shared kingdoms!
 
 ### On Your Turn (2 Quick Steps)
-1. **Place 1 of Your 2 Tiles:** You always hold a **2-tile Architect Hand**. Tap any glowing green frontier spot, spin **Rotate 90°** to match neighboring roads, towns, and meadows, then confirm!
-2. **Claim a Feature (Optional):** Place 1 available Folk (**Villager = 1** or **Mayor = 2**) onto an **unclaimed** Town, Road, or Windmill on the tile you just laid — or tap **Skip**. (Skipped automatically if nothing on the tile is unclaimed.)
+1. **Place 1 of Your 2 Tiles:** You always hold a **2-tile Architect Hand**. Tap a glowing green spot, spin **Rotate 90°** to match every touching edge, and confirm!
+2. **Claim a Feature (Optional):** Place 1 available Folk (**Villager = 1** or **Mayor = 2**) onto an **unclaimed** Town, Road, or Windmill on the tile you just placed — or tap **Skip**.
 
-### Instant Scoring & Folk Return
-- **Completed Town:** A tiny 2-tile town scores **3 Stars**; a 3+ tile town scores **2 Stars per tile + 2 Stars per Crest Banner**.
-- **Completed Road:** **1 Star per tile** — or **2 Stars per tile** if the road passes any glowing **Roadside Lantern**!
-- **Hilltop Windmill:** **9 Stars** as soon as all 8 surrounding spots are filled.
-- **Majorities & Ties:** Highest total Folk strength wins full points (ties share full points!), and all Folk immediately return to your supply.
-- **Game End:** Unfinished Towns (1/tile + 1/Crest), unfinished Roads (1/tile), and unfinished Windmills (1 + neighbors) award final bonus Stars!`,
+### Scoring & Folk Return
+- **Completed Town:** 2-tile mini-town = **3 Stars** (+2/Crest); 3+ tile town = **2 Stars/tile + 2 Stars/Crest**.
+- **Completed Road:** **1 Star/tile** — doubled to **2 Stars/tile** if the road includes any glowing **Roadside Lantern**!
+- **Hilltop Windmill:** **9 Stars** as soon as all 8 surrounding spots are filled (9/9).
+- **Majorities & Ties:** Highest total Folk strength wins full points (**ties share full points!**), and all Folk return to your supply immediately.
+- **Game End:** Unfinished Towns (1/tile + 1/Crest), unfinished Roads (1/tile), and unfinished Windmills (1 + neighbors) award final Stars!`,
     cardReferenceJson: [
       {
         name: "Walled Towns & Crests",
         category: "Feature",
         icon: "hv-town",
         description:
-          "Close all town walls to score 3 Stars (2 tiles) or 2 Stars/tile + 2 Stars per golden Crest Shield (3+ tiles).",
+          "Close every town wall to score 3 Stars (2 tiles) or 2 Stars/tile + 2 Stars per golden Crest Shield (3+ tiles).",
       },
       {
         name: "Cobble & Lantern Roads",
         category: "Feature",
         icon: "hv-lantern",
         description:
-          "Close both ends (or loop) to score 1 Star/tile — doubled to 2 Stars/tile if the road includes a glowing Lantern!",
+          "Close both ends (or loop) for 1 Star/tile — doubled to 2 Stars/tile if the road contains a glowing Lantern!",
       },
       {
         name: "Hilltop Windmills",
         category: "Landmark",
         icon: "hv-windmill",
         description:
-          "Place a Folk on the Windmill and fill all 8 surrounding spots for a huge 9-Star burst!",
+          "Claim the Windmill and fill all 8 surrounding squares (9/9) for an instant 9-Star payout.",
       },
       {
-        name: "The Mayor Pawn",
-        category: "Special Folk",
+        name: "5 Villagers + 1 Mayor",
+        category: "Your Folk",
         icon: "hv-mayor",
         description:
-          "Every player has 5 Villagers (strength 1) + 1 Mayor (strength 2). Merge adjacent towns or roads to steal or tie majority!",
+          "Villagers have Strength 1; your golden Mayor has Strength 2. Merge separate towns or roads to steal or tie majority!",
       },
       {
         name: "2-Tile Architect Hand",
         category: "Twist",
         icon: "game-hearthvale",
         description:
-          "Always choose between 2 tiles in your hand so you can plan ahead during rivals' turns and avoid dead draws.",
+          "Always choose between 2 valley tiles so you can plan ahead on rivals' turns and avoid dead draws.",
       },
       {
         name: "Twin Walls (Split Towns)",
         category: "Tactical Tile",
         icon: "hv-wall",
         description:
-          "Two separate town edges on opposite sides — great for capping one town while starting a sneaky merger nearby!",
+          "Two separate town edges on opposite sides — perfect for capping one town while launching a sneaky merger!",
       },
     ],
     faqJson: [
       {
-        q: "Can I place a Folk onto a Town or Road that someone already claimed?",
-        a: "Not directly — you can only place a Folk on an unclaimed feature. However, you CAN claim a separate nearby town/road and later connect them with a tile to merge and contest majority!",
+        q: "Can I place a Folk onto a Town or Road someone already claimed?",
+        a: "Not directly — you can only place on an unclaimed feature. However, you CAN claim a separate nearby town/road and later bridge them together to merge and contest majority!",
       },
       {
-        q: "What happens if two players tie for the highest Folk strength in a Town?",
-        a: "Both tied players receive the FULL score for that feature, and all Folk return to their owners!",
+        q: "What happens if two players tie for the highest Folk strength?",
+        a: "Both tied players earn the FULL score for that feature, and all Folk immediately return to their owners!",
       },
       {
-        q: "Do I lose my Mayor forever if I place them?",
-        a: "No! Your Mayor returns to your supply as soon as their Town, Road, or Windmill is completed, ready to deploy again.",
+        q: "Do I lose my Mayor forever after placing them?",
+        a: "Never! Your Mayor returns to your supply the instant their Town, Road, or Windmill is completed.",
+      },
+      {
+        q: "Do two Lanterns on the same road make it 4× points?",
+        a: "No — having 1 or more Roadside Lanterns activates the 2× Lantern Road bonus (2 Stars per tile) once the road is completed.",
       },
     ],
     videoUrl: null,
@@ -460,88 +468,100 @@ export async function seedDefaultData(db: TableFolkDb): Promise<void> {
     gameSlug: "velvet-masque",
     locale: "en",
     summary:
-      "Memorize everyone's Mask during Curtain Call, juggle cards under the Velvet Cloak (really swapping—or faking it!), announce bold powers, and race to 13 Gold (or 10 in Blitz)!",
+      "Memorize every Mask during 6s Curtain Call, swap (or fake-swap!) cards under the crimson curtain, announce bold powers without peeking, and race to 13 Gold (10 in Blitz)!",
     rulesMarkdown: `### Goal of the Game
-- Every guest starts with **6 Gold** and **1 Secret Mask**.
+- Every guest begins with **6 Gold** and **1 Secret Mask**.
 - First player to reach **13 Gold** *(or **10 Gold** in Quick Blitz)* wins the Velvet Crown immediately!
 
 ### Curtain Call & Opening Shuffle
-- All Masks start **face-up for 6 seconds** so you can memorize who holds what—then flip face-down!
-- In 3–5 player games, extra Masks sit on the **Velvet Stage** in the center so there are always 6 Masks in play.
-- **Turns 1 & 2** are Opening Shuffle turns *(Swap / Fake-Swap only)* so mystery erupts right away. From **Turn 3 onward**, all 3 actions unlock!
+- All Masks start **face-up for 6 seconds** so you can memorize who holds what — then flip face-down!
+- In 3–5 player games, extra Masks sit on the **Velvet Stage** so 6 Masks are always in play.
+- **Turns 1 & 2** are Opening Shuffle turns *(Swap / Fake-Swap only)* to stir instant mystery. From **Turn 3 onward**, all 3 actions unlock!
 
 ### On Your Turn — Pick 1 of 3 Actions
-1. **Under the Cloak (Swap or Fake-Swap):** Pick any rival or Velvet Stage slot. Both face-down cards glide under the crimson curtain—secretly choose **Really Swap** or **Fake Swap**. Everyone sees the exact same shuffle!
-2. **Peek at Your Mask:** Privately flip your own card face-up for 3.5 seconds to refresh your memory.
-3. **Announce a Mask:** Claim ANY active Mask without peeking! All rivals with 1+ Gold get **7 seconds** simultaneously to click **Let It Slide** or **Challenge ("No, I'M that Mask!")**:
+1. **Under the Cloak (Swap or Fake-Swap):** Pull any rival or Velvet Stage card behind the crimson curtain and secretly choose **Really Swap** or **Fake Swap**. Everyone sees the exact same swirl!
+2. **Peek at Your Mask:** Privately flip your own card face-up for **3.5 seconds** to refresh your memory.
+3. **Announce a Mask:** Claim ANY active Mask without peeking! All rivals with 1+ Gold get **7 seconds** simultaneously to click **Let It Slide** or **Challenge**:
    - **Unchallenged:** Your mask stays hidden and you trigger its power!
-   - **Challenged (Showdown!):** All claimants flip simultaneously. Whoever **truly holds** the Mask activates its power immediately *(even out of turn!)*—every wrong claimant pays **1 Gold** into the **Fine Box**!
+   - **Challenged (Showdown!):** All claimants flip at once. Whoever **truly holds** the Mask triggers its power immediately *(even out of turn!)* — every wrong claimant pays **1 Gold** into the **Fine Box**!
 
 ### Balance Upgrades
-- **No Sudden Bankruptcy:** Hitting 0 Gold never ends the match abruptly—you simply can't Challenge while broke until you earn Gold back.
-- **Capped Swings:** Magistrate takes at most **4 Gold** from the Fine Box (+1 from Bank if empty), and Illusionist swaps fortunes capped at **±4 Gold**.`,
+- **Zero Bankruptcy Anti-Climax:** Hitting 0 Gold never ends the match abruptly — you simply can't Challenge while broke until you earn Gold back.
+- **Capped Swings:** Magistrate collects up to **4 Gold** from the Fine Box (+1g from Bank if empty), and Illusionist swaps fortunes capped at **±4 Gold**.`,
     cardReferenceJson: [
       {
         name: "Monarch (3–8p)",
         category: "Gold Engine",
         icon: "vm-monarch",
-        description: "Collect +3 Gold from the Royal Bank. Huge payout—and a lightning rod for challenges!",
+        description:
+          "Collect +3 Gold from the Royal Bank. Huge payout — and a magnet for Showdowns!",
       },
       {
         name: "Patron (3–8p)",
         category: "Gold + Intel",
         icon: "vm-patron",
-        description: "Collect +2 Gold from the Bank AND secretly peek at any 1 rival or Velvet Stage mask.",
+        description:
+          "Collect +2 Gold from the Bank AND secretly peek at any 1 rival or Velvet Stage mask.",
       },
       {
         name: "Magistrate (3–8p)",
         category: "Fine Box",
         icon: "vm-magistrate",
-        description: "Collect up to 4 Gold from the Fine Box (or +1 Gold stipend from the Bank if empty).",
+        description:
+          "Scoop up to 4 Gold from the Fine Box (or +1 Gold stipend from the Bank if empty).",
       },
       {
         name: "Trickster (3–8p)",
         category: "Steal",
         icon: "vm-trickster",
-        description: "Steal 1 Gold from your left neighbor and 1 Gold from your right neighbor.",
+        description:
+          "Steal 1 Gold from your left neighbor and 1 Gold from your right neighbor.",
       },
       {
         name: "Illusionist (3–8p)",
         category: "Comeback",
         icon: "vm-illusionist",
-        description: "Choose any rival and swap Gold totals—capped at 4 Gold transferred.",
+        description:
+          "Choose any rival and swap Gold totals — capped at ±4 Gold transferred.",
       },
       {
         name: "Jester (3–8p)",
         category: "Chaos",
         icon: "vm-jester",
-        description: "Gain +1 Gold AND secretly swap (or fake-swap!) any 2 OTHER masks on the table!",
+        description:
+          "Gain +1 Gold AND secretly swap (or fake-swap!) any 2 OTHER masks on the table!",
       },
       {
         name: "Taxmaster (7–8p)",
         category: "Anti-Leader",
         icon: "vm-taxmaster",
-        description: "Steal 2 Gold directly from the richest rival (pick if tied).",
+        description:
+          "Steal 2 Gold directly from the richest rival (choose if tied).",
       },
       {
         name: "Smuggler (8p)",
         category: "Heist Win",
         icon: "vm-smuggler",
-        description: "Hold 10+ Gold (8+ in Blitz) to WIN IMMEDIATELY! Otherwise gain +1 Gold & Peek your mask.",
+        description:
+          "Hold 10+ Gold (8+ in Blitz) to WIN IMMEDIATELY! Otherwise gain +1 Gold & Peek your mask.",
       },
     ],
     faqJson: [
       {
         q: "Can I bluff a Mask even if I genuinely forgot what card I'm holding?",
-        a: "YES! That's the best part of Velvet Masque. If nobody challenges you, your card stays face-down and you get the power anyway—and sometimes you accidentally hold the exact Mask you bluffed!",
+        a: "YES! That's the heart of Velvet Masque. If nobody challenges you, your card stays face-down and you trigger the power anyway — and sometimes you accidentally hold the exact Mask you claimed!",
       },
       {
         q: "What happens if multiple players challenge the same announcement?",
-        a: "All claimants flip at the same time in a Showdown! At most one person truly holds that Mask—they immediately use its power, and EVERY other claimant pays 1 Gold into the Fine Box!",
+        a: "All claimants flip together in a Showdown! At most one guest truly holds that Mask — they immediately trigger its power (even out of turn), and EVERY other claimant pays 1 Gold into the Fine Box!",
       },
       {
-        q: "What if I hit 0 Gold?",
-        a: "You're still in the gala! You cannot Challenge while at 0 Gold (since challenging risks a 1-Gold fine), but on your turn you can Announce any Mask, Swap, or Peek to bounce right back.",
+        q: "What if nobody in the Showdown holds the claimed Mask?",
+        a: "Every claimant — including the announcer — pays 1 Gold into the Fine Box, and no power triggers. Great news for whoever claims Magistrate next!",
+      },
+      {
+        q: "What happens if I drop to 0 Gold?",
+        a: "You stay in the gala! You cannot Challenge while at 0 Gold, but on your turn you can Announce any Mask, Swap, or Peek to bounce straight back.",
       },
     ],
     videoUrl: null,

@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { ArrowLeft, BookOpen, Clock, Compass, Crown, Map, Users } from "lucide-react";
 import { GameIcon } from "@/components/GameIcons";
+import { GamesWardrobeRuleButton } from "@/components/GamesWardrobeRuleButton";
 
 export const metadata = {
   title: "Game Wardrobe & Rules — TableFolk",
@@ -108,6 +109,8 @@ export default function GamesCataloguePage() {
               </ul>
             </div>
           </div>
+
+          <GamesWardrobeRuleButton gameSlug="velvet-masque" />
         </article>
 
         {/* Game #2: Hearthvale */}
@@ -186,6 +189,8 @@ export default function GamesCataloguePage() {
               </ul>
             </div>
           </div>
+
+          <GamesWardrobeRuleButton gameSlug="hearthvale" />
         </article>
 
         {/* Game #1: Treasure Trails */}
@@ -256,6 +261,8 @@ export default function GamesCataloguePage() {
               </ul>
             </div>
           </div>
+
+          <GamesWardrobeRuleButton gameSlug="treasure-trails" />
         </article>
 
         {/* Upcoming Teasers */}

@@ -195,6 +195,10 @@ export function CafeExperience() {
   const [showWardrobeModal, setShowWardrobeModal] = useState(false);
   const [showCashierModal, setShowCashierModal] = useState(false);
   const [tutorialGameSlug, setTutorialGameSlug] = useState<string>("treasure-trails");
+  const [tutorialInitialTab, setTutorialInitialTab] = useState<
+    "rules" | "clips" | "cards" | "faq"
+  >("rules");
+  const [tutorialFromWardrobe, setTutorialFromWardrobe] = useState(false);
   const [showLobbySwitcher, setShowLobbySwitcher] = useState(false);
   const [showNoticeBoard, setShowNoticeBoard] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -1415,8 +1419,10 @@ export function CafeExperience() {
           onCarryGame={(slug) =>
             cafeRoomRef.current?.send("player.carryGame", { gameSlug: slug })
           }
-          onOpenTutorial={(slug) => {
+          onOpenTutorial={(slug, initialTab = "rules") => {
             setTutorialGameSlug(slug);
+            setTutorialInitialTab(initialTab);
+            setTutorialFromWardrobe(true);
             setShowCashierModal(true);
           }}
           onClose={() => setShowWardrobeModal(false)}
@@ -1426,7 +1432,28 @@ export function CafeExperience() {
       {showCashierModal && (
         <CashierTutorialModal
           gameSlug={tutorialGameSlug}
-          onClose={() => setShowCashierModal(false)}
+          initialTab={tutorialInitialTab}
+          carryingSlug={myPlayer?.carryingGameSlug ?? ""}
+          onCarryGame={
+            tutorialFromWardrobe
+              ? (slug) =>
+                  cafeRoomRef.current?.send("player.carryGame", { gameSlug: slug })
+              : undefined
+          }
+          onBackToWardrobe={
+            tutorialFromWardrobe
+              ? () => {
+                  setShowCashierModal(false);
+                  setTutorialFromWardrobe(false);
+                  setShowWardrobeModal(true);
+                }
+              : undefined
+          }
+          onClose={() => {
+            setShowCashierModal(false);
+            setTutorialFromWardrobe(false);
+            setTutorialInitialTab("rules");
+          }}
         />
       )}
 

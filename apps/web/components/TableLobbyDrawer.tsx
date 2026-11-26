@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Bot, Check, Crown, LogOut, Play, Plus, Share2, Trash2 } from "lucide-react";
+import { BookOpen, Bot, Check, Crown, LogOut, Play, Plus, Share2, Trash2 } from "lucide-react";
 import type { SyncedTableSnapshot } from "@tablefolk/cafe-engine";
 import { GameIcon } from "./GameIcons";
 
@@ -68,58 +68,76 @@ export function TableLobbyDrawer({
 
   return (
     <div className="pointer-events-auto w-full max-w-md rounded-3xl border-2 border-oat-300 bg-oat-50/95 p-4 shadow-cozy backdrop-blur">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-sage-100 px-2.5 py-0.5 text-[11px] font-bold text-sage-700">
-              {table.name}
-            </span>
-            <span className="text-xs font-bold text-espresso-muted">
-              {occupied.length}/{table.capacity} Seated
-            </span>
-          </div>
-          <h3 className="mt-1 flex items-center gap-2 font-display text-lg font-bold text-espresso">
-            <span className="inline-flex items-center gap-1.5">
-              <GameIcon
-                name={
-                  isHearthvale
-                    ? "game-hearthvale"
-                    : isVelvetMasque
-                      ? "game-masque"
-                      : "game-trails"
-                }
-                className="h-5 w-5"
-              />
-              {gameTitle}
-            </span>
-            <span className="rounded-full bg-oat-200 px-2 py-0.5 text-[10px] font-bold text-espresso-soft">
-              {isHearthvale
-                ? "2–5p Tile Strategy"
-                : isVelvetMasque
-                  ? "3–8p Bluff & Memory"
-                  : "3–8p Hidden Role"}
-            </span>
-          </h3>
+      {/* Row 1: Table Identity & Quick Actions (Clean Single-Line Utility Bar) */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate rounded-full bg-sage-100 px-2.5 py-0.5 text-[11px] font-bold leading-tight text-sage-700">
+            {table.name}
+          </span>
+          <span className="shrink-0 whitespace-nowrap text-[11px] font-bold text-espresso-muted">
+            {occupied.length}/{table.capacity} Seated
+          </span>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1.5">
           {onShareInvite && (
             <button
               type="button"
               onClick={onShareInvite}
               title="Share invite link with friends"
-              className="inline-flex items-center gap-1 rounded-xl bg-amberwarm-100 px-2.5 py-1.5 text-xs font-bold text-espresso hover:bg-amberwarm-400"
+              className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-xl bg-amberwarm-100 px-2.5 py-1.5 text-[11px] font-bold leading-none text-espresso transition hover:bg-amberwarm-400"
             >
-              <Share2 className="h-3.5 w-3.5" /> Invite
+              <Share2 className="h-3.5 w-3.5 shrink-0" /> Invite
             </button>
           )}
           <button
             type="button"
             onClick={onStandUp}
-            className="inline-flex items-center gap-1 rounded-xl bg-oat-200 px-3 py-1.5 text-xs font-bold text-espresso hover:bg-terracotta-100 hover:text-terracotta-700"
+            className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-xl bg-oat-200 px-2.5 py-1.5 text-[11px] font-bold leading-none text-espresso transition hover:bg-terracotta-100 hover:text-terracotta-700"
           >
-            <LogOut className="h-3.5 w-3.5" /> Stand Up
+            <LogOut className="h-3.5 w-3.5 shrink-0" /> Stand Up
           </button>
         </div>
+      </div>
+
+      {/* Row 2: Hero Game Title + Crisp Single-Line Player/Genre Pill */}
+      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+        <h3 className="flex items-center gap-2 font-display text-lg font-bold leading-tight text-espresso">
+          <span
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border shadow-sm ${
+              isHearthvale
+                ? "border-amberwarm-400/60 bg-amberwarm-100"
+                : isVelvetMasque
+                  ? "border-terracotta-500/40 bg-terracotta-100"
+                  : "border-sage-300 bg-sage-100"
+            }`}
+          >
+            <GameIcon
+              name={
+                isHearthvale
+                  ? "game-hearthvale"
+                  : isVelvetMasque
+                    ? "game-masque"
+                    : "game-trails"
+              }
+              className="h-4 w-4"
+            />
+          </span>
+          <span className="whitespace-nowrap">{gameTitle}</span>
+        </h3>
+
+        <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-oat-300/80 bg-oat-100 px-2.5 py-1 text-[11px] font-bold leading-none text-espresso-soft">
+          <span>{isHearthvale ? "2–5p" : "3–8p"}</span>
+          <span className="text-oat-300" aria-hidden="true">
+            ·
+          </span>
+          <span>
+            {isHearthvale
+              ? "Tile Strategy"
+              : isVelvetMasque
+                ? "Bluff & Memory"
+                : "Hidden Role"}
+          </span>
+        </span>
       </div>
 
       {/* Seat Pills */}
@@ -403,9 +421,9 @@ export function TableLobbyDrawer({
             <button
               type="button"
               onClick={onOpenTutorial}
-              className="rounded-2xl border border-oat-300 bg-oat-100 px-3.5 py-2.5 text-xs font-bold text-espresso hover:bg-oat-200"
+              className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-2xl border border-oat-300 bg-oat-50 px-3.5 py-2.5 text-xs font-bold text-espresso shadow-sm transition hover:bg-white"
             >
-              Rules
+              <BookOpen className="h-3.5 w-3.5 text-sage-700" /> Rules
             </button>
           </div>
           {isHost && hasEnoughPlayers && nonHostUnreadyCount > 0 && (
