@@ -188,6 +188,22 @@ export async function seedDefaultData(db: TableFolkDb): Promise<void> {
       tutorialAvailable: true,
     },
     {
+      id: "game_hearthvale",
+      slug: "hearthvale",
+      title: "Hearthvale",
+      tagline: "Build a sunlit valley of towns, lantern roads & hilltop windmills!",
+      description:
+        "A cozy tile-laying strategy game for 2–5 architects. Always hold a 2-tile hand, double completed road scores with Roadside Lanterns, surround Windmills for 9 points, and deploy your double-strength Mayor pawn to win big town majorities.",
+      category: "Strategy",
+      minPlayers: 2,
+      maxPlayers: 5,
+      estimatedMinutes: 6,
+      difficulty: "Easy",
+      coverTheme: "from-amber-100 via-lime-100 to-emerald-200",
+      isAvailable: true,
+      tutorialAvailable: true,
+    },
+    {
       id: "game_matcha_dominoes",
       slug: "matcha-dominoes",
       title: "Matcha Tiles",
@@ -302,6 +318,90 @@ export async function seedDefaultData(db: TableFolkDb): Promise<void> {
         {
           q: "What if nobody repairs my broken gear?",
           a: "Use Field-Patch! Discard any 2 cards from your hand on your turn to fix 1 of your own broken gears.",
+        },
+      ],
+      videoUrl: null,
+    })
+    .onConflictDoNothing();
+
+  await db
+    .insert(schema.gameTutorials)
+    .values({
+      id: "tut_hearthvale_en",
+      gameSlug: "hearthvale",
+      locale: "en",
+      summary:
+        "Lay scenic landscape tiles to grow walled Towns, Lantern Roads, and Hilltop Windmills. Claim features with your Villagers and double-strength Mayor to earn the most Stars when the final tile is placed!",
+      rulesMarkdown: `### Goal of the Game
+- Score the most **Stars (★)** by placing tiles and claiming **Walled Towns**, **Cobble Roads**, and **Hilltop Windmills**.
+- Choose **Cozy (36 tiles, ~5m)** for a quick café session or **Grand (54 tiles, ~9m)** for sprawling shared kingdoms!
+
+### On Your Turn (2 Quick Steps)
+1. **Place 1 of Your 2 Tiles:** You always hold a **2-tile Architect Hand**. Tap any glowing green frontier spot, spin **Rotate 90°** to match neighboring roads, towns, and meadows, then confirm!
+2. **Claim a Feature (Optional):** Place 1 available Folk (**Villager = 1** or **👑 Mayor = 2**) onto an **unclaimed** Town, Road, or Windmill on the tile you just laid — or tap **Skip**. (Skipped automatically if nothing on the tile is unclaimed.)
+
+### Instant Scoring & Folk Return
+- **Completed Town:** A tiny 2-tile town scores **3 ★**; a 3+ tile town scores **2 ★ per tile + 2 ★ per Crest Banner (🛡️)**.
+- **Completed Road:** **1 ★ per tile** — or **2 ★ per tile** if the road passes any glowing **Roadside Lantern (🏮)**!
+- **Hilltop Windmill (🌬️):** **9 ★** as soon as all 8 surrounding spots are filled.
+- **Majorities & Ties:** Highest total Folk strength wins full points (ties share full points!), and all Folk immediately return to your supply.
+- **Game End:** Unfinished Towns (1/tile + 1/Crest), unfinished Roads (1/tile), and unfinished Windmills (1 + neighbors) award final bonus Stars!`,
+      cardReferenceJson: [
+        {
+          name: "Walled Towns & Crests",
+          category: "Feature",
+          icon: "🏰",
+          description:
+            "Close all town walls to score 3 ★ (2 tiles) or 2 ★/tile + 2 ★ per golden Crest Shield (3+ tiles).",
+        },
+        {
+          name: "Cobble & Lantern Roads",
+          category: "Feature",
+          icon: "🏮",
+          description:
+            "Close both ends (or loop) to score 1 ★/tile — doubled to 2 ★/tile if the road includes a glowing Lantern!",
+        },
+        {
+          name: "Hilltop Windmills",
+          category: "Landmark",
+          icon: "🌬️",
+          description:
+            "Place a Folk on the Windmill and fill all 8 surrounding spots for a huge 9 ★ burst!",
+        },
+        {
+          name: "The Mayor Pawn (👑)",
+          category: "Special Folk",
+          icon: "👑",
+          description:
+            "Every player has 5 Villagers (strength 1) + 1 Mayor (strength 2). Merge adjacent towns or roads to steal or tie majority!",
+        },
+        {
+          name: "2-Tile Architect Hand",
+          category: "Twist",
+          icon: "🗺️",
+          description:
+            "Always choose between 2 tiles in your hand so you can plan ahead during rivals' turns and avoid dead draws.",
+        },
+        {
+          name: "Twin Walls (Split Towns)",
+          category: "Tactical Tile",
+          icon: "🧱",
+          description:
+            "Two separate town edges on opposite sides — great for capping one town while starting a sneaky merger nearby!",
+        },
+      ],
+      faqJson: [
+        {
+          q: "Can I place a Folk onto a Town or Road that someone already claimed?",
+          a: "Not directly — you can only place a Folk on an unclaimed feature. However, you CAN claim a separate nearby town/road and later connect them with a tile to merge and contest majority!",
+        },
+        {
+          q: "What happens if two players tie for the highest Folk strength in a Town?",
+          a: "Both tied players receive the FULL score for that feature, and all Folk return to their owners!",
+        },
+        {
+          q: "Do I lose my Mayor forever if I place them?",
+          a: "No! Your Mayor returns to your supply as soon as their Town, Road, or Windmill is completed, ready to deploy again.",
         },
       ],
       videoUrl: null,

@@ -10,16 +10,35 @@ interface CashierTutorialModalProps {
   onClose: () => void;
 }
 
+const AVAILABLE_RULEBOOKS = [
+  { slug: "treasure-trails", label: "🗺️ Treasure Trails" },
+  { slug: "hearthvale", label: "🌾 Hearthvale" },
+] as const;
+
 export function CashierTutorialModal({
   gameSlug = "treasure-trails",
   onClose,
 }: CashierTutorialModalProps) {
+  const [selectedSlug, setSelectedSlug] = useState<string>(gameSlug);
   const [tutorial, setTutorial] = useState<GameTutorialDTO | null>(null);
   const [tab, setTab] = useState<"rules" | "cards" | "faq">("rules");
 
   useEffect(() => {
-    fetchGameTutorial(gameSlug).then(setTutorial).catch(console.error);
+    setSelectedSlug(gameSlug);
   }, [gameSlug]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setTutorial(null);
+    fetchGameTutorial(selectedSlug)
+      .then((data) => {
+        if (!cancelled) setTutorial(data);
+      })
+      .catch(console.error);
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedSlug]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/45 p-4 backdrop-blur-sm">
@@ -42,27 +61,51 @@ export function CashierTutorialModal({
           </button>
         </div>
 
-        <div className="flex gap-2 border-b border-oat-200 bg-oat-100/70 px-6 py-2.5 text-xs font-bold">
-          {(
-            [
-              ["rules", "How to Play", BookOpen],
-              ["cards", "Card Reference", Layers],
-              ["faq", "FAQ", HelpCircle],
-            ] as const
-          ).map(([id, label, Icon]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setTab(id)}
-              className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 transition ${
-                tab === id
-                  ? "bg-sage-500 text-white"
-                  : "bg-oat-50 text-espresso-soft hover:bg-oat-200"
-              }`}
-            >
-              <Icon className="h-3.5 w-3.5" /> {label}
-            </button>
-          ))}
+        {/* Game Rulebook Switcher */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-oat-200 bg-oat-100/70 px-6 py-2.5 text-xs font-bold">
+          <div className="flex gap-1.5 rounded-xl bg-oat-200/70 p-0.5">
+            {AVAILABLE_RULEBOOKS.map((book) => (
+              <button
+                key={book.slug}
+                type="button"
+                onClick={() => setSelectedSlug(book.slug)}
+                className={`rounded-lg px-3 py-1 transition ${
+                  selectedSlug === book.slug
+                    ? "bg-espresso text-oat-50 shadow-sm"
+                    : "text-espresso-soft hover:text-espresso"
+                }`}
+              >
+                {book.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex gap-1.5">
+            {(
+              [
+                ["rules", "How to Play", BookOpen],
+                [
+                  "cards",
+                  selectedSlug === "hearthvale" ? "Features & Scoring" : "Card Reference",
+                  Layers,
+                ],
+                ["faq", "FAQ", HelpCircle],
+              ] as const
+            ).map(([id, label, Icon]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTab(id)}
+                className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 transition ${
+                  tab === id
+                    ? "bg-sage-500 text-white"
+                    : "bg-oat-50 text-espresso-soft hover:bg-oat-200"
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" /> {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">

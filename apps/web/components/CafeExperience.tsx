@@ -8,6 +8,8 @@ import {
   Check,
   Coffee,
   Copy,
+  Crown,
+  Eye,
   Flag,
   Gamepad2,
   LogOut,
@@ -57,6 +59,7 @@ import { soundEngine } from "@/lib/sound";
 import { AvatarCustomizerModal } from "./AvatarCustomizerModal";
 import { CafeLobbySwitcherModal } from "./CafeLobbySwitcherModal";
 import { CashierTutorialModal } from "./CashierTutorialModal";
+import { HearthvaleOverlay } from "./HearthvaleOverlay";
 import { TableLobbyDrawer } from "./TableLobbyDrawer";
 import { TreasureTrailsOverlay } from "./TreasureTrailsOverlay";
 import { VirtualJoystick } from "./VirtualJoystick";
@@ -97,6 +100,7 @@ interface RawPlayer {
 interface RawSeat {
   seatIndex: number;
   status: string;
+  occupantUserId: string;
   occupantName: string;
   isBot: boolean;
   isReady: boolean;
@@ -180,6 +184,7 @@ export function CafeExperience() {
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [showWardrobeModal, setShowWardrobeModal] = useState(false);
   const [showCashierModal, setShowCashierModal] = useState(false);
+  const [tutorialGameSlug, setTutorialGameSlug] = useState<string>("treasure-trails");
   const [showLobbySwitcher, setShowLobbySwitcher] = useState(false);
   const [showNoticeBoard, setShowNoticeBoard] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -202,15 +207,23 @@ export function CafeExperience() {
   const [reportReason, setReportReason] = useState("");
   const cafeChatScrollRef = useRef<HTMLDivElement | null>(null);
 
-  // Active Treasure Trails game overlay + Rejoin tracker
-  const [activeGameRoomId, setActiveGameRoomId] = useState<string | null>(null);
+  // Active Board Game overlay (Treasure Trails / Hearthvale) + Rejoin tracker
+  const [activeGame, setActiveGame] = useState<{
+    gameRoomId: string;
+    gameSlug: string;
+    isSpectator?: boolean;
+  } | null>(null);
   const [rejoinGame, setRejoinGame] = useState<ActiveGameRef | null>(null);
 
   const chatOpenRef = useRef(chatOpen);
-  const activeGameRoomIdRef = useRef<string | null>(activeGameRoomId);
+  const activeGameRef = useRef<{
+    gameRoomId: string;
+    gameSlug: string;
+    isSpectator?: boolean;
+  } | null>(activeGame);
   const userIdRef = useRef<string | null>(null);
   chatOpenRef.current = chatOpen;
-  activeGameRoomIdRef.current = activeGameRoomId;
+  activeGameRef.current = activeGame;
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -231,7 +244,7 @@ export function CafeExperience() {
     const shareText =
       roomMeta.isPrivate && roomMeta.accessCode
         ? `Join my private TableFolk Café (${roomMeta.cafeName})! Code: ${roomMeta.accessCode}`
-        : `Come hang out & play Treasure Trails with me at ${roomMeta.cafeName}!`;
+        : `Come hang out & play board games with me at ${roomMeta.cafeName}!`;
 
     if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
       try {
@@ -285,10 +298,10 @@ export function CafeExperience() {
       .finally(() => setAuthChecked(true));
   }, []);
 
-  // Pause Phaser canvas while playing Treasure Trails to save mobile battery!
+  // Pause Phaser canvas while playing a board game to save mobile battery!
   useEffect(() => {
-    engineRef.current?.setPaused(Boolean(activeGameRoomId));
-  }, [activeGameRoomId]);
+    engineRef.current?.setPaused(Boolean(activeGame));
+  }, [activeGame]);
 
   const handleInteract = useCallback((obj: InteractableDefinition) => {
     if (obj.type === "cashier") setShowCashierModal(true);
@@ -330,6 +343,9 @@ export function CafeExperience() {
         },
         onChairClick: (tableId, seatIndex) => {
           cafeRoomRef.current?.send("table.reserveSeat", { tableId, seatIndex });
+        },
+        onSpectateTable: (tableId) => {
+          cafeRoomRef.current?.send("table.spectate", { tableId });
         },
         onInteract: handleInteract,
         onNearbyPromptChange: setNearbyPrompt,
@@ -503,6 +519,7 @@ export function CafeExperience() {
             const seatArr = Array.from(t.seats || []).map((s) => ({
               seatIndex: s.seatIndex,
               status: s.status,
+              occupantUserId: s.occupantUserId || "",
               occupantName: s.occupantName,
               isBot: Boolean(s.isBot),
               isReady: Boolean(s.isReady),
@@ -606,14 +623,33 @@ export function CafeExperience() {
           "table.gameStarted",
           (p: { tableId: string; gameRoomId: string; gameSlug: string }) => {
             soundEngine.playTurnChime();
+            const slug = p.gameSlug || "treasure-trails";
             setRejoinGame({
               gameRoomId: p.gameRoomId,
               cafeRoomId: room.roomId,
               tableId: p.tableId,
-              gameSlug: p.gameSlug,
+              gameSlug: slug,
               startedAt: Date.now(),
             });
-            setActiveGameRoomId(p.gameRoomId);
+            setActiveGame({ gameRoomId: p.gameRoomId, gameSlug: slug });
+          }
+        );
+
+        room.onMessage(
+          "table.spectateStarted",
+          (p: {
+            tableId: string;
+            tableName?: string;
+            gameRoomId: string;
+            gameSlug: string;
+          }) => {
+            const slug = p.gameSlug || "treasure-trails";
+            showToast(`👁️ Spectating ${p.tableName || "live match"}!`);
+            setActiveGame({
+              gameRoomId: p.gameRoomId,
+              gameSlug: slug,
+              isSpectator: true,
+            });
           }
         );
 
@@ -676,7 +712,7 @@ export function CafeExperience() {
 
       // Clear any stuck touch/keyboard state and wake Phaser loop if visible
       engineRef.current?.resetInput();
-      if (!activeGameRoomIdRef.current) {
+      if (!activeGameRef.current) {
         engineRef.current?.setPaused(false);
         void fetchMyActiveGame()
           .then((ag) => setRejoinGame(ag))
@@ -752,11 +788,23 @@ export function CafeExperience() {
     }
   }, [tables, rejoinGame, roomMeta.roomId]);
 
-  const effectiveRejoinGameId =
-    rejoinGame?.gameRoomId ||
-    (mySeatedTable?.status === "IN_PROGRESS" && mySeatedTable.activeGameRoomId
-      ? mySeatedTable.activeGameRoomId
-      : null);
+  const effectiveRejoinGame = useMemo(() => {
+    if (rejoinGame) {
+      return {
+        gameRoomId: rejoinGame.gameRoomId,
+        gameSlug: rejoinGame.gameSlug || "treasure-trails",
+      };
+    }
+    if (mySeatedTable?.status === "IN_PROGRESS" && mySeatedTable.activeGameRoomId) {
+      return {
+        gameRoomId: mySeatedTable.activeGameRoomId,
+        gameSlug:
+          mySeatedTable.selectedGameSlug ||
+          (mySeatedTable.capacity < 3 ? "hearthvale" : "treasure-trails"),
+      };
+    }
+    return null;
+  }, [rejoinGame, mySeatedTable]);
 
   const myReady = useMemo(() => {
     if (!mySeatedTable || !myPlayer) return false;
@@ -775,7 +823,7 @@ export function CafeExperience() {
 
   // Auto-scroll Café Chat to the latest message whenever opened, switched scope, or new msg arrives
   useEffect(() => {
-    if (!chatOpen || activeGameRoomId) return;
+    if (!chatOpen || activeGame) return;
     setUnreadCafeChat(0);
     const scrollBottom = () => {
       const el = cafeChatScrollRef.current;
@@ -784,7 +832,7 @@ export function CafeExperience() {
     scrollBottom();
     const raf = requestAnimationFrame(scrollBottom);
     return () => cancelAnimationFrame(raf);
-  }, [chatOpen, chatScope, visibleChat.length, activeGameRoomId]);
+  }, [chatOpen, chatScope, visibleChat.length, activeGame]);
 
   // Inline Instant Guest Join Gate if arriving directly at /cafe or via invite link
   if (authChecked && !profile) {
@@ -891,6 +939,35 @@ export function CafeExperience() {
                 : "Invite"}
             </button>
           )}
+
+          {!activeGame &&
+            tables.some((t) => t.status === "IN_PROGRESS" && Boolean(t.activeGameRoomId)) && (
+              <button
+                type="button"
+                onClick={() => {
+                  const live = tables.filter(
+                    (t) => t.status === "IN_PROGRESS" && Boolean(t.activeGameRoomId)
+                  );
+                  if (live.length === 1) {
+                    cafeRoomRef.current?.send("table.spectate", {
+                      tableId: live[0]!.tableId,
+                    });
+                  } else {
+                    setShowNoticeBoard(true);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 rounded-2xl border border-sage-500 bg-sage-500 px-3 py-2 text-xs font-extrabold text-white shadow-sm transition hover:bg-sage-700"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                Watch Live (
+                {
+                  tables.filter(
+                    (t) => t.status === "IN_PROGRESS" && Boolean(t.activeGameRoomId)
+                  ).length
+                }
+                )
+              </button>
+            )}
         </div>
 
         {/* Right: Shortcuts & Profile */}
@@ -978,11 +1055,13 @@ export function CafeExperience() {
       )}
 
       {/* ACTIVE MATCH REJOIN BANNER (impossible to miss if user accidentally tapped out or refreshed!) */}
-      {effectiveRejoinGameId && !activeGameRoomId && (
+      {effectiveRejoinGame && !activeGame && (
         <div className="fixed left-1/2 top-16 z-30 flex w-[calc(100%-24px)] max-w-md -translate-x-1/2 items-center justify-between gap-2.5 rounded-2xl border-2 border-amberwarm-400 bg-oat-50/95 px-3.5 py-2 shadow-cozy backdrop-blur sm:top-20">
           <div className="min-w-0 text-left">
             <div className="truncate font-display text-xs font-bold text-espresso sm:text-sm">
-              🗺️ Active Treasure Trails Match
+              {effectiveRejoinGame.gameSlug === "hearthvale"
+                ? "🌾 Active Hearthvale Match"
+                : "🗺️ Active Treasure Trails Match"}
             </div>
             <div className="truncate text-[10px] font-semibold text-espresso-muted">
               A Café Bot subs in while you&apos;re away — rejoin anytime!
@@ -990,7 +1069,7 @@ export function CafeExperience() {
           </div>
           <button
             type="button"
-            onClick={() => setActiveGameRoomId(effectiveRejoinGameId)}
+            onClick={() => setActiveGame(effectiveRejoinGame)}
             className="shrink-0 rounded-xl bg-sage-500 px-3.5 py-1.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-sage-700"
           >
             Rejoin
@@ -998,7 +1077,7 @@ export function CafeExperience() {
         </div>
       )}
 
-      {connectionStatus === "reconnecting" && !activeGameRoomId && (
+      {connectionStatus === "reconnecting" && !activeGame && (
         <div className="fixed left-1/2 top-28 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-amberwarm-400 bg-espresso/95 px-4 py-1.5 text-xs font-bold text-oat-50 shadow-cozy backdrop-blur">
           <RefreshCw className="h-3.5 w-3.5 animate-spin text-amberwarm-400" />
           <span>Reconnecting to café...</span>
@@ -1053,7 +1132,7 @@ export function CafeExperience() {
       )}
 
       {/* SEATED TABLE LOBBY DRAWER */}
-      {mySeatedTable && profile && !activeGameRoomId && (
+      {mySeatedTable && profile && !activeGame && (
         <div className="pointer-events-none fixed bottom-20 left-1/2 z-20 flex w-full -translate-x-1/2 justify-center px-3">
           <TableLobbyDrawer
             table={mySeatedTable}
@@ -1071,21 +1150,40 @@ export function CafeExperience() {
                 tableId: mySeatedTable.tableId,
               })
             }
+            onSelectGame={(gameSlug) =>
+              cafeRoomRef.current?.send("table.setGame", {
+                tableId: mySeatedTable.tableId,
+                gameSlug,
+              })
+            }
             onStartGame={(opts) =>
               cafeRoomRef.current?.send("table.startGame", {
                 tableId: mySeatedTable.tableId,
                 ...opts,
               })
             }
-            onResumeGame={(gameRoomId) => setActiveGameRoomId(gameRoomId)}
+            onResumeGame={(gameRoomId) =>
+              setActiveGame({
+                gameRoomId,
+                gameSlug:
+                  mySeatedTable.selectedGameSlug ||
+                  (mySeatedTable.capacity < 3 ? "hearthvale" : "treasure-trails"),
+              })
+            }
             onShareInvite={() => void handleShareInvite()}
-            onOpenTutorial={() => setShowCashierModal(true)}
+            onOpenTutorial={() => {
+              setTutorialGameSlug(
+                mySeatedTable.selectedGameSlug ||
+                  (mySeatedTable.capacity < 3 ? "hearthvale" : "treasure-trails")
+              );
+              setShowCashierModal(true);
+            }}
           />
         </div>
       )}
 
       {/* MOBILE VIRTUAL JOYSTICK */}
-      {showJoystick && !mySeatedTable && !activeGameRoomId && (
+      {showJoystick && !mySeatedTable && !activeGame && (
         <div className="fixed bottom-20 left-5 z-20">
           <VirtualJoystick
             onVectorChange={(vx, vy) =>
@@ -1096,7 +1194,7 @@ export function CafeExperience() {
       )}
 
       {/* BOTTOM-RIGHT SOCIAL CHAT DRAWER */}
-      {chatOpen && !activeGameRoomId && (
+      {chatOpen && !activeGame && (
         <div className="fixed bottom-16 right-3 z-20 flex h-72 w-80 max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-oat-300 bg-oat-50/95 shadow-cozy backdrop-blur">
           <div className="flex items-center justify-between border-b border-oat-200 px-3.5 py-2">
             <div className="flex gap-1 text-[11px] font-bold">
@@ -1299,13 +1397,19 @@ export function CafeExperience() {
           onCarryGame={(slug) =>
             cafeRoomRef.current?.send("player.carryGame", { gameSlug: slug })
           }
-          onOpenTutorial={() => setShowCashierModal(true)}
+          onOpenTutorial={(slug) => {
+            setTutorialGameSlug(slug);
+            setShowCashierModal(true);
+          }}
           onClose={() => setShowWardrobeModal(false)}
         />
       )}
 
       {showCashierModal && (
-        <CashierTutorialModal onClose={() => setShowCashierModal(false)} />
+        <CashierTutorialModal
+          gameSlug={tutorialGameSlug}
+          onClose={() => setShowCashierModal(false)}
+        />
       )}
 
       {showLobbySwitcher && (
@@ -1338,33 +1442,53 @@ export function CafeExperience() {
             <div className="mt-4 space-y-2.5">
               {tables.map((t) => {
                 const occ = t.seats.filter((s) => s.status !== "AVAILABLE").length;
+                const hostSeat = t.hostUserId
+                  ? t.seats.find((s) => s.occupantUserId === t.hostUserId)
+                  : null;
+                const isLive = t.status === "IN_PROGRESS" && Boolean(t.activeGameRoomId);
                 return (
                   <div
                     key={t.tableId}
-                    className="flex items-center justify-between rounded-2xl border border-oat-300 bg-white px-4 py-3 text-xs font-bold"
+                    className="flex items-center justify-between gap-2 rounded-2xl border border-oat-300 bg-white px-4 py-3 text-xs font-bold"
                   >
-                    <div>
+                    <div className="min-w-0">
                       <div className="text-sm text-espresso">{t.name}</div>
                       <div className="text-espresso-muted">
-                        {t.selectedGameSlug === "treasure-trails"
-                          ? "Treasure Trails (3–8p)"
-                          : "Casual Chat Table"}
+                        {t.selectedGameSlug === "hearthvale"
+                          ? "🌾 Hearthvale (2–5p)"
+                          : t.selectedGameSlug === "treasure-trails"
+                            ? "🗺️ Treasure Trails (3–8p)"
+                            : "Casual Chat Table"}
                       </div>
+                      {hostSeat && (
+                        <div className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold text-amberwarm-600">
+                          <Crown className="h-3 w-3" /> {hostSeat.occupantName} (Host)
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex shrink-0 items-center gap-2">
                       <span className="inline-flex items-center gap-1 rounded-lg bg-oat-100 px-2.5 py-1">
                         <Users className="h-3.5 w-3.5 text-sage-700" /> {occ}/
                         {t.capacity}
                       </span>
-                      <span
-                        className={`rounded-lg px-2 py-1 text-[10px] ${
-                          t.status === "IN_PROGRESS"
-                            ? "bg-amberwarm-100 text-amberwarm-600"
-                            : "bg-sage-100 text-sage-700"
-                        }`}
-                      >
-                        {t.status}
-                      </span>
+                      {isLive ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowNoticeBoard(false);
+                            cafeRoomRef.current?.send("table.spectate", {
+                              tableId: t.tableId,
+                            });
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg bg-sage-500 px-2.5 py-1 text-[11px] font-extrabold text-white shadow-sm hover:bg-sage-700"
+                        >
+                          <Eye className="h-3 w-3" /> Watch
+                        </button>
+                      ) : (
+                        <span className="rounded-lg bg-sage-100 px-2 py-1 text-[10px] text-sage-700">
+                          {t.status}
+                        </span>
+                      )}
                     </div>
                   </div>
                 );
@@ -1502,25 +1626,53 @@ export function CafeExperience() {
         </div>
       )}
 
-      {/* ACTIVE TREASURE TRAILS GAME OVERLAY */}
-      {activeGameRoomId && profile && (
-        <TreasureTrailsOverlay
-          gameRoomId={activeGameRoomId}
-          myUserId={profile.userId}
-          onExitGame={(info) => {
-            setActiveGameRoomId(null);
-            if (info?.notice) showToast(info.notice);
-            if (info?.finished) {
-              setRejoinGame(null);
-            } else {
-              void fetchMyActiveGame()
-                .then((ag) => setRejoinGame(ag))
-                .catch(() => {});
-            }
-          }}
-          onOpenTutorial={() => setShowCashierModal(true)}
-        />
-      )}
+      {/* ACTIVE BOARD GAME OVERLAY (Hearthvale / Treasure Trails) */}
+      {activeGame && profile &&
+        (activeGame.gameSlug === "hearthvale" ? (
+          <HearthvaleOverlay
+            gameRoomId={activeGame.gameRoomId}
+            myUserId={profile.userId}
+            onExitGame={(info) => {
+              const wasSpectator = Boolean(activeGame.isSpectator);
+              setActiveGame(null);
+              if (info?.notice) showToast(info.notice);
+              if (wasSpectator) return;
+              if (info?.finished) {
+                setRejoinGame(null);
+              } else {
+                void fetchMyActiveGame()
+                  .then((ag) => setRejoinGame(ag))
+                  .catch(() => {});
+              }
+            }}
+            onOpenTutorial={() => {
+              setTutorialGameSlug("hearthvale");
+              setShowCashierModal(true);
+            }}
+          />
+        ) : (
+          <TreasureTrailsOverlay
+            gameRoomId={activeGame.gameRoomId}
+            myUserId={profile.userId}
+            onExitGame={(info) => {
+              const wasSpectator = Boolean(activeGame.isSpectator);
+              setActiveGame(null);
+              if (info?.notice) showToast(info.notice);
+              if (wasSpectator) return;
+              if (info?.finished) {
+                setRejoinGame(null);
+              } else {
+                void fetchMyActiveGame()
+                  .then((ag) => setRejoinGame(ag))
+                  .catch(() => {});
+              }
+            }}
+            onOpenTutorial={() => {
+              setTutorialGameSlug("treasure-trails");
+              setShowCashierModal(true);
+            }}
+          />
+        ))}
     </div>
   );
 }

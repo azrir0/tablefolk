@@ -32,6 +32,7 @@ export interface SyncedPlayerSnapshot {
 export interface SyncedSeatSnapshot {
   seatIndex: number;
   status: string;
+  occupantUserId: string;
   occupantName: string;
   isBot: boolean;
   isReady: boolean;
@@ -57,6 +58,7 @@ export interface CafeEngineCallbacks {
     isMoving: boolean;
   }) => void;
   onChairClick: (tableId: string, seatIndex: number) => void;
+  onSpectateTable?: (tableId: string) => void;
   onInteract: (interactable: InteractableDefinition) => void;
   onNearbyPromptChange: (prompt: { label: string; subtitle: string; interactableId: string } | null) => void;
 }
@@ -927,7 +929,7 @@ export class CozyCafeScene extends Phaser.Scene {
       const boxG = this.add.graphics().setDepth(tableDepth + 2);
       this.tableGameBoxes.set(tbl.id, boxG);
 
-      // Floating Table Status Pill ("Grand Lantern Table • 0/8")
+      // Floating Table Status Pill ("Grand Lantern Table • 0/8" or clickable "👁️ Live · Watch")
       const label = this.add
         .text(tx + tw / 2, ty + th / 2, `${tbl.name} • 0/${tbl.capacity}`, {
           fontFamily: "system-ui, sans-serif",
@@ -938,7 +940,16 @@ export class CozyCafeScene extends Phaser.Scene {
           padding: { left: 7, right: 7, top: 3, bottom: 3 },
         })
         .setOrigin(0.5)
-        .setDepth(2050);
+        .setDepth(2350)
+        .setInteractive({ useHandCursor: true });
+
+      label.on("pointerdown", () => {
+        const state = this.tableSnapshots.get(tbl.id);
+        if (state?.status === "IN_PROGRESS") {
+          this.callbacks?.onSpectateTable?.(tbl.id);
+        }
+      });
+
       this.tableLabels.set(tbl.id, label);
     }
   }
@@ -955,7 +966,7 @@ export class CozyCafeScene extends Phaser.Scene {
 
       if (label) {
         if (state?.status === "IN_PROGRESS") {
-          label.setText(`🎲 ${tblDef.name} • Playing (${occupied})`);
+          label.setText(`👁️ ${tblDef.name} • Live (${occupied}) · Watch`);
           label.setStyle({
             backgroundColor: "rgba(254, 243, 199, 0.96)",
             color: "#7C4A03",
@@ -1021,9 +1032,9 @@ export class CozyCafeScene extends Phaser.Scene {
     // Periodic cozy greeting bubble from our friendly café guide
     const lines = [
       "Welcome to TableFolk! ☕",
-      "Walk up to me for Treasure Trails rules!",
+      "Walk up to me for game rules & guides!",
+      "Tap any Live table to spectate a match! 👁️",
       "Grab a game box from the Wardrobe!",
-      "Walk near a table to see glowing seats!",
     ];
     let idx = 0;
     this.time.addEvent({

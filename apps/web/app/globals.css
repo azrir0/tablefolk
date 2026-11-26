@@ -230,3 +230,41 @@
 .animate-tt-last-tile {
   animation: tt-last-tile-glow 1.8s ease-in-out infinite;
 }
+
+@keyframes tt-marker-fade {
+  0% {
+    opacity: 0;
+  }
+  4% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes tt-marker-ping {
+  0% {
+    transform: scale(0.7);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.22);
+    opacity: 0.72;
+  }
+  100% {
+    transform: scale(0.7);
+    opacity: 1;
+  }
+}
+
+.animate-tt-marker-fade {
+  animation: tt-marker-fade 9s linear forwards;
+}
+
+.animate-tt-marker-ping {
+  animation: tt-marker-ping 1.2s ease-in-out infinite;
+}

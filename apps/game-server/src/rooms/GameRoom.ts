@@ -3,6 +3,11 @@ import colyseus, { type Client } from "colyseus";
 const { Room } = colyseus;
 import { eq, gamePlayers, gameSessions, getDb } from "@tablefolk/db";
 import {
+  BoardMarkerAddPayloadSchema,
+  BoardMarkerClearPayloadSchema,
+  type BoardMarkerStroke,
+} from "@tablefolk/shared";
+import {
   QUICK_BLUFF_PILLS,
   TreasureTrailsActionSchema,
   TreasureTrailsModule,
@@ -46,6 +51,9 @@ interface GameAuthedClient {
   isSpectator: boolean;
 }
 
+const MARKER_FADE_MS = 9500;
+const MAX_ROOM_MARKERS = 35;
+
 export class GameRoom extends Room {
   private cafeRoomId = "";
   private tableId = "";
@@ -59,6 +67,9 @@ export class GameRoom extends Room {
   private botTakeoverTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private allowedUserIds = new Set<string>();
   private userIdToClient = new Map<string, Client>();
+  private spectators = new Map<string, { userId: string; displayName: string }>();
+  private markers: BoardMarkerStroke[] = [];
+  private markerTimestamps = new Map<string, number[]>();
   private rematchVotes = new Set<string>();
   private turnEndsAt = 0;
   private introEndsAt = 0;
@@ -211,10 +222,20 @@ export class GameRoom extends Room {
       }
     }
 
+    if (auth.isSpectator) {
+      this.spectators.set(client.sessionId, {
+        userId: auth.userId,
+        displayName: auth.displayName,
+      });
+    }
+
     // Send authoritative public + private state immediately to the joining/rejoining client
     this.sendFullSyncToClient(client, auth);
 
-    if (!auth.isSpectator) {
+    if (auth.isSpectator) {
+      this.broadcastSystemChat(`👁️ ${auth.displayName} started watching the match!`);
+      this.broadcastStateAndEvents([]);
+    } else {
       if (reclaimedFromBot) {
         this.broadcastSystemChat(`👋 ${auth.displayName} rejoined and resumed control!`);
         this.broadcastStateAndEvents([]);
@@ -227,7 +248,14 @@ export class GameRoom extends Room {
 
   onLeave(client: Client, _consented: boolean) {
     const auth = client.auth as GameAuthedClient | undefined;
-    if (!auth || auth.isSpectator) return;
+    if (!auth) return;
+
+    if (auth.isSpectator) {
+      if (this.spectators.delete(client.sessionId)) {
+        this.broadcastStateAndEvents([]);
+      }
+      return;
+    }
 
     // Ignore stale socket closing if the player already reconnected on a fresh socket!
     if (this.userIdToClient.get(auth.userId)?.sessionId !== client.sessionId) {
@@ -302,6 +330,26 @@ export class GameRoom extends Room {
     notifyCafeTableFinished(this.cafeRoomId, this.tableId);
   }
 
+  private getUniqueSpectatorCount(): number {
+    const unique = new Set<string>();
+    for (const s of this.spectators.values()) unique.add(s.userId);
+    return unique.size;
+  }
+
+  private pruneExpiredMarkers(): BoardMarkerStroke[] {
+    const cutoff = Date.now() - MARKER_FADE_MS;
+    this.markers = this.markers.filter(
+      (m) => m.mode === "sticky" || m.createdAt >= cutoff
+    );
+    return this.markers;
+  }
+
+  private clearAllMarkers() {
+    if (this.markers.length === 0) return;
+    this.markers = [];
+    this.broadcast("game.markersCleared", { scope: "all" });
+  }
+
   private sendFullSyncToClient(client: Client, auth: GameAuthedClient) {
     client.send("game.publicState", {
       sessionId: this.sessionId,
@@ -311,8 +359,11 @@ export class GameRoom extends Room {
       botControlledUserIds: Array.from(this.botControlledHumans),
       rematchVotes: Array.from(this.rematchVotes),
       connectedHumanCount: this.userIdToClient.size,
+      spectatorCount: this.getUniqueSpectatorCount(),
       isSpectator: auth.isSpectator,
     });
+
+    client.send("game.markersSync", this.pruneExpiredMarkers());
 
     if (!auth.isSpectator) {
       client.send(
@@ -446,6 +497,7 @@ export class GameRoom extends Room {
         senderName: auth.displayName,
         message: text,
         isQuickBluff: true,
+        isSpectator: auth.isSpectator,
         timestamp: Date.now(),
       });
     });
@@ -461,8 +513,58 @@ export class GameRoom extends Room {
         senderName: auth.displayName,
         message: text,
         isQuickBluff: false,
+        isSpectator: auth.isSpectator,
         timestamp: Date.now(),
       });
+    });
+
+    this.onMessage("game.markerAdd", (client, raw) => {
+      const auth = client.auth as GameAuthedClient | undefined;
+      if (!auth || auth.isSpectator) return;
+      const parsed = BoardMarkerAddPayloadSchema.safeParse(raw);
+      if (!parsed.success) return;
+
+      const now = Date.now();
+      const recent = (this.markerTimestamps.get(auth.userId) ?? []).filter(
+        (ts) => now - ts < 5000
+      );
+      if (recent.length >= 10) return;
+      recent.push(now);
+      this.markerTimestamps.set(auth.userId, recent);
+
+      this.pruneExpiredMarkers();
+      const stroke: BoardMarkerStroke = {
+        id: `mk_${now}_${Math.random().toString(36).slice(2, 7)}`,
+        userId: auth.userId,
+        displayName: auth.displayName,
+        color: parsed.data.color,
+        mode: parsed.data.mode,
+        points: parsed.data.points,
+        createdAt: now,
+      };
+      this.markers.push(stroke);
+      if (this.markers.length > MAX_ROOM_MARKERS) {
+        this.markers = this.markers.slice(-MAX_ROOM_MARKERS);
+      }
+      this.broadcast("game.markerAdded", stroke);
+    });
+
+    this.onMessage("game.markerClear", (client, raw) => {
+      const auth = client.auth as GameAuthedClient | undefined;
+      if (!auth || auth.isSpectator) return;
+      const parsed = BoardMarkerClearPayloadSchema.safeParse(raw ?? {});
+      if (!parsed.success) return;
+
+      if (parsed.data.scope === "all") {
+        this.markers = [];
+        this.broadcast("game.markersCleared", { scope: "all" });
+      } else {
+        this.markers = this.markers.filter((m) => m.userId !== auth.userId);
+        this.broadcast("game.markersCleared", {
+          scope: "mine",
+          userId: auth.userId,
+        });
+      }
     });
 
     this.onMessage("game.playAgain", (client) => {
@@ -487,6 +589,7 @@ export class GameRoom extends Room {
   }
 
   private startRematch() {
+    this.clearAllMarkers();
     if (this.completedIdleTimer) {
       clearTimeout(this.completedIdleTimer);
       this.completedIdleTimer = null;
@@ -564,6 +667,7 @@ export class GameRoom extends Room {
 
     // Update turn clock / round intro BEFORE broadcasting so clients get fresh timestamps!
     if (action.type === "ADVANCE_ROUND") {
+      this.clearAllMarkers();
       this.beginRoundIntroWindow(5800);
     } else if (this.gameState.phase === "IN_PROGRESS") {
       this.resetTurnClock();
@@ -622,6 +726,7 @@ export class GameRoom extends Room {
       botControlledUserIds: Array.from(this.botControlledHumans),
       rematchVotes: Array.from(this.rematchVotes),
       connectedHumanCount: this.userIdToClient.size,
+      spectatorCount: this.getUniqueSpectatorCount(),
       events,
     });
 

@@ -108,8 +108,8 @@ export default function LandingPage() {
           <p className="max-w-xl text-lg leading-relaxed text-espresso-soft">
             TableFolk recreates the warmth of visiting your favorite board game café.
             Stroll around in your customized character, learn rules from the cashier,
-            grab a seat at a table, and play server-authoritative hidden-role games
-            like <strong>Treasure Trails</strong>.
+            grab a seat at a table, and play server-authoritative tabletop hits like{" "}
+            <strong>Treasure Trails</strong> and <strong>Hearthvale</strong>.
           </p>
 
           {/* Cozy Café Scene Preview Card */}
@@ -127,14 +127,14 @@ export default function LandingPage() {
               </div>
               <div className="flex-1 min-w-[200px]">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sage-700">
-                  <Compass className="h-4 w-4" /> Featured Launch Game
+                  <Compass className="h-4 w-4" /> 2 Playable Café Games
                 </div>
                 <h2 className="font-display text-xl font-bold text-espresso">
-                  Treasure Trails (3–8 Players)
+                  🗺️ Treasure Trails &amp; 🌾 Hearthvale
                 </h2>
                 <p className="text-sm text-espresso-soft">
-                  Chart glowing ruins to the Golden Compass — or secretly sabotage the
-                  crew as a hidden Trickster!
+                  Play hidden-role sabotage (3–8p) or cozy tile-laying valley
+                  strategy with Lantern Roads &amp; Mayor takeovers (2–5p)!
                 </p>
               </div>
               <Link

@@ -74,7 +74,48 @@ export const TableStartGamePayloadSchema = z.object({
   rounds: z.union([z.literal(1), z.literal(3)]).default(1),
   turnSeconds: z.union([z.literal(30), z.literal(45), z.literal(60), z.literal(90)]).default(45),
   mysteryRoles: z.boolean().default(false),
+  deckSize: z.union([z.literal(36), z.literal(54)]).default(36),
 });
+
+export const TableSpectatePayloadSchema = z.object({
+  tableId: z.string().min(1).max(64),
+});
+
+export const MARKER_COLOR_SWATCHES = [
+  { id: "sun", label: "Yellow Highlighter", hex: "#FDE047" },
+  { id: "coral", label: "Coral Red", hex: "#FB7185" },
+  { id: "mint", label: "Mint Green", hex: "#4ADE80" },
+  { id: "sky", label: "Sky Blue", hex: "#38BDF8" },
+  { id: "chalk", label: "Chalk White", hex: "#FFFFFF" },
+] as const;
+
+export const BoardMarkerModeSchema = z.enum(["fade", "sticky"]);
+export type BoardMarkerMode = z.infer<typeof BoardMarkerModeSchema>;
+
+export const BoardMarkerPointSchema = z.object({
+  x: z.number().finite().min(-50).max(50),
+  y: z.number().finite().min(-50).max(50),
+});
+
+export const BoardMarkerAddPayloadSchema = z.object({
+  points: z.array(BoardMarkerPointSchema).min(1).max(64),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+  mode: BoardMarkerModeSchema.default("fade"),
+});
+
+export const BoardMarkerClearPayloadSchema = z.object({
+  scope: z.enum(["mine", "all"]).default("mine"),
+});
+
+export interface BoardMarkerStroke {
+  id: string;
+  userId: string;
+  displayName: string;
+  color: string;
+  mode: BoardMarkerMode;
+  points: Array<{ x: number; y: number }>;
+  createdAt: number;
+}
 
 export const ChatSendPayloadSchema = z.object({
   scope: z.enum(["cafe", "table"]),

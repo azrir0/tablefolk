@@ -7,6 +7,7 @@ import { WebSocketTransport } from "@colyseus/ws-transport";
 import { getDb } from "@tablefolk/db";
 import { CafeRoom } from "./rooms/CafeRoom.js";
 import { GameRoom } from "./rooms/GameRoom.js";
+import { HearthvaleRoom } from "./rooms/HearthvaleRoom.js";
 import { createApiRouter } from "./routes/api.js";
 import { assertProductionAuthConfig } from "./services/auth.js";
 
@@ -46,6 +47,7 @@ async function bootstrap() {
 
   gameServer.define("cafe", CafeRoom);
   gameServer.define("game", GameRoom);
+  gameServer.define("hearthvale", HearthvaleRoom);
 
   await gameServer.listen(PORT, "0.0.0.0");
   console.log(`☕ TableFolk Game Server listening on http://0.0.0.0:${PORT}`);

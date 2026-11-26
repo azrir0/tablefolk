@@ -1,11 +1,11 @@
 import React from "react";
 import Link from "next/link";
-import { ArrowLeft, BookOpen, Clock, Compass, Users } from "lucide-react";
+import { ArrowLeft, BookOpen, Clock, Compass, Crown, Map, Users } from "lucide-react";
 
 export const metadata = {
-  title: "Game Wardrobe & Treasure Trails Rules — TableFolk",
+  title: "Game Wardrobe & Rules — TableFolk",
   description:
-    "Explore the TableFolk board game collection and learn how to play Treasure Trails, our original hidden-role path-building card game.",
+    "Explore the TableFolk board game collection and learn how to play Treasure Trails and Hearthvale inside Sunlit Oak Café.",
 };
 
 export default function GamesCataloguePage() {
@@ -37,7 +37,79 @@ export default function GamesCataloguePage() {
           </p>
         </div>
 
-        {/* Featured Launch Game */}
+        {/* Game #2: Hearthvale */}
+        <article className="rounded-3xl border-2 border-amberwarm-400/70 bg-oat-50 p-7 shadow-cozy">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <span className="rounded-full bg-amberwarm-100 px-3 py-1 text-xs font-bold text-amberwarm-600">
+                New • Cozy Tile-Laying Strategy
+              </span>
+              <h2 className="mt-2 font-display text-3xl font-bold text-espresso">
+                🌾 Hearthvale
+              </h2>
+              <p className="mt-1 text-espresso-soft">
+                Build a sunlit storybook valley of terracotta towns, lantern-lit
+                roads, and hilltop windmills — and steal rival strongholds with your
+                Mayor!
+              </p>
+            </div>
+            <div className="flex gap-3 text-xs font-bold text-espresso-soft">
+              <span className="inline-flex items-center gap-1 rounded-xl bg-oat-100 px-3 py-2">
+                <Users className="h-4 w-4 text-sage-700" /> 2–5 Players
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-xl bg-oat-100 px-3 py-2">
+                <Clock className="h-4 w-4 text-amberwarm-600" /> 5–10 Min
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            <div className="rounded-2xl bg-oat-100 p-5">
+              <h3 className="flex items-center gap-2 font-display text-lg font-bold text-espresso">
+                <Map className="h-5 w-5 text-amberwarm-600" /> Modernized Tile Rules
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-espresso-soft">
+                <li>
+                  <strong>2-Tile Architect Hand:</strong> Hold 2 valley tiles at all
+                  times — play 1 each turn and refill back to 2 for tactical choice
+                  with zero dead draws.
+                </li>
+                <li>
+                  <strong>Roadside Lanterns (🏮):</strong> Complete a road with at
+                  least 1 Lantern to double the entire road from 1 pt to{" "}
+                  <strong>2 pts per tile</strong>!
+                </li>
+                <li>
+                  <strong>Hilltop Windmills (🌬️):</strong> Surround a Windmill on all
+                  8 neighboring tiles for an instant <strong>9 points</strong>.
+                </li>
+              </ul>
+            </div>
+
+            <div className="rounded-2xl bg-oat-100 p-5">
+              <h3 className="flex items-center gap-2 font-display text-lg font-bold text-espresso">
+                <Crown className="h-5 w-5 text-sage-700" /> Villagers &amp; The Mayor
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-espresso-soft">
+                <li>
+                  <strong>5 Villagers (Strength 1) + 1 Mayor (Strength 2):</strong>{" "}
+                  Merge separate towns or roads to outnumber rivals and take over the
+                  payout!
+                </li>
+                <li>
+                  <strong>Balanced Town Scoring:</strong> Completed 2-tile mini-towns
+                  score 3 pts (+2/Crest); 3+ tile towns score 2 pts/tile + 2/Crest.
+                </li>
+                <li>
+                  <strong>Cozy (36 tiles) or Grand (54 tiles):</strong> Great at both
+                  the 2-seat Window Nook and 4–8 seat café tables.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        {/* Game #1: Treasure Trails */}
         <article className="rounded-3xl border-2 border-oat-300 bg-oat-50 p-7 shadow-cozy">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -45,7 +117,7 @@ export default function GamesCataloguePage() {
                 Available Now • Hidden-Role
               </span>
               <h2 className="mt-2 font-display text-3xl font-bold text-espresso">
-                Treasure Trails
+                🗺️ Treasure Trails
               </h2>
               <p className="mt-1 text-espresso-soft">
                 Chart sunlit botanical ruins to the Golden Compass — while secret
@@ -65,7 +137,7 @@ export default function GamesCataloguePage() {
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             <div className="rounded-2xl bg-oat-100 p-5">
               <h3 className="flex items-center gap-2 font-display text-lg font-bold text-espresso">
-                <Compass className="h-5 w-5 text-sage-700" /> Roles & Win Conditions
+                <Compass className="h-5 w-5 text-sage-700" /> Roles &amp; Win Conditions
               </h3>
               <ul className="mt-3 space-y-2 text-sm text-espresso-soft">
                 <li>

@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     "@tablefolk/shared",
     "@tablefolk/cafe-engine",
     "@tablefolk/game-engine",
+    "@tablefolk/game-hearthvale",
     "@tablefolk/game-treasure-trails",
     "@tablefolk/ui",
   ],

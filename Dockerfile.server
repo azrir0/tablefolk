@@ -14,6 +14,7 @@ COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
 COPY packages/db/package.json packages/db/
 COPY packages/game-engine/package.json packages/game-engine/
+COPY packages/games/hearthvale/package.json packages/games/hearthvale/
 COPY packages/games/treasure-trails/package.json packages/games/treasure-trails/
 COPY packages/cafe-engine/package.json packages/cafe-engine/
 COPY packages/ui/package.json packages/ui/
@@ -26,6 +27,7 @@ COPY apps/game-server apps/game-server
 COPY packages/shared packages/shared
 COPY packages/db packages/db
 COPY packages/game-engine packages/game-engine
+COPY packages/games/hearthvale packages/games/hearthvale
 COPY packages/games/treasure-trails packages/games/treasure-trails
 
 ENV NODE_ENV=production

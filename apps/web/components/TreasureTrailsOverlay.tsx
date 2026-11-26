@@ -9,6 +9,7 @@ import {
   Eye,
   EyeOff,
   Flame,
+  Highlighter,
   LogOut,
   MessageCircle,
   RefreshCw,
@@ -21,6 +22,11 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
+import {
+  MARKER_COLOR_SWATCHES,
+  type BoardMarkerMode,
+  type BoardMarkerStroke,
+} from "@tablefolk/shared";
 import {
   BOARD_COLS,
   BOARD_ROWS,
@@ -39,6 +45,7 @@ import {
 } from "@tablefolk/game-treasure-trails";
 import { WS_BASE_URL, getStoredToken } from "@/lib/api";
 import { soundEngine } from "@/lib/sound";
+import { BoardMarkerLayer, BoardMarkerToolbar } from "./BoardMarkerLayer";
 import { PathTileSvg } from "./TreasureTrailsTileSvg";
 
 interface TreasureTrailsOverlayProps {
@@ -54,6 +61,7 @@ interface GameChatEntry {
   senderName: string;
   message: string;
   isQuickBluff?: boolean;
+  isSpectator?: boolean;
   count?: number;
   timestamp: number;
 }
@@ -231,7 +239,10 @@ function GameChatAndLogPanel({
           >
             <div className="min-w-0">
               {m.senderUserId !== "system" && (
-                <span className="font-bold text-sage-700">{m.senderName}: </span>
+                <span className="font-bold text-sage-700">
+                  {m.isSpectator ? "👁️ " : ""}
+                  {m.senderName}:{" "}
+                </span>
               )}
               <span className="text-espresso">{m.message}</span>
             </div>
@@ -296,6 +307,7 @@ export function TreasureTrailsOverlay({
   const [botControlledUserIds, setBotControlledUserIds] = useState<string[]>([]);
   const [rematchVotes, setRematchVotes] = useState<string[]>([]);
   const [connectedHumanCount, setConnectedHumanCount] = useState(1);
+  const [spectatorCount, setSpectatorCount] = useState(0);
   const [connState, setConnState] = useState<
     "connecting" | "connected" | "reconnecting" | "error"
   >("connecting");
@@ -304,10 +316,14 @@ export function TreasureTrailsOverlay({
   const [nowMs, setNowMs] = useState(Date.now());
   const [roleVisible, setRoleVisible] = useState(true);
 
-  // Mobile-friendly view toggles
+  // Mobile-friendly view toggles + Live Board Marker controls
   const [boardZoomed, setBoardZoomed] = useState(false);
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
+  const [markers, setMarkers] = useState<BoardMarkerStroke[]>([]);
+  const [markerMode, setMarkerMode] = useState(false);
+  const [markerColor, setMarkerColor] = useState<string>(MARKER_COLOR_SWATCHES[0].hex);
+  const [markerDrawMode, setMarkerDrawMode] = useState<BoardMarkerMode>("fade");
 
   // Pre-round dramatic ceremony state (keyed by sessionId:round so Rematch replays cleanly!)
   const [introStage, setIntroStage] = useState<"none" | "countdown" | "role">("none");
@@ -410,7 +426,7 @@ export function TreasureTrailsOverlay({
     const id = `cb_${seq}_${now}`;
     const bubble: FlyingChatBubble = {
       id,
-      senderName: msg.senderName,
+      senderName: msg.isSpectator ? `👁️ ${msg.senderName}` : msg.senderName,
       message: msg.message,
       isQuickBluff: Boolean(msg.isQuickBluff),
       isMe: msg.senderUserId === localUserId,
@@ -859,6 +875,7 @@ export function TreasureTrailsOverlay({
             botControlledUserIds?: string[];
             rematchVotes?: string[];
             connectedHumanCount?: number;
+            spectatorCount?: number;
             events?: TreasureTrailsEvent[];
           }) => {
             if (syncWatchdog) {
@@ -887,6 +904,9 @@ export function TreasureTrailsOverlay({
             if (typeof payload.connectedHumanCount === "number") {
               setConnectedHumanCount(payload.connectedHumanCount);
             }
+            if (typeof payload.spectatorCount === "number") {
+              setSpectatorCount(payload.spectatorCount);
+            }
 
             const evs = payload.events ?? [];
             if (evs.length > 0) {
@@ -905,6 +925,26 @@ export function TreasureTrailsOverlay({
               soundEngine.playTurnChime();
             }
             prevActiveIdRef.current = payload.state.activePlayerId;
+          }
+        );
+
+        room.onMessage("game.markersSync", (list: BoardMarkerStroke[]) => {
+          if (Array.isArray(list)) setMarkers(list);
+        });
+
+        room.onMessage("game.markerAdded", (stroke: BoardMarkerStroke) => {
+          if (!stroke?.id) return;
+          setMarkers((prev) => [...prev.slice(-34), stroke]);
+        });
+
+        room.onMessage(
+          "game.markersCleared",
+          (p: { scope?: "mine" | "all"; userId?: string }) => {
+            if (p?.scope === "all") {
+              setMarkers([]);
+            } else if (p?.userId) {
+              setMarkers((prev) => prev.filter((m) => m.userId !== p.userId));
+            }
           }
         );
 
@@ -1066,9 +1106,15 @@ export function TreasureTrailsOverlay({
     () => pub?.players.find((p) => p.userId === myUserId) ?? null,
     [pub, myUserId]
   );
+  const isSpectator = Boolean(pub && !myPublic);
+  const myMarkerCount = useMemo(
+    () => markers.filter((m) => m.userId === myUserId).length,
+    [markers, myUserId]
+  );
 
-  const isIntroBlocking = introStage !== "none";
+  const isIntroBlocking = !isSpectator && introStage !== "none";
   const isMyTurn =
+    !isSpectator &&
     !isIntroBlocking &&
     pub?.phase === "IN_PROGRESS" &&
     pub.activePlayerId === myUserId;
@@ -1272,10 +1318,39 @@ export function TreasureTrailsOverlay({
                     : `${nameOf(pub.activePlayerId)} · ${secondsLeft}s`}
               </span>
             )}
+            {isSpectator && (
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-espresso px-2 py-0.5 text-[10px] font-extrabold text-amberwarm-400 sm:px-2.5 sm:text-xs">
+                <Eye className="h-3 w-3" /> Spectating
+              </span>
+            )}
+            {spectatorCount > 0 && (
+              <span
+                title={`${spectatorCount} spectator${spectatorCount === 1 ? "" : "s"} watching`}
+                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-oat-200 px-2 py-0.5 text-[10px] font-bold text-espresso-soft sm:text-xs"
+              >
+                <Eye className="h-3 w-3 text-sage-700" /> {spectatorCount}
+              </span>
+            )}
           </div>
 
-          {/* Right: Secret Role Pill + Chat (Mobile) + Rules + Exit */}
+          {/* Right: Secret Role Pill + Board Marker + Chat (Mobile) + Rules + Exit */}
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            {!isSpectator && pub.phase === "IN_PROGRESS" && (
+              <button
+                type="button"
+                onClick={() => setMarkerMode((v) => !v)}
+                title="Draw or tap-ping on the board so everyone can see!"
+                className={`inline-flex items-center gap-1 rounded-xl px-2 py-1 text-[10px] font-extrabold shadow-sm transition sm:px-2.5 sm:py-1.5 sm:text-xs ${
+                  markerMode
+                    ? "bg-amberwarm-400 text-espresso ring-2 ring-amberwarm-600"
+                    : "bg-oat-200 text-espresso hover:bg-amberwarm-100"
+                }`}
+              >
+                <Highlighter className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{markerMode ? "Drawing" : "Mark"}</span>
+              </button>
+            )}
+
             {priv && (
               <button
                 type="button"
@@ -1454,8 +1529,27 @@ export function TreasureTrailsOverlay({
               )}
             </button>
 
+            {/* Live Board Marker Floating Toolbar (shown only when Drawing is toggled ON!) */}
+            {markerMode && !isSpectator && (
+              <BoardMarkerToolbar
+                activeColor={markerColor}
+                activeMode={markerDrawMode}
+                myStrokeCount={myMarkerCount}
+                totalStrokeCount={markers.length}
+                onSelectColor={setMarkerColor}
+                onSelectMode={setMarkerDrawMode}
+                onClearMine={() =>
+                  roomRef.current?.send("game.markerClear", { scope: "mine" })
+                }
+                onClearAll={() =>
+                  roomRef.current?.send("game.markerClear", { scope: "all" })
+                }
+                onClose={() => setMarkerMode(false)}
+              />
+            )}
+
             {/* Live Floating Action Banner */}
-            {actionBanner && !isIntroBlocking && (
+            {actionBanner && !isIntroBlocking && !markerMode && (
               <div className="pointer-events-none absolute left-1/2 top-2 z-20 max-w-[78%] -translate-x-1/2 truncate rounded-full border border-amberwarm-400/50 bg-espresso/90 px-3 py-1 text-[11px] font-bold text-oat-50 shadow-lg backdrop-blur sm:px-4 sm:py-1.5 sm:text-xs">
                 {actionBanner}
               </div>
@@ -1487,7 +1581,7 @@ export function TreasureTrailsOverlay({
               }`}
             >
               <div
-                className={`grid gap-1 sm:gap-1.5 ${
+                className={`relative grid gap-1 sm:gap-1.5 ${
                   boardZoomed
                     ? "w-max"
                     : "w-full max-w-[720px]"
@@ -1580,6 +1674,25 @@ export function TreasureTrailsOverlay({
                     );
                   })
                 )}
+
+                {/* Shared Live Board Marker / Highlighter Overlay */}
+                <BoardMarkerLayer
+                  minX={0}
+                  minY={0}
+                  cols={BOARD_COLS}
+                  rows={BOARD_ROWS}
+                  strokes={markers}
+                  drawingEnabled={markerMode && !isSpectator}
+                  activeColor={markerColor}
+                  activeMode={markerDrawMode}
+                  onCommitStroke={(points, color, mode) =>
+                    roomRef.current?.send("game.markerAdd", {
+                      points,
+                      color,
+                      mode,
+                    })
+                  }
+                />
               </div>
             </div>
 
@@ -1649,13 +1762,34 @@ export function TreasureTrailsOverlay({
         </aside>
       </div>
 
-      {/* Mobile-First Stacked Bottom Hand Dock (Full-Width Cards + Clean Action Bar Above!) */}
+      {/* Mobile-First Stacked Bottom Hand Dock (or sleek Spectator Bar when watching!) */}
       <footer className="shrink-0 border-t border-oat-300/30 bg-oat-50 px-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-4 sm:py-3">
+        {isSpectator ? (
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 text-xs font-bold">
+            <div className="flex items-center gap-2 text-espresso">
+              <span className="inline-flex items-center gap-1 rounded-full bg-espresso px-2.5 py-1 text-[10px] font-extrabold text-amberwarm-400">
+                <Eye className="h-3 w-3" /> Spectator Mode
+              </span>
+              <span className="text-[11px] text-espresso-soft sm:text-xs">
+                Watching live · Secret roles &amp; hands stay hidden · Cheer in chat anytime!
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => onExitGame({ finished: pub.phase === "COMPLETED" })}
+              className="rounded-xl bg-oat-200 px-3 py-1.5 text-xs font-bold text-espresso hover:bg-terracotta-100 hover:text-terracotta-700"
+            >
+              Leave Spectator View
+            </button>
+          </div>
+        ) : (
         <div className="mx-auto flex max-w-6xl flex-col gap-2">
           {/* Row 1: Action Buttons & Concise Turn Prompt (Full Width — Never Crushes Cards!) */}
           <div className="flex flex-wrap items-center justify-between gap-1.5">
             <div className="text-[11px] font-bold text-espresso-soft sm:text-xs">
-              {statusHintText}
+              {markerMode
+                ? "✏️ Marker Mode ON — drag to draw or tap to ping! Tap Done when finished."
+                : statusHintText}
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5">
@@ -1778,6 +1912,7 @@ export function TreasureTrailsOverlay({
             })}
           </div>
         </div>
+        )}
       </footer>
 
       {/* Mobile Slide-Up Table Talk & Log Drawer */}
@@ -2074,7 +2209,23 @@ export function TreasureTrailsOverlay({
               </div>
 
               <div className="mt-5 flex flex-wrap justify-center gap-2.5">
-                {pub.phase === "ROUND_END" ? (
+                {isSpectator ? (
+                  <>
+                    <span className="w-full text-center text-xs font-bold text-espresso-soft">
+                      👁️ You&apos;re spectating —{" "}
+                      {pub.phase === "ROUND_END"
+                        ? "waiting for the players to start the next round..."
+                        : "waiting to see if the players go for a rematch..."}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onExitGame({ finished: pub.phase === "COMPLETED" })}
+                      className="inline-flex items-center gap-2 rounded-2xl border border-oat-300 bg-oat-200 px-5 py-3 font-display text-sm font-bold text-espresso shadow-sm hover:bg-oat-300"
+                    >
+                      <Flame className="h-4 w-4" /> Back to Café
+                    </button>
+                  </>
+                ) : pub.phase === "ROUND_END" ? (
                   <button
                     type="button"
                     onClick={() => sendAction({ type: "ADVANCE_ROUND" })}

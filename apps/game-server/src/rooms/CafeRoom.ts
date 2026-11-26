@@ -11,6 +11,7 @@ import {
   TableReadyPayloadSchema,
   TableReserveSeatPayloadSchema,
   TableSetGamePayloadSchema,
+  TableSpectatePayloadSchema,
   TableStartGamePayloadSchema,
   isWalkableWorldPos,
   type ChatMessageDTO,
@@ -95,7 +96,7 @@ export class CafeRoom extends Room<CafeRoomState> {
       tbl.category = tableDef.category;
       tbl.capacity = tableDef.capacity;
       tbl.status = "AVAILABLE";
-      tbl.selectedGameSlug = tableDef.capacity >= 3 ? "treasure-trails" : "";
+      tbl.selectedGameSlug = tableDef.capacity >= 3 ? "treasure-trails" : "hearthvale";
 
       for (const seatDef of tableDef.seats) {
         const seat = new SeatSchema();
@@ -371,7 +372,7 @@ export class CafeRoom extends Room<CafeRoomState> {
 
       player.carryingGameSlug = game.slug;
       client.send("cafe.notice", {
-        message: `You picked up ${game.title}! Walk to a 3–8 seat table and tap a chair.`,
+        message: `You picked up ${game.title}! Walk to any ${game.minPlayers}–${game.maxPlayers} seat table and tap a chair.`,
       });
     });
 
@@ -404,6 +405,15 @@ export class CafeRoom extends Room<CafeRoomState> {
             tableId: table.tableId,
             gameRoomId: activeGame.gameRoomId,
             gameSlug: activeGame.gameSlug,
+          });
+          return;
+        }
+        if (table.activeGameRoomId) {
+          client.send("table.spectateStarted", {
+            tableId: table.tableId,
+            tableName: table.name,
+            gameRoomId: table.activeGameRoomId,
+            gameSlug: table.selectedGameSlug || "treasure-trails",
           });
           return;
         }
@@ -485,11 +495,46 @@ export class CafeRoom extends Room<CafeRoomState> {
 
       const table = this.state.tables.get(parsed.data.tableId);
       if (!table || table.hostUserId !== player.userId || table.status === "IN_PROGRESS") return;
+      if (parsed.data.gameSlug !== "treasure-trails" && parsed.data.gameSlug !== "hearthvale") {
+        client.send("cafe.error", { message: "That board game is coming soon!" });
+        return;
+      }
       if (parsed.data.gameSlug === "treasure-trails" && table.capacity < 3) {
         client.send("cafe.error", { message: "Treasure Trails requires a 3–8 seat table." });
         return;
       }
       table.selectedGameSlug = parsed.data.gameSlug;
+    });
+
+    // 7b. Spectate any live in-progress table (or resume if already a participant!)
+    this.onMessage("table.spectate", (client, raw) => {
+      const player = this.state.players.get(client.sessionId);
+      if (!player) return;
+      const parsed = TableSpectatePayloadSchema.safeParse(raw);
+      if (!parsed.success) return;
+
+      const table = this.state.tables.get(parsed.data.tableId);
+      if (!table || table.status !== "IN_PROGRESS" || !table.activeGameRoomId) {
+        client.send("cafe.error", { message: "No live match is currently running at that table." });
+        return;
+      }
+
+      const activeGame = getActiveGameForUser(player.userId);
+      if (activeGame && activeGame.gameRoomId === table.activeGameRoomId) {
+        client.send("table.gameStarted", {
+          tableId: table.tableId,
+          gameRoomId: activeGame.gameRoomId,
+          gameSlug: activeGame.gameSlug,
+        });
+        return;
+      }
+
+      client.send("table.spectateStarted", {
+        tableId: table.tableId,
+        tableName: table.name,
+        gameRoomId: table.activeGameRoomId,
+        gameSlug: table.selectedGameSlug || "treasure-trails",
+      });
     });
 
     // 8. Ready Up Toggle
@@ -515,6 +560,15 @@ export class CafeRoom extends Room<CafeRoomState> {
       if (!player || !raw?.tableId) return;
       const table = this.state.tables.get(raw.tableId);
       if (!table || table.hostUserId !== player.userId || table.status === "IN_PROGRESS") return;
+
+      const occupiedCount = table.seats.filter((s) => s.status !== "AVAILABLE").length;
+      const maxForGame = table.selectedGameSlug === "hearthvale" ? 5 : 8;
+      if (occupiedCount >= maxForGame) {
+        client.send("cafe.error", {
+          message: `This game supports up to ${maxForGame} players.`,
+        });
+        return;
+      }
 
       const openSeat = table.seats.find((s) => s.status === "AVAILABLE");
       if (!openSeat) {
@@ -552,14 +606,14 @@ export class CafeRoom extends Room<CafeRoomState> {
       this.recomputeTableStatus(table);
     });
 
-    // 10. Start Board Game Session (Spawns GameRoom while keeping avatars seated in CafeRoom!)
+    // 10. Start Board Game Session (Spawns GameRoom/HearthvaleRoom while keeping avatars seated!)
     this.onMessage("table.startGame", async (client, raw) => {
       const player = this.state.players.get(client.sessionId);
       if (!player) return;
       const parsed = TableStartGamePayloadSchema.safeParse(raw);
       if (!parsed.success) return;
 
-      const { tableId, rounds, turnSeconds, mysteryRoles } = parsed.data;
+      const { tableId, rounds, turnSeconds, mysteryRoles, deckSize } = parsed.data;
       const table = this.state.tables.get(tableId);
       if (!table || table.status === "IN_PROGRESS") return;
 
@@ -568,15 +622,19 @@ export class CafeRoom extends Room<CafeRoomState> {
         return;
       }
 
-      if (table.selectedGameSlug !== "treasure-trails") {
-        client.send("cafe.error", { message: "Select Treasure Trails to play!" });
+      const slug = table.selectedGameSlug;
+      if (slug !== "treasure-trails" && slug !== "hearthvale") {
+        client.send("cafe.error", { message: "Select Treasure Trails or Hearthvale to play!" });
         return;
       }
 
       const occupiedSeats = table.seats.filter((s) => s.status !== "AVAILABLE");
-      if (occupiedSeats.length < 3 || occupiedSeats.length > 8) {
+      const minP = slug === "hearthvale" ? 2 : 3;
+      const maxP = slug === "hearthvale" ? 5 : 8;
+      if (occupiedSeats.length < minP || occupiedSeats.length > maxP) {
+        const gameTitle = slug === "hearthvale" ? "Hearthvale" : "Treasure Trails";
         client.send("cafe.error", {
-          message: `Treasure Trails needs 3–8 players (currently ${occupiedSeats.length}). Invite friends or add a Practice Bot!`,
+          message: `${gameTitle} needs ${minP}–${maxP} players (currently ${occupiedSeats.length}). Invite friends or adjust Practice Bots!`,
         });
         return;
       }
@@ -598,17 +656,29 @@ export class CafeRoom extends Room<CafeRoomState> {
         isBot: s.isBot,
       }));
 
-      const gameRoom = await matchMaker.createRoom("game", {
-        cafeRoomId: this.roomId,
-        tableId: table.tableId,
-        gameSlug: table.selectedGameSlug,
-        config: {
-          totalRounds: rounds,
-          turnSeconds,
-          mysteryRoles,
-        },
-        players: seatedPlayers,
-      });
+      const gameRoom =
+        slug === "hearthvale"
+          ? await matchMaker.createRoom("hearthvale", {
+              cafeRoomId: this.roomId,
+              tableId: table.tableId,
+              gameSlug: "hearthvale",
+              config: {
+                deckSize,
+                turnSeconds,
+              },
+              players: seatedPlayers,
+            })
+          : await matchMaker.createRoom("game", {
+              cafeRoomId: this.roomId,
+              tableId: table.tableId,
+              gameSlug: "treasure-trails",
+              config: {
+                totalRounds: rounds,
+                turnSeconds,
+                mysteryRoles,
+              },
+              players: seatedPlayers,
+            });
 
       table.status = "IN_PROGRESS";
       table.activeGameRoomId = gameRoom.roomId;

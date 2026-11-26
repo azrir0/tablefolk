@@ -11,6 +11,7 @@
   "dependencies": {
     "@tablefolk/cafe-engine": "workspace:*",
     "@tablefolk/game-engine": "workspace:*",
+    "@tablefolk/game-hearthvale": "workspace:*",
     "@tablefolk/game-treasure-trails": "workspace:*",
     "@tablefolk/shared": "workspace:*",
     "@tablefolk/ui": "workspace:*",
