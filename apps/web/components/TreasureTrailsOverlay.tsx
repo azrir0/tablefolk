@@ -54,16 +54,20 @@ interface GameChatEntry {
   senderName: string;
   message: string;
   isQuickBluff?: boolean;
+  count?: number;
   timestamp: number;
 }
 
 interface FlyingCardEffect {
   id: string;
-  mode: "fly" | "vault-peek";
+  mode: "fly" | "discard" | "vault-peek";
   fromX: number;
   fromY: number;
+  midX: number;
+  midY: number;
   toX: number;
   toY: number;
+  actorName: string;
   kind:
     | "PATH"
     | "HAZARD"
@@ -74,6 +78,7 @@ interface FlyingCardEffect {
     | "BOULDER_CLEAR"
     | "DISCARD";
   label: string;
+  sublabel?: string;
   icon?: string;
   edges?: PathEdges;
   connectedCenter?: boolean;
@@ -93,7 +98,9 @@ interface FlyingChatBubble {
   message: string;
   isQuickBluff: boolean;
   isMe: boolean;
-  offsetX: number;
+  leftPct: number;
+  topPct: number;
+  comboCount: number;
 }
 
 const GEAR_META: Record<GearType, { label: string; icon: string }> = {
@@ -138,7 +145,7 @@ function describeEvent(
         : `🏺 ${nameOf(ev.actorId)} uncovered a Hollow Decoy at (${ev.x}, ${ev.y})!`;
     case "CARD_DISCARDED":
       return ev.timedOut
-        ? `${nameOf(ev.actorId)} timed out and discarded a card.`
+        ? `${nameOf(ev.actorId)} timed out and discarded face-down.`
         : `${nameOf(ev.actorId)} discarded a card face-down.`;
     case "ROUND_ENDED":
       return ev.summary.reason;
@@ -216,16 +223,23 @@ function GameChatAndLogPanel({
         {chatLog.map((m) => (
           <div
             key={m.id}
-            className={`rounded-xl px-2.5 py-1.5 ${
+            className={`flex items-start justify-between gap-1.5 rounded-xl px-2.5 py-1.5 ${
               m.senderUserId === "system"
                 ? "border border-amberwarm-400/50 bg-amberwarm-100/90 font-semibold"
                 : "bg-oat-100"
             }`}
           >
-            {m.senderUserId !== "system" && (
-              <span className="font-bold text-sage-700">{m.senderName}: </span>
+            <div className="min-w-0">
+              {m.senderUserId !== "system" && (
+                <span className="font-bold text-sage-700">{m.senderName}: </span>
+              )}
+              <span className="text-espresso">{m.message}</span>
+            </div>
+            {(m.count ?? 1) > 1 && (
+              <span className="shrink-0 rounded-full bg-amberwarm-400/90 px-1.5 py-0.5 text-[10px] font-extrabold text-espresso">
+                ×{m.count}
+              </span>
             )}
-            <span className="text-espresso">{m.message}</span>
           </div>
         ))}
       </div>
@@ -276,9 +290,12 @@ export function TreasureTrailsOverlay({
   onOpenTutorial,
 }: TreasureTrailsOverlayProps) {
   const roomRef = useRef<Room | null>(null);
+  const [sessionId, setSessionId] = useState("");
   const [pub, setPub] = useState<TreasureTrailsPublicState | null>(null);
   const [priv, setPriv] = useState<TreasureTrailsPrivateState | null>(null);
   const [botControlledUserIds, setBotControlledUserIds] = useState<string[]>([]);
+  const [rematchVotes, setRematchVotes] = useState<string[]>([]);
+  const [connectedHumanCount, setConnectedHumanCount] = useState(1);
   const [connState, setConnState] = useState<
     "connecting" | "connected" | "reconnecting" | "error"
   >("connecting");
@@ -292,10 +309,10 @@ export function TreasureTrailsOverlay({
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
 
-  // Pre-round dramatic ceremony state
+  // Pre-round dramatic ceremony state (keyed by sessionId:round so Rematch replays cleanly!)
   const [introStage, setIntroStage] = useState<"none" | "countdown" | "role">("none");
   const [countdownNum, setCountdownNum] = useState<3 | 2 | 1>(3);
-  const lastIntroRoundRef = useRef<number>(0);
+  const lastIntroKeyRef = useRef<string>("");
   const introTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
 
   // Card selection & action state
@@ -308,6 +325,10 @@ export function TreasureTrailsOverlay({
   // Feedback, animations & chat
   const [errorToast, setErrorToast] = useState<string | null>(null);
   const [actionBanner, setActionBanner] = useState<string | null>(null);
+  const [lastBoardCoord, setLastBoardCoord] = useState<{
+    coord: string;
+    kind: "placed" | "cleared";
+  } | null>(null);
   const [spyglassVision, setSpyglassVision] = useState<{
     coord: string;
     kind: VaultKind;
@@ -326,6 +347,7 @@ export function TreasureTrailsOverlay({
   const deckRef = useRef<HTMLSpanElement | null>(null);
 
   const prevActiveIdRef = useRef("");
+  const prevSessionIdRef = useRef("");
   const pendingSpyCoordRef = useRef<string | null>(null);
   const latestPubRef = useRef<TreasureTrailsPublicState | null>(null);
   const latestPrivRef = useRef<TreasureTrailsPrivateState | null>(null);
@@ -335,6 +357,8 @@ export function TreasureTrailsOverlay({
   const manualReconnectRef = useRef<(() => void) | null>(null);
   const chatBubbleSeqRef = useRef(0);
   const chatBubbleTimersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
+  const quickComboRef = useRef(new Map<string, { count: number; lastAt: number }>());
+  const lastBubbleSoundAtRef = useRef(0);
 
   latestPubRef.current = pub;
   latestPrivRef.current = priv;
@@ -364,26 +388,52 @@ export function TreasureTrailsOverlay({
   const spawnChatBubble = useCallback((msg: GameChatEntry, localUserId: string) => {
     if (msg.senderUserId === "system") return;
     const seq = ++chatBubbleSeqRef.current;
-    const offsets = [0, -14, 14, -8, 8];
-    const id = `cb_${seq}_${Date.now()}`;
+    const now = Date.now();
+
+    // Track rapid quick-chat clicks so spam shows a lively combo count (×2, ×3, ...) on bubbles!
+    let comboCount = 1;
+    if (msg.isQuickBluff) {
+      const key = `${msg.senderUserId}::${msg.message}`;
+      const prev = quickComboRef.current.get(key);
+      comboCount = prev && now - prev.lastAt < 6500 ? prev.count + 1 : 1;
+      quickComboRef.current.set(key, { count: comboCount, lastAt: now });
+    }
+
+    // Spread bubbles wide across the middle of the screen (18%–82% X, 32%–64% Y)
+    const xLanes = [50, 24, 76, 36, 64, 19, 81, 43, 57, 29, 71, 47, 53];
+    const yLanes = [46, 35, 57, 40, 52, 32, 62, 44, 54, 38, 60, 48, 36];
+    const jitterX = ((seq * 7) % 7) - 3;
+    const jitterY = ((seq * 5) % 5) - 2;
+    const leftPct = Math.min(84, Math.max(16, xLanes[seq % xLanes.length]! + jitterX));
+    const topPct = Math.min(66, Math.max(30, yLanes[seq % yLanes.length]! + jitterY));
+
+    const id = `cb_${seq}_${now}`;
     const bubble: FlyingChatBubble = {
       id,
       senderName: msg.senderName,
       message: msg.message,
       isQuickBluff: Boolean(msg.isQuickBluff),
       isMe: msg.senderUserId === localUserId,
-      offsetX: offsets[seq % offsets.length]!,
+      leftPct,
+      topPct,
+      comboCount,
     };
 
-    setFlyingChatBubbles((prev) => [...prev.slice(-3), bubble]);
-    if (msg.senderUserId !== localUserId && !mobileChatOpenRef.current) {
+    // Allow up to 18 simultaneous compact bubbles for expressive party-chat bursts!
+    setFlyingChatBubbles((prev) => [...prev.slice(-17), bubble]);
+    if (
+      msg.senderUserId !== localUserId &&
+      !mobileChatOpenRef.current &&
+      now - lastBubbleSoundAtRef.current > 240
+    ) {
+      lastBubbleSoundAtRef.current = now;
       soundEngine.playEmotePop();
     }
 
     const timer = setTimeout(() => {
       chatBubbleTimersRef.current.delete(timer);
       setFlyingChatBubbles((prev) => prev.filter((b) => b.id !== id));
-    }, 3650);
+    }, 3250);
     chatBubbleTimersRef.current.add(timer);
   }, []);
 
@@ -393,16 +443,17 @@ export function TreasureTrailsOverlay({
 
   useEffect(() => {
     if (!currentRound || currentPhase !== "IN_PROGRESS" || !myRole) return;
-    if (lastIntroRoundRef.current === currentRound) return;
+    const introKey = `${sessionId || gameRoomId}:${currentRound}`;
+    if (lastIntroKeyRef.current === introKey) return;
 
     const remainingIntro = introEndsAtRef.current - Date.now();
     // When rejoining an already-running round, jump straight onto the live board!
     if (remainingIntro < 800) {
-      lastIntroRoundRef.current = currentRound;
+      lastIntroKeyRef.current = introKey;
       return;
     }
 
-    lastIntroRoundRef.current = currentRound;
+    lastIntroKeyRef.current = introKey;
     clearIntroTimers();
 
     setIntroStage("countdown");
@@ -431,7 +482,7 @@ export function TreasureTrailsOverlay({
     }, finishDelay);
 
     introTimersRef.current = [t1, t2, t3, t4];
-  }, [currentRound, currentPhase, myRole, clearIntroTimers]);
+  }, [sessionId, gameRoomId, currentRound, currentPhase, myRole, clearIntroTimers]);
 
   const getCenterOf = useCallback((el: HTMLElement | null | undefined) => {
     if (!el) {
@@ -454,8 +505,22 @@ export function TreasureTrailsOverlay({
     [myUserId, getCenterOf]
   );
 
+  const getArcMidpoint = useCallback(
+    (from: { x: number; y: number }, to: { x: number; y: number }) => {
+      const vw = typeof window !== "undefined" ? window.innerWidth : 800;
+      const vh = typeof window !== "undefined" ? window.innerHeight : 700;
+      const rawX = (from.x + to.x) * 0.5;
+      const rawY = Math.min(from.y, to.y) - 34;
+      return {
+        x: Math.min(vw - 80, Math.max(80, rawX)),
+        y: Math.min(vh - 170, Math.max(105, rawY)),
+      };
+    },
+    []
+  );
+
   const spawnFlying = useCallback(
-    (effect: Omit<FlyingCardEffect, "id">, durationMs = 740) => {
+    (effect: Omit<FlyingCardEffect, "id">, durationMs = 1260) => {
       const id = `fly_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
       setFlyingEffects((prev) => [...prev, { ...effect, id }]);
       setTimeout(() => {
@@ -466,13 +531,13 @@ export function TreasureTrailsOverlay({
   );
 
   const spawnImpact = useCallback(
-    (x: number, y: number, colorClass: string, icon: string, delayMs = 460) => {
+    (x: number, y: number, colorClass: string, icon: string, delayMs = 940) => {
       setTimeout(() => {
         const id = `imp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
         setImpactBursts((prev) => [...prev, { id, x, y, colorClass, icon }]);
         setTimeout(() => {
           setImpactBursts((prev) => prev.filter((b) => b.id !== id));
-        }, 650);
+        }, 780);
       }, delayMs);
     },
     []
@@ -484,84 +549,123 @@ export function TreasureTrailsOverlay({
         state.players.find((p) => p.userId === uid)?.displayName ?? "Explorer";
 
       for (const ev of events) {
-        if (ev.type === "TILE_PLACED") {
+        if (ev.type === "ROUND_STARTED") {
+          setLastBoardCoord(null);
+        } else if (ev.type === "TILE_PLACED") {
+          const key = coordKey(ev.x, ev.y);
           const from = getActorOrigin(ev.actorId);
-          const to = getCenterOf(cellRefs.current.get(coordKey(ev.x, ev.y)));
-          const placed = state.board[coordKey(ev.x, ev.y)];
+          const to = getCenterOf(cellRefs.current.get(key));
+          const mid = getArcMidpoint(from, to);
+          const placed = state.board[key];
+          const actorName = lookupName(ev.actorId);
 
+          setLastBoardCoord({ coord: key, kind: "placed" });
           soundEngine.playTilePlace();
-          spawnFlying({
-            mode: "fly",
-            fromX: from.x,
-            fromY: from.y,
-            toX: to.x,
-            toY: to.y,
-            kind: "PATH",
-            label: "Path",
-            edges: placed?.edges ?? { N: true, E: true, S: true, W: true },
-            connectedCenter: placed?.connectedCenter ?? true,
-          });
-          spawnImpact(to.x, to.y, "border-emerald-400 bg-emerald-400/20", "✨", 460);
+          spawnFlying(
+            {
+              mode: "fly",
+              fromX: from.x,
+              fromY: from.y,
+              midX: mid.x,
+              midY: mid.y,
+              toX: to.x,
+              toY: to.y,
+              actorName,
+              kind: "PATH",
+              label: "Path Tile",
+              edges: placed?.edges ?? { N: true, E: true, S: true, W: true },
+              connectedCenter: placed?.connectedCenter ?? true,
+            },
+            1260
+          );
+          spawnImpact(to.x, to.y, "border-emerald-400 bg-emerald-400/20", "✨", 940);
           setActionBanner(describeEvent(ev, lookupName));
         } else if (ev.type === "GEAR_BROKEN") {
           const from = getActorOrigin(ev.actorId);
           const to = getCenterOf(playerRefs.current.get(ev.targetId));
+          const mid = getArcMidpoint(from, to);
+          const actorName = lookupName(ev.actorId);
 
           soundEngine.playHazard();
-          spawnFlying({
-            mode: "fly",
-            fromX: from.x,
-            fromY: from.y,
-            toX: to.x,
-            toY: to.y,
-            kind: "HAZARD",
-            label: `Break ${GEAR_META[ev.gear].label}`,
-            icon: "⚡",
-          });
-          spawnImpact(to.x, to.y, "border-terracotta-500 bg-terracotta-500/25", "💥", 480);
+          spawnFlying(
+            {
+              mode: "fly",
+              fromX: from.x,
+              fromY: from.y,
+              midX: mid.x,
+              midY: mid.y,
+              toX: to.x,
+              toY: to.y,
+              actorName,
+              kind: "HAZARD",
+              label: `Break ${GEAR_META[ev.gear].label}`,
+              icon: "⚡",
+            },
+            1260
+          );
+          spawnImpact(to.x, to.y, "border-terracotta-500 bg-terracotta-500/25", "💥", 960);
           setTimeout(() => {
             setShakingPlayerId(ev.targetId);
-            setTimeout(() => setShakingPlayerId(null), 500);
-          }, 430);
+            setTimeout(() => setShakingPlayerId(null), 550);
+          }, 900);
           setActionBanner(describeEvent(ev, lookupName));
         } else if (ev.type === "GEAR_REPAIRED") {
           const from = getActorOrigin(ev.actorId);
           const to = getCenterOf(playerRefs.current.get(ev.targetId));
+          const mid = getArcMidpoint(from, to);
+          const actorName = lookupName(ev.actorId);
 
           soundEngine.playRepair();
-          spawnFlying({
-            mode: "fly",
-            fromX: from.x,
-            fromY: from.y,
-            toX: to.x,
-            toY: to.y,
-            kind: "REPAIR",
-            label: `Fix ${GEAR_META[ev.gear].label}`,
-            icon: "🔧",
-          });
-          spawnImpact(to.x, to.y, "border-emerald-400 bg-emerald-400/25", "✨", 480);
+          spawnFlying(
+            {
+              mode: "fly",
+              fromX: from.x,
+              fromY: from.y,
+              midX: mid.x,
+              midY: mid.y,
+              toX: to.x,
+              toY: to.y,
+              actorName,
+              kind: "REPAIR",
+              label: `Fix ${GEAR_META[ev.gear].label}`,
+              icon: "🔧",
+            },
+            1260
+          );
+          spawnImpact(to.x, to.y, "border-emerald-400 bg-emerald-400/25", "✨", 940);
           setActionBanner(describeEvent(ev, lookupName));
         } else if (ev.type === "FIELD_PATCHED") {
           const from = getActorOrigin(ev.actorId);
           const to = getCenterOf(playerRefs.current.get(ev.actorId));
+          const mid = getArcMidpoint(from, to);
+          const actorName = lookupName(ev.actorId);
 
           soundEngine.playFieldPatch();
-          spawnFlying({
-            mode: "fly",
-            fromX: from.x,
-            fromY: from.y,
-            toX: to.x,
-            toY: to.y,
-            kind: "FIELD_PATCH",
-            label: "Field-Patch",
-            icon: "🛠️",
-          });
-          spawnImpact(to.x, to.y, "border-amberwarm-400 bg-amberwarm-400/25", "🔧", 480);
+          spawnFlying(
+            {
+              mode: "fly",
+              fromX: from.x,
+              fromY: from.y,
+              midX: mid.x,
+              midY: mid.y,
+              toX: to.x,
+              toY: to.y,
+              actorName,
+              kind: "FIELD_PATCH",
+              label: "Field-Patch",
+              sublabel: GEAR_META[ev.gear].label,
+              icon: "🛠️",
+            },
+            1260
+          );
+          spawnImpact(to.x, to.y, "border-amberwarm-400 bg-amberwarm-400/25", "🔧", 940);
           setActionBanner(describeEvent(ev, lookupName));
         } else if (ev.type === "VAULT_SCOUTED") {
           const actorPt = getActorOrigin(ev.actorId);
           const vaultKey = coordKey(ev.x, ev.y);
           const vaultPt = getCenterOf(cellRefs.current.get(vaultKey));
+          const mid = getArcMidpoint(actorPt, vaultPt);
+          const actorName = lookupName(ev.actorId);
 
           soundEngine.playSpyglass();
           spawnFlying(
@@ -569,13 +673,16 @@ export function TreasureTrailsOverlay({
               mode: "fly",
               fromX: actorPt.x,
               fromY: actorPt.y,
+              midX: mid.x,
+              midY: mid.y,
               toX: vaultPt.x,
               toY: vaultPt.y,
+              actorName,
               kind: "SPYGLASS",
               label: "Spyglass",
               icon: "🔭",
             },
-            680
+            1220
           );
 
           setTimeout(() => {
@@ -584,73 +691,98 @@ export function TreasureTrailsOverlay({
                 mode: "vault-peek",
                 fromX: vaultPt.x,
                 fromY: vaultPt.y,
+                midX: mid.x,
+                midY: mid.y,
                 toX: actorPt.x,
                 toY: actorPt.y,
+                actorName,
                 kind: "VAULT",
                 label: "Sealed Vault",
                 icon: "❓",
               },
-              1400
+              1900
             );
-          }, 260);
+          }, 420);
 
           if (ev.actorId === myUserId) {
             pendingSpyCoordRef.current = vaultKey;
           }
           setActionBanner(describeEvent(ev, lookupName));
         } else if (ev.type === "TILE_CLEARED") {
+          const key = coordKey(ev.x, ev.y);
           const from = getActorOrigin(ev.actorId);
-          const to = getCenterOf(cellRefs.current.get(coordKey(ev.x, ev.y)));
+          const to = getCenterOf(cellRefs.current.get(key));
+          const mid = getArcMidpoint(from, to);
+          const actorName = lookupName(ev.actorId);
 
+          setLastBoardCoord({ coord: key, kind: "cleared" });
           soundEngine.playBoulderClear();
-          spawnFlying({
-            mode: "fly",
-            fromX: from.x,
-            fromY: from.y,
-            toX: to.x,
-            toY: to.y,
-            kind: "BOULDER_CLEAR",
-            label: "Boulder Clear",
-            icon: "💥",
-          });
-          spawnImpact(to.x, to.y, "border-orange-400 bg-orange-400/30", "💥", 460);
+          spawnFlying(
+            {
+              mode: "fly",
+              fromX: from.x,
+              fromY: from.y,
+              midX: mid.x,
+              midY: mid.y,
+              toX: to.x,
+              toY: to.y,
+              actorName,
+              kind: "BOULDER_CLEAR",
+              label: "Boulder Clear",
+              icon: "💥",
+            },
+            1260
+          );
+          spawnImpact(to.x, to.y, "border-orange-400 bg-orange-400/30", "💥", 940);
           setActionBanner(describeEvent(ev, lookupName));
         } else if (ev.type === "VAULT_REVEALED") {
           const pt = getCenterOf(cellRefs.current.get(coordKey(ev.x, ev.y)));
           if (ev.vaultKind === "TRUE_RELIC") {
             soundEngine.playVictory();
-            spawnImpact(pt.x, pt.y, "border-amberwarm-400 bg-amberwarm-400/40", "🧭", 120);
+            spawnImpact(pt.x, pt.y, "border-amberwarm-400 bg-amberwarm-400/40", "🧭", 200);
           } else {
             soundEngine.playDecoyReveal();
-            spawnImpact(pt.x, pt.y, "border-oat-300 bg-oat-300/30", "🏺", 120);
+            spawnImpact(pt.x, pt.y, "border-oat-300 bg-oat-300/30", "🏺", 200);
           }
           setActionBanner(describeEvent(ev, lookupName));
         } else if (ev.type === "CARD_DISCARDED") {
           const from = getActorOrigin(ev.actorId);
           const to = getCenterOf(deckRef.current);
+          const vw = typeof window !== "undefined" ? window.innerWidth : 800;
+          const vh = typeof window !== "undefined" ? window.innerHeight : 700;
+          const actorName = lookupName(ev.actorId);
+
           soundEngine.playCardDiscard();
-          spawnFlying({
-            mode: "fly",
-            fromX: from.x,
-            fromY: from.y,
-            toX: to.x,
-            toY: to.y,
-            kind: "DISCARD",
-            label: "Discard",
-            icon: "🃏",
-          });
+          spawnFlying(
+            {
+              mode: "discard",
+              fromX: from.x,
+              fromY: from.y,
+              midX: vw * 0.5,
+              midY: vh * 0.44,
+              toX: to.x,
+              toY: to.y,
+              actorName,
+              kind: "DISCARD",
+              label: "Face-Down",
+              sublabel: ev.timedOut ? "Timed Out" : "Secret Discard",
+              icon: "🧭",
+            },
+            1580
+          );
+          spawnImpact(to.x, to.y, "border-amberwarm-400 bg-amberwarm-400/25", "🃏", 1320);
           setActionBanner(describeEvent(ev, lookupName));
         } else if (ev.type === "ROUND_ENDED" || ev.type === "MATCH_ENDED") {
           soundEngine.playVictory();
         }
       }
     },
-    [getActorOrigin, getCenterOf, myUserId, spawnFlying, spawnImpact]
+    [getActorOrigin, getArcMidpoint, getCenterOf, myUserId, spawnFlying, spawnImpact]
   );
 
   useEffect(() => {
     if (!actionBanner) return;
-    const t = setTimeout(() => setActionBanner(null), 2600);
+    const t = setTimeout(() => setActionBanner(null), 3400);
     return () => clearTimeout(t);
   }, [actionBanner]);
 
@@ -720,10 +852,13 @@ export function TreasureTrailsOverlay({
         room.onMessage(
           "game.publicState",
           (payload: {
+            sessionId?: string;
             state: TreasureTrailsPublicState;
             turnEndsAt: number;
             introEndsAt?: number;
             botControlledUserIds?: string[];
+            rematchVotes?: string[];
+            connectedHumanCount?: number;
             events?: TreasureTrailsEvent[];
           }) => {
             if (syncWatchdog) {
@@ -731,6 +866,13 @@ export function TreasureTrailsOverlay({
               syncWatchdog = null;
             }
             setConnState("connected");
+            if (payload.sessionId) {
+              if (prevSessionIdRef.current && prevSessionIdRef.current !== payload.sessionId) {
+                setLastBoardCoord(null);
+              }
+              prevSessionIdRef.current = payload.sessionId;
+              setSessionId(payload.sessionId);
+            }
             setPub(payload.state);
             setTurnEndsAt(payload.turnEndsAt);
             if (typeof payload.introEndsAt === "number") {
@@ -738,6 +880,12 @@ export function TreasureTrailsOverlay({
             }
             if (Array.isArray(payload.botControlledUserIds)) {
               setBotControlledUserIds(payload.botControlledUserIds);
+            }
+            if (Array.isArray(payload.rematchVotes)) {
+              setRematchVotes(payload.rematchVotes);
+            }
+            if (typeof payload.connectedHumanCount === "number") {
+              setConnectedHumanCount(payload.connectedHumanCount);
             }
 
             const evs = payload.events ?? [];
@@ -769,8 +917,8 @@ export function TreasureTrailsOverlay({
               pendingSpyCoordRef.current = null;
               setTimeout(() => {
                 setSpyglassVision({ coord: key, kind: revealed });
-                setTimeout(() => setSpyglassVision(null), 4200);
-              }, 680);
+                setTimeout(() => setSpyglassVision(null), 4600);
+              }, 980);
             }
           }
         });
@@ -784,8 +932,36 @@ export function TreasureTrailsOverlay({
         );
 
         room.onMessage("game.chatReceived", (msg: GameChatEntry) => {
-          setChatLog((prev) => [...prev.slice(-39), msg]);
+          // Spawn a wide-spread flying bubble on EVERY click!
           spawnChatBubble(msg, myUserId);
+
+          // In the chat box, collapse repeated Quick Bluff spam from the same sender
+          // into 1 clean line with ×N so important typed messages never get pushed away!
+          setChatLog((prev) => {
+            if (msg.isQuickBluff && msg.senderUserId !== "system") {
+              const existingIdx = [...prev]
+                .reverse()
+                .findIndex(
+                  (entry) =>
+                    entry.isQuickBluff &&
+                    entry.senderUserId === msg.senderUserId &&
+                    entry.message === msg.message
+                );
+              if (existingIdx !== -1) {
+                const realIdx = prev.length - 1 - existingIdx;
+                const next = [...prev];
+                const existing = next[realIdx]!;
+                next[realIdx] = {
+                  ...existing,
+                  count: (existing.count ?? 1) + 1,
+                  timestamp: msg.timestamp,
+                };
+                return next;
+              }
+            }
+            return [...prev.slice(-39), { ...msg, count: 1 }];
+          });
+
           if (!mobileChatOpenRef.current && msg.senderUserId !== myUserId) {
             setUnreadChatCount((c) => c + 1);
           }
@@ -1337,6 +1513,14 @@ export function TreasureTrailsOverlay({
                       selectedCard?.kind === "BOULDER_CLEAR" &&
                       cell?.kind === "PATH";
                     const interactive = canPlaceHere || canScoutHere || canClearHere;
+                    const isLastPlaced =
+                      lastBoardCoord?.coord === key &&
+                      lastBoardCoord.kind === "placed" &&
+                      Boolean(cell);
+                    const isLastCleared =
+                      lastBoardCoord?.coord === key &&
+                      lastBoardCoord.kind === "cleared" &&
+                      !cell;
 
                     return (
                       <button
@@ -1353,7 +1537,11 @@ export function TreasureTrailsOverlay({
                             ? ""
                             : canPlaceHere
                               ? "cursor-pointer border-2 border-dashed border-emerald-400 bg-emerald-400/25 hover:bg-emerald-400/40"
-                              : "border border-white/10 bg-white/[0.04]"
+                              : isLastCleared
+                                ? "border-2 border-dashed border-terracotta-500/80 bg-terracotta-500/15"
+                                : "border border-white/10 bg-white/[0.04]"
+                        } ${
+                          isLastPlaced ? "animate-tt-last-tile z-10" : ""
                         } ${
                           canScoutHere
                             ? "cursor-pointer ring-2 ring-amberwarm-400 sm:ring-4"
@@ -1363,21 +1551,30 @@ export function TreasureTrailsOverlay({
                         }`}
                       >
                         {cell ? (
-                          <PathTileSvg
-                            edges={
-                              cell.edges ?? { N: false, E: false, S: false, W: false }
-                            }
-                            connectedCenter={cell.connectedCenter}
-                            kind={cell.kind}
-                            vaultRevealed={cell.vaultRevealed}
-                            vaultKind={cell.vaultKind}
-                            privateScoutHint={priv?.scoutedVaults[key]}
-                            compact
-                          />
+                          <>
+                            <PathTileSvg
+                              edges={
+                                cell.edges ?? { N: false, E: false, S: false, W: false }
+                              }
+                              connectedCenter={cell.connectedCenter}
+                              kind={cell.kind}
+                              vaultRevealed={cell.vaultRevealed}
+                              vaultKind={cell.vaultKind}
+                              privateScoutHint={priv?.scoutedVaults[key]}
+                              compact
+                            />
+                            {isLastPlaced && (
+                              <span className="pointer-events-none absolute -right-1 -top-1 z-20 rounded-full bg-amberwarm-400 px-1 py-[1px] text-[7px] font-black uppercase leading-none text-espresso shadow sm:text-[8px]">
+                                NEW
+                              </span>
+                            )}
+                          </>
                         ) : canPlaceHere ? (
                           <span className="text-sm font-extrabold text-emerald-200 sm:text-lg">
                             +
                           </span>
+                        ) : isLastCleared ? (
+                          <span className="text-[10px] opacity-75">💥</span>
                         ) : null}
                       </button>
                     );
@@ -1618,14 +1815,17 @@ export function TreasureTrailsOverlay({
         </div>
       )}
 
-      {/* IN-GAME FLYING CHAT BUBBLES (Centered over the board, non-blocking, fade away!) */}
+      {/* IN-GAME FLYING CHAT BUBBLES (Compact, wide-spread across the board, non-blocking!) */}
       {flyingChatBubbles.length > 0 && !isIntroBlocking && (
-        <div className="pointer-events-none fixed inset-0 z-[48] flex flex-col items-center justify-center gap-2.5 px-4">
+        <div className="pointer-events-none fixed inset-0 z-[48] overflow-hidden">
           {flyingChatBubbles.map((b) => (
             <div
               key={b.id}
-              style={{ "--bubble-x": `${b.offsetX}px` } as React.CSSProperties}
-              className={`animate-tt-chat-bubble relative max-w-[min(86vw,340px)] rounded-2xl border-2 px-4 py-2 text-center shadow-2xl backdrop-blur-md ${
+              style={{
+                left: `${b.leftPct}%`,
+                top: `${b.topPct}%`,
+              }}
+              className={`animate-tt-chat-bubble fixed max-w-[min(64vw,220px)] rounded-2xl border-2 px-2.5 py-1 text-center shadow-xl backdrop-blur-md ${
                 b.isQuickBluff
                   ? "border-amberwarm-400 bg-amberwarm-100/95 text-espresso"
                   : b.isMe
@@ -1633,16 +1833,21 @@ export function TreasureTrailsOverlay({
                     : "border-oat-300 bg-oat-50/95 text-espresso"
               }`}
             >
-              <div className="flex items-center justify-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wide text-sage-700">
+              <div className="flex items-center justify-center gap-1 text-[9px] font-extrabold uppercase tracking-wide text-sage-700">
                 <span>{b.isQuickBluff ? "🗣️" : "💬"}</span>
-                <span className="truncate">{b.senderName}</span>
+                <span className="max-w-[110px] truncate">{b.senderName}</span>
+                {b.comboCount > 1 && (
+                  <span className="rounded-full bg-amberwarm-400 px-1.5 py-[1px] text-[9px] font-black text-espresso shadow-sm">
+                    ×{b.comboCount}
+                  </span>
+                )}
               </div>
-              <div className="mt-0.5 break-words text-xs font-bold leading-snug text-espresso sm:text-sm">
+              <div className="mt-0.5 break-words text-[11px] font-bold leading-tight text-espresso sm:text-xs">
                 {b.message}
               </div>
-              {/* Speech bubble tail */}
+              {/* Compact speech bubble tail */}
               <span
-                className={`absolute -bottom-[7px] left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-b-2 border-r-2 ${
+                className={`absolute -bottom-[5px] left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 border-b-2 border-r-2 ${
                   b.isQuickBluff
                     ? "border-amberwarm-400 bg-amberwarm-100/95"
                     : b.isMe
@@ -1657,57 +1862,86 @@ export function TreasureTrailsOverlay({
 
       {/* FLYING CARD & IMPACT VFX STAGE */}
       <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
-        {flyingEffects.map((fx) => (
-          <div
-            key={fx.id}
-            style={
-              {
-                "--from-x": `${fx.fromX - 30}px`,
-                "--from-y": `${fx.fromY - 40}px`,
-                "--to-x": `${fx.toX - 30}px`,
-                "--to-y": `${fx.toY - 40}px`,
-              } as React.CSSProperties
-            }
-            className={`fixed left-0 top-0 flex h-20 w-[60px] flex-col items-center justify-center rounded-xl border-2 shadow-2xl sm:h-24 sm:w-[72px] sm:rounded-2xl ${
-              fx.mode === "vault-peek" ? "animate-tt-vault-peek" : "animate-tt-fly"
-            } ${
-              fx.kind === "HAZARD" || fx.kind === "BOULDER_CLEAR"
-                ? "border-terracotta-500 bg-terracotta-100"
-                : fx.kind === "REPAIR" || fx.kind === "FIELD_PATCH"
-                  ? "border-sage-500 bg-sage-100"
-                  : fx.kind === "SPYGLASS"
-                    ? "border-amberwarm-400 bg-amberwarm-100"
-                    : fx.kind === "VAULT"
-                      ? "border-amberwarm-400 bg-[#5D4A3E] text-oat-50"
-                      : fx.kind === "DISCARD"
-                        ? "border-oat-300 bg-espresso text-oat-50"
-                        : "border-sage-500 bg-oat-50 p-1"
-            }`}
-          >
-            {fx.kind === "PATH" && fx.edges ? (
-              <PathTileSvg
-                edges={fx.edges}
-                connectedCenter={fx.connectedCenter ?? true}
-                compact
-              />
-            ) : fx.kind === "VAULT" ? (
-              <PathTileSvg
-                edges={{ N: false, E: false, S: false, W: false }}
-                connectedCenter={false}
-                kind="VAULT"
-                vaultRevealed={false}
-                compact
-              />
-            ) : (
-              <>
-                <span className="text-2xl sm:text-3xl">{fx.icon}</span>
-                <span className="mt-0.5 px-1 text-center text-[8px] font-extrabold leading-tight sm:text-[9px]">
-                  {fx.label}
-                </span>
-              </>
-            )}
-          </div>
-        ))}
+        {flyingEffects.map((fx) => {
+          const isDiscard = fx.kind === "DISCARD";
+          const halfW = isDiscard ? 38 : 34;
+          const halfH = isDiscard ? 50 : 45;
+          return (
+            <div
+              key={fx.id}
+              style={
+                {
+                  "--from-x": `${fx.fromX - halfW}px`,
+                  "--from-y": `${fx.fromY - halfH}px`,
+                  "--mid-x": `${fx.midX - halfW}px`,
+                  "--mid-y": `${fx.midY - halfH}px`,
+                  "--to-x": `${fx.toX - halfW}px`,
+                  "--to-y": `${fx.toY - halfH}px`,
+                } as React.CSSProperties
+              }
+              className={`fixed left-0 top-0 flex flex-col items-center justify-center rounded-xl border-2 shadow-2xl sm:rounded-2xl ${
+                isDiscard
+                  ? "animate-tt-discard h-[100px] w-[76px] border-amberwarm-400 bg-gradient-to-br from-[#4A3528] via-[#2C1F18] to-[#3E2B20] p-1.5 text-oat-50 sm:h-[114px] sm:w-[86px]"
+                  : fx.mode === "vault-peek"
+                    ? "animate-tt-vault-peek h-[90px] w-[68px] border-amberwarm-400 bg-[#5D4A3E] text-oat-50 sm:h-[104px] sm:w-[78px]"
+                    : `animate-tt-fly h-[90px] w-[68px] sm:h-[104px] sm:w-[78px] ${
+                        fx.kind === "HAZARD" || fx.kind === "BOULDER_CLEAR"
+                          ? "border-terracotta-500 bg-terracotta-100"
+                          : fx.kind === "REPAIR" || fx.kind === "FIELD_PATCH"
+                            ? "border-sage-500 bg-sage-100"
+                            : fx.kind === "SPYGLASS"
+                              ? "border-amberwarm-400 bg-amberwarm-100"
+                              : "border-sage-500 bg-oat-50 p-1"
+                      }`
+              }`}
+            >
+              {/* Crisp actor name pill floating above the card so everyone sees who played it! */}
+              <span className="absolute -top-5 left-1/2 max-w-[120px] -translate-x-1/2 truncate rounded-full bg-espresso/95 px-2 py-0.5 text-[9px] font-extrabold text-oat-50 shadow-md">
+                {fx.actorName}
+              </span>
+
+              {isDiscard ? (
+                <div className="flex h-full w-full flex-col items-center justify-between rounded-lg border border-amberwarm-400/60 bg-[#35261D]/80 px-1 py-1.5 text-center">
+                  <span className="text-[7px] font-black uppercase tracking-widest text-amberwarm-400">
+                    FACE-DOWN
+                  </span>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full border border-amberwarm-400/60 bg-amberwarm-400/15 text-xl shadow-inner sm:h-10 sm:w-10 sm:text-2xl">
+                    🧭
+                  </div>
+                  <span className="w-full truncate text-[8px] font-extrabold leading-tight text-oat-100 sm:text-[9px]">
+                    {fx.sublabel ?? "Secret Discard"}
+                  </span>
+                </div>
+              ) : fx.kind === "PATH" && fx.edges ? (
+                <PathTileSvg
+                  edges={fx.edges}
+                  connectedCenter={fx.connectedCenter ?? true}
+                  compact
+                />
+              ) : fx.kind === "VAULT" ? (
+                <PathTileSvg
+                  edges={{ N: false, E: false, S: false, W: false }}
+                  connectedCenter={false}
+                  kind="VAULT"
+                  vaultRevealed={false}
+                  compact
+                />
+              ) : (
+                <>
+                  <span className="text-2xl sm:text-3xl">{fx.icon}</span>
+                  <span className="mt-0.5 px-1 text-center text-[8px] font-extrabold leading-tight sm:text-[9px]">
+                    {fx.label}
+                  </span>
+                  {fx.sublabel && (
+                    <span className="text-[7px] font-bold text-espresso-muted">
+                      {fx.sublabel}
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
 
         {impactBursts.map((b) => (
           <div
@@ -1839,7 +2073,7 @@ export function TreasureTrailsOverlay({
                 })}
               </div>
 
-              <div className="mt-5 flex justify-center gap-3">
+              <div className="mt-5 flex flex-wrap justify-center gap-2.5">
                 {pub.phase === "ROUND_END" ? (
                   <button
                     type="button"
@@ -1850,13 +2084,36 @@ export function TreasureTrailsOverlay({
                     {pub.currentRound + 1}
                   </button>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => onExitGame({ finished: true })}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-sage-500 px-6 py-3 font-display text-sm font-bold text-white shadow-sm hover:bg-sage-700"
-                  >
-                    <Flame className="h-4 w-4" /> Return to Café Table
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      disabled={rematchVotes.includes(myUserId)}
+                      onClick={() => roomRef.current?.send("game.playAgain")}
+                      className={`inline-flex items-center gap-2 rounded-2xl px-5 py-3 font-display text-sm font-bold shadow-sm transition ${
+                        rematchVotes.includes(myUserId)
+                          ? "bg-amberwarm-400 text-espresso"
+                          : "bg-sage-500 text-white hover:bg-sage-700"
+                      }`}
+                    >
+                      <RefreshCw
+                        className={`h-4 w-4 ${
+                          rematchVotes.includes(myUserId) ? "animate-spin" : ""
+                        }`}
+                      />
+                      {rematchVotes.includes(myUserId)
+                        ? `Waiting for Rematch (${rematchVotes.length}/${Math.max(1, connectedHumanCount)})`
+                        : rematchVotes.length > 0
+                          ? `Play Again! (${rematchVotes.length}/${Math.max(1, connectedHumanCount)})`
+                          : "Play Again!"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onExitGame({ finished: true })}
+                      className="inline-flex items-center gap-2 rounded-2xl border border-oat-300 bg-oat-200 px-5 py-3 font-display text-sm font-bold text-espresso shadow-sm hover:bg-oat-300"
+                    >
+                      <Flame className="h-4 w-4" /> Back to Table
+                    </button>
+                  </>
                 )}
               </div>
             </div>

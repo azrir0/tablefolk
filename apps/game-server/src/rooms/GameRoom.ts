@@ -18,6 +18,7 @@ import {
 import { verifyAuthToken } from "../services/auth.js";
 import {
   notifyCafeTableFinished,
+  notifyCafeTableRestarted,
   registerGameRoom,
   unregisterGameRoom,
 } from "../services/roomRegistry.js";
@@ -50,17 +51,21 @@ export class GameRoom extends Room {
   private tableId = "";
   private gameSlug = "treasure-trails";
   private sessionId = "";
+  private initialPlayers: GameRoomCreateOptions["players"] = [];
+  private initialConfig: Partial<TreasureTrailsConfig> = {};
   private gameState!: TreasureTrailsState;
   private botUserIds = new Set<string>();
   private botControlledHumans = new Set<string>();
   private botTakeoverTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private allowedUserIds = new Set<string>();
   private userIdToClient = new Map<string, Client>();
+  private rematchVotes = new Set<string>();
   private turnEndsAt = 0;
   private introEndsAt = 0;
   private botTimer: ReturnType<typeof setTimeout> | null = null;
   private roundAdvanceTimer: ReturnType<typeof setTimeout> | null = null;
   private emptyHumansTimer: ReturnType<typeof setTimeout> | null = null;
+  private completedIdleTimer: ReturnType<typeof setTimeout> | null = null;
   private persistedFinish = false;
   private aborted = false;
 
@@ -71,6 +76,8 @@ export class GameRoom extends Room {
     this.cafeRoomId = options.cafeRoomId;
     this.tableId = options.tableId;
     this.gameSlug = options.gameSlug || "treasure-trails";
+    this.initialPlayers = options.players;
+    this.initialConfig = options.config;
     this.sessionId = `sess_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
 
     const humanUserIds: string[] = [];
@@ -246,8 +253,20 @@ export class GameRoom extends Room {
       return;
     }
 
+    // If the match already finished and someone leaves, update rematch vote status
+    if (this.gameState.phase === "COMPLETED") {
+      this.rematchVotes.delete(auth.userId);
+      const remaining = Array.from(this.userIdToClient.keys());
+      if (remaining.length > 0 && remaining.every((uid) => this.rematchVotes.has(uid))) {
+        this.startRematch();
+      } else {
+        this.broadcastStateAndEvents([]);
+      }
+      return;
+    }
+
     // Other humans are still playing! Give 15s grace window, then Substitute Bot takes over smoothly
-    if (this.gameState.phase !== "COMPLETED" && !this.botControlledHumans.has(auth.userId)) {
+    if (!this.botControlledHumans.has(auth.userId)) {
       this.broadcastSystemChat(
         `⏳ ${auth.displayName} stepped away — a Café Bot will sub in after 15s if they don't return.`
       );
@@ -276,6 +295,7 @@ export class GameRoom extends Room {
     if (this.botTimer) clearTimeout(this.botTimer);
     if (this.roundAdvanceTimer) clearTimeout(this.roundAdvanceTimer);
     if (this.emptyHumansTimer) clearTimeout(this.emptyHumansTimer);
+    if (this.completedIdleTimer) clearTimeout(this.completedIdleTimer);
     for (const t of this.botTakeoverTimers.values()) clearTimeout(t);
     this.botTakeoverTimers.clear();
     unregisterGameRoom(this.roomId);
@@ -289,6 +309,8 @@ export class GameRoom extends Room {
       turnEndsAt: this.turnEndsAt,
       introEndsAt: this.introEndsAt,
       botControlledUserIds: Array.from(this.botControlledHumans),
+      rematchVotes: Array.from(this.rematchVotes),
+      connectedHumanCount: this.userIdToClient.size,
       isSpectator: auth.isSpectator,
     });
 
@@ -442,6 +464,88 @@ export class GameRoom extends Room {
         timestamp: Date.now(),
       });
     });
+
+    this.onMessage("game.playAgain", (client) => {
+      const auth = client.auth as GameAuthedClient | undefined;
+      if (!auth || auth.isSpectator) return;
+      if (this.gameState.phase !== "COMPLETED") return;
+
+      this.rematchVotes.add(auth.userId);
+      const connectedHumans = Array.from(this.userIdToClient.keys());
+      if (
+        connectedHumans.length > 0 &&
+        connectedHumans.every((uid) => this.rematchVotes.has(uid))
+      ) {
+        this.startRematch();
+      } else {
+        this.broadcastSystemChat(
+          `🔄 ${auth.displayName} wants a rematch! (${this.rematchVotes.size}/${connectedHumans.length})`
+        );
+        this.broadcastStateAndEvents([]);
+      }
+    });
+  }
+
+  private startRematch() {
+    if (this.completedIdleTimer) {
+      clearTimeout(this.completedIdleTimer);
+      this.completedIdleTimer = null;
+    }
+    if (this.botTimer) {
+      clearTimeout(this.botTimer);
+      this.botTimer = null;
+    }
+    if (this.roundAdvanceTimer) {
+      clearTimeout(this.roundAdvanceTimer);
+      this.roundAdvanceTimer = null;
+    }
+
+    this.rematchVotes.clear();
+    this.persistedFinish = false;
+    this.sessionId = `sess_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+
+    // Keep absent humans bot-controlled if they haven't returned, while connected humans play live
+    this.botControlledHumans.clear();
+    const humanUserIds: string[] = [];
+    for (const p of this.initialPlayers) {
+      if (!p.isBot) {
+        humanUserIds.push(p.userId);
+        if (!this.userIdToClient.has(p.userId)) {
+          this.botControlledHumans.add(p.userId);
+        }
+      }
+    }
+
+    const rngSeed = crypto.randomInt(1, 2_000_000_000);
+    this.gameState = TreasureTrailsModule.createInitialState(
+      this.initialPlayers.map((p) => ({
+        userId: p.userId,
+        displayName: p.displayName,
+        seatIndex: p.seatIndex,
+      })),
+      this.initialConfig,
+      rngSeed
+    );
+
+    registerGameRoom(
+      this.roomId,
+      () => {
+        this.abortAbandonedGame();
+      },
+      humanUserIds,
+      {
+        cafeRoomId: this.cafeRoomId,
+        tableId: this.tableId,
+        gameSlug: this.gameSlug,
+      }
+    );
+    notifyCafeTableRestarted(this.cafeRoomId, this.tableId, this.roomId);
+    void this.persistInitialSession();
+
+    this.beginRoundIntroWindow(5800);
+    this.broadcastSystemChat("🔄 Rematch started! Fresh hidden roles dealt!");
+    this.broadcastStateAndEvents([]);
+    this.handlePostStateChange();
   }
 
   private executeValidatedAction(userId: string, action: TreasureTrailsAction) {
@@ -477,11 +581,13 @@ export class GameRoom extends Room {
       }
       for (const t of this.botTakeoverTimers.values()) clearTimeout(t);
       this.botTakeoverTimers.clear();
+      this.rematchVotes.clear();
       unregisterGameRoom(this.roomId);
       void this.persistCompletedResults();
       notifyCafeTableFinished(this.cafeRoomId, this.tableId);
-      this.clock.setTimeout(() => {
-        if (this.clients.length === 0) this.disconnect();
+      if (this.completedIdleTimer) clearTimeout(this.completedIdleTimer);
+      this.completedIdleTimer = setTimeout(() => {
+        if (this.clients.length === 0) void this.disconnect();
       }, 120_000);
       return;
     }
@@ -514,6 +620,8 @@ export class GameRoom extends Room {
       turnEndsAt: this.turnEndsAt,
       introEndsAt: this.introEndsAt,
       botControlledUserIds: Array.from(this.botControlledHumans),
+      rematchVotes: Array.from(this.rematchVotes),
+      connectedHumanCount: this.userIdToClient.size,
       events,
     });
 
@@ -545,7 +653,7 @@ export class GameRoom extends Room {
     if (!active || !isBotTurn) return;
 
     const waitIntroMs = Math.max(0, this.introEndsAt - Date.now());
-    const delayMs = waitIntroMs > 0 ? waitIntroMs + 950 : 1450;
+    const delayMs = waitIntroMs > 0 ? waitIntroMs + 1000 : 2150;
 
     this.botTimer = setTimeout(() => {
       if (this.aborted || this.userIdToClient.size === 0) return;

@@ -14,6 +14,7 @@ import {
   MessageCircle,
   RefreshCw,
   Send,
+  Share2,
   Smile,
   Sparkles,
   UserCheck,
@@ -134,6 +135,7 @@ export function CafeExperience() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const inviteCodeParam = searchParams.get("code")?.trim().toUpperCase() || "";
+  const roomIdParam = searchParams.get("room")?.trim() || "";
 
   // Auth & Profile state
   const [profile, setProfile] = useState<UserProfileDTO | null>(null);
@@ -185,8 +187,8 @@ export function CafeExperience() {
   const [upgradePassword, setUpgradePassword] = useState("");
   const [upgradeError, setUpgradeError] = useState<string | null>(null);
 
-  // Chat & Emotes & Moderation
-  const [chatOpen, setChatOpen] = useState(true);
+  // Chat & Emotes & Moderation (starts closed on mobile so café floor & table drawer stay uncluttered!)
+  const [chatOpen, setChatOpen] = useState(false);
   const [unreadCafeChat, setUnreadCafeChat] = useState(0);
   const [emoteOpen, setEmoteOpen] = useState(false);
   const [chatScope, setChatScope] = useState<"cafe" | "table">("cafe");
@@ -217,10 +219,56 @@ export function CafeExperience() {
     }, 3600);
   }, []);
 
-  // Detect touch devices for auto-showing mobile joystick
+  const handleShareInvite = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    const url =
+      roomMeta.isPrivate && roomMeta.accessCode
+        ? `${window.location.origin}/cafe?code=${roomMeta.accessCode}`
+        : roomMeta.roomId
+          ? `${window.location.origin}/cafe?room=${roomMeta.roomId}`
+          : `${window.location.origin}/cafe`;
+
+    const shareText =
+      roomMeta.isPrivate && roomMeta.accessCode
+        ? `Join my private TableFolk Café (${roomMeta.cafeName})! Code: ${roomMeta.accessCode}`
+        : `Come hang out & play Treasure Trails with me at ${roomMeta.cafeName}!`;
+
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      try {
+        await navigator.share({
+          title: "Join me on TableFolk!",
+          text: shareText,
+          url,
+        });
+        return;
+      } catch (err) {
+        // User cancelled share sheet -> do nothing; other errors fall back to clipboard copy
+        if ((err as Error)?.name === "AbortError") return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedCode(true);
+      showToast(
+        roomMeta.isPrivate && roomMeta.accessCode
+          ? `Invite link copied! Code: ${roomMeta.accessCode}`
+          : "Café invite link copied! Send it to friends."
+      );
+      setTimeout(() => setCopiedCode(false), 2000);
+    } catch {
+      showToast(`Share this link: ${url}`);
+    }
+  }, [roomMeta.accessCode, roomMeta.cafeName, roomMeta.isPrivate, roomMeta.roomId, showToast]);
+
+  // Detect touch devices for auto-showing mobile joystick; open chat by default only on desktop
   useEffect(() => {
-    if (typeof window !== "undefined" && "ontouchstart" in window) {
+    if (typeof window === "undefined") return;
+    if ("ontouchstart" in window) {
       setShowJoystick(true);
+    }
+    if (window.innerWidth >= 768) {
+      setChatOpen(true);
     }
   }, []);
 
@@ -382,19 +430,22 @@ export function CafeExperience() {
               accessCode: opts.accessCode,
             });
           } catch (roomErr) {
-            // If a specific room expired while the mobile browser was sleeping, fall back gracefully!
-            if (isReconnect) {
-              if (opts.accessCode) {
+            // If a specific room expired (while sleeping or from an older shared link), fall back gracefully!
+            if (opts.accessCode) {
+              if (isReconnect) {
                 const resolved = await resolvePrivateCafeCode(opts.accessCode);
                 room = await client.joinById(resolved.roomId, {
                   token,
                   accessCode: resolved.accessCode,
                 });
               } else {
-                room = await client.joinOrCreate("cafe", { token });
+                throw roomErr;
               }
             } else {
-              throw roomErr;
+              room = await client.joinOrCreate("cafe", { token });
+              if (!isReconnect) {
+                showToast("That café room closed — joined an active Sunlit Oak Café!");
+              }
             }
           }
         } else if (opts?.accessCode) {
@@ -591,7 +642,11 @@ export function CafeExperience() {
   useEffect(() => {
     if (!userId) return;
     void connectToCafe(
-      inviteCodeParam ? { accessCode: inviteCodeParam } : undefined
+      inviteCodeParam
+        ? { accessCode: inviteCodeParam }
+        : roomIdParam
+          ? { roomId: roomIdParam }
+          : undefined
     );
     void fetchMyActiveGame()
       .then((ag) => {
@@ -607,7 +662,7 @@ export function CafeExperience() {
       cafeRoomRef.current = null;
       void current?.leave();
     };
-  }, [userId, inviteCodeParam, connectToCafe, clearReconnectTimers]);
+  }, [userId, inviteCodeParam, roomIdParam, connectToCafe, clearReconnectTimers]);
 
   // Recover seamlessly when returning from mobile browser minimize / sleep / network switch!
   useEffect(() => {
@@ -818,20 +873,22 @@ export function CafeExperience() {
             </div>
           </button>
 
-          {roomMeta.isPrivate && roomMeta.accessCode && (
+          {roomMeta.roomId && (
             <button
               type="button"
-              onClick={() => {
-                const url = `${window.location.origin}/cafe?code=${roomMeta.accessCode}`;
-                void navigator.clipboard.writeText(url);
-                setCopiedCode(true);
-                showToast(`Invite link copied! Code: ${roomMeta.accessCode}`);
-                setTimeout(() => setCopiedCode(false), 2000);
-              }}
-              className="inline-flex items-center gap-1.5 rounded-2xl border border-amberwarm-400 bg-amberwarm-100/95 px-3 py-2 text-xs font-bold text-espresso shadow-sm hover:bg-amberwarm-400"
+              onClick={() => void handleShareInvite()}
+              className="inline-flex items-center gap-1.5 rounded-2xl border border-amberwarm-400 bg-amberwarm-100/95 px-3 py-2 text-xs font-bold text-espresso shadow-sm transition hover:bg-amberwarm-400"
             >
-              {copiedCode ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-              Code: {roomMeta.accessCode}
+              {copiedCode ? (
+                <Check className="h-3.5 w-3.5 text-sage-700" />
+              ) : roomMeta.isPrivate && roomMeta.accessCode ? (
+                <Copy className="h-3.5 w-3.5" />
+              ) : (
+                <Share2 className="h-3.5 w-3.5" />
+              )}
+              {roomMeta.isPrivate && roomMeta.accessCode
+                ? `Code: ${roomMeta.accessCode}`
+                : "Invite"}
             </button>
           )}
         </div>
@@ -1021,6 +1078,7 @@ export function CafeExperience() {
               })
             }
             onResumeGame={(gameRoomId) => setActiveGameRoomId(gameRoomId)}
+            onShareInvite={() => void handleShareInvite()}
             onOpenTutorial={() => setShowCashierModal(true)}
           />
         </div>

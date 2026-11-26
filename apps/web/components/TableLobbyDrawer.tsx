@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Bot, Check, Crown, LogOut, Play, Plus, Trash2 } from "lucide-react";
+import { Bot, Check, Crown, LogOut, Play, Plus, Share2, Trash2 } from "lucide-react";
 import type { SyncedTableSnapshot } from "@tablefolk/cafe-engine";
 
 interface TableLobbyDrawerProps {
@@ -18,6 +18,7 @@ interface TableLobbyDrawerProps {
     mysteryRoles: boolean;
   }) => void;
   onResumeGame?: (gameRoomId: string) => void;
+  onShareInvite?: () => void;
   onOpenTutorial: () => void;
 }
 
@@ -31,6 +32,7 @@ export function TableLobbyDrawer({
   onRemoveBot,
   onStartGame,
   onResumeGame,
+  onShareInvite,
   onOpenTutorial,
 }: TableLobbyDrawerProps) {
   const [rounds, setRounds] = useState<1 | 3>(1);
@@ -62,13 +64,25 @@ export function TableLobbyDrawer({
             {canPlayTreasureTrails ? "🗺️ Treasure Trails" : "☕ Cozy 2-Seat Table"}
           </h3>
         </div>
-        <button
-          type="button"
-          onClick={onStandUp}
-          className="inline-flex items-center gap-1 rounded-xl bg-oat-200 px-3 py-1.5 text-xs font-bold text-espresso hover:bg-terracotta-100 hover:text-terracotta-700"
-        >
-          <LogOut className="h-3.5 w-3.5" /> Stand Up
-        </button>
+        <div className="flex items-center gap-1.5">
+          {onShareInvite && (
+            <button
+              type="button"
+              onClick={onShareInvite}
+              title="Share invite link with friends"
+              className="inline-flex items-center gap-1 rounded-xl bg-amberwarm-100 px-2.5 py-1.5 text-xs font-bold text-espresso hover:bg-amberwarm-400"
+            >
+              <Share2 className="h-3.5 w-3.5" /> Invite
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onStandUp}
+            className="inline-flex items-center gap-1 rounded-xl bg-oat-200 px-3 py-1.5 text-xs font-bold text-espresso hover:bg-terracotta-100 hover:text-terracotta-700"
+          >
+            <LogOut className="h-3.5 w-3.5" /> Stand Up
+          </button>
+        </div>
       </div>
 
       {/* Seat Pills */}

@@ -4,6 +4,7 @@
  * seamlessly rejoin after tapping out, refreshing, or minimizing mobile browsers.
  */
 type TableFinishedHandler = (tableId: string) => void;
+type TableRestartedHandler = (tableId: string, gameRoomId: string) => void;
 type GameAbortHandler = () => void;
 
 export interface ActiveUserGameRef {
@@ -13,13 +14,23 @@ export interface ActiveUserGameRef {
   gameSlug: string;
 }
 
-const cafeHandlers = new Map<string, TableFinishedHandler>();
+const cafeHandlers = new Map<
+  string,
+  { onFinished: TableFinishedHandler; onRestarted?: TableRestartedHandler }
+>();
 const gameAbortHandlers = new Map<string, GameAbortHandler>();
 const privateCodeToRoomId = new Map<string, string>();
 const activeUserGames = new Map<string, ActiveUserGameRef>();
 
-export function registerCafeRoom(roomId: string, onTableFinished: TableFinishedHandler): void {
-  cafeHandlers.set(roomId, onTableFinished);
+export function registerCafeRoom(
+  roomId: string,
+  onTableFinished: TableFinishedHandler,
+  onTableRestarted?: TableRestartedHandler
+): void {
+  cafeHandlers.set(roomId, {
+    onFinished: onTableFinished,
+    onRestarted: onTableRestarted,
+  });
 }
 
 export function unregisterCafeRoom(roomId: string, accessCode?: string): void {
@@ -30,10 +41,15 @@ export function unregisterCafeRoom(roomId: string, accessCode?: string): void {
 }
 
 export function notifyCafeTableFinished(cafeRoomId: string, tableId: string): void {
-  const handler = cafeHandlers.get(cafeRoomId);
-  if (handler) {
-    handler(tableId);
-  }
+  cafeHandlers.get(cafeRoomId)?.onFinished(tableId);
+}
+
+export function notifyCafeTableRestarted(
+  cafeRoomId: string,
+  tableId: string,
+  gameRoomId: string
+): void {
+  cafeHandlers.get(cafeRoomId)?.onRestarted?.(tableId, gameRoomId);
 }
 
 export function registerGameRoom(

@@ -114,9 +114,15 @@ export class CafeRoom extends Room<CafeRoomState> {
       isPrivate: state.isPrivate,
     });
 
-    registerCafeRoom(this.roomId, (tableId) => {
-      this.handleGameFinished(tableId);
-    });
+    registerCafeRoom(
+      this.roomId,
+      (tableId) => {
+        this.handleGameFinished(tableId);
+      },
+      (tableId, gameRoomId) => {
+        this.handleGameRestarted(tableId, gameRoomId);
+      }
+    );
 
     this.registerMessageHandlers();
   }
@@ -775,5 +781,20 @@ export class CafeRoom extends Room<CafeRoomState> {
     }
 
     this.recomputeTableStatus(table);
+  }
+
+  private handleGameRestarted(tableId: string, gameRoomId: string) {
+    const table = this.state.tables.get(tableId);
+    if (!table) return;
+    table.status = "IN_PROGRESS";
+    table.activeGameRoomId = gameRoomId;
+    for (const seat of table.seats) {
+      if (seat.status === "OCCUPIED") {
+        const p = this.state.players.get(seat.occupantSessionId);
+        if (p) {
+          p.inGameSessionId = gameRoomId;
+        }
+      }
+    }
   }
 }
