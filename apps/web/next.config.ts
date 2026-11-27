@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
     "@tablefolk/game-engine",
     "@tablefolk/game-harborreach",
     "@tablefolk/game-hearthvale",
+    "@tablefolk/game-lantern-watch",
     "@tablefolk/game-sunstone-guild",
     "@tablefolk/game-treasure-trails",
     "@tablefolk/game-velvet-masque",

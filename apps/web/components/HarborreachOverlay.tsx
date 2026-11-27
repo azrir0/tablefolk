@@ -52,11 +52,14 @@ import { hasCompletedQuickTour } from "@/lib/gameQuickTours";
 import { soundEngine } from "@/lib/sound";
 import { GameIcon, harborResourceToIconName } from "./GameIcons";
 import { GameQuickTour } from "./GameQuickTour";
+import { GuidedTutorialCoach } from "./GuidedTutorialCoach";
+import { buildHarborreachGuide } from "@/lib/guidedTutorials";
 import { HarborreachBoardSvg } from "./HarborreachBoardSvg";
 
 interface HarborreachOverlayProps {
   gameRoomId: string;
   myUserId: string;
+  tutorialMode?: boolean;
   onExitGame: (info?: { finished?: boolean; notice?: string }) => void;
   onOpenTutorial: () => void;
 }
@@ -76,6 +79,7 @@ type BuildMode = "none" | "road" | "cottage" | "town";
 export function HarborreachOverlay({
   gameRoomId,
   myUserId,
+  tutorialMode = false,
   onExitGame,
   onOpenTutorial,
 }: HarborreachOverlayProps) {
@@ -261,13 +265,13 @@ export function HarborreachOverlay({
 
   const hasPublicState = Boolean(publicState);
   useEffect(() => {
-    if (!hasPublicState || isSpectator || autoTourCheckedRef.current) return;
+    if (!hasPublicState || isSpectator || tutorialMode || autoTourCheckedRef.current) return;
     autoTourCheckedRef.current = true;
     if (!hasCompletedQuickTour("harborreach")) {
       const t = setTimeout(() => setShowQuickTour(true), 650);
       return () => clearTimeout(t);
     }
-  }, [hasPublicState, isSpectator]);
+  }, [hasPublicState, isSpectator, tutorialMode]);
 
   useEffect(() => {
     const tick = () => {
@@ -1663,6 +1667,25 @@ export function HarborreachOverlay({
           onOpenTutorial();
         }}
       />
+
+      {tutorialMode && !isSpectator && publicState && me && (
+        <GuidedTutorialCoach
+          model={buildHarborreachGuide({
+            phase: publicState.phase,
+            step,
+            isMyTurn,
+            mustDiscard,
+            myVP: me.publicVP,
+            targetVP: publicState.targetVP,
+            totalResources: me.resourceCount,
+            compassCharges: me.compassCharges,
+            cottagesBuilt: 5 - me.cottagesRemaining,
+            roadsBuilt: 15 - me.roadsRemaining,
+          })}
+          onOpenRules={onOpenTutorial}
+          onExitTutorial={() => onExitGame({ finished: publicState.phase === "GAME_END" })}
+        />
+      )}
     </div>
   );
 }

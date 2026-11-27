@@ -37,7 +37,13 @@ export type QuickTourVisualId =
   | "ds-hand"
   | "ds-actions"
   | "ds-neighbors"
-  | "ds-kingdoms";
+  | "ds-kingdoms"
+  | "lw-goal"
+  | "lw-council"
+  | "lw-actions"
+  | "lw-dossier"
+  | "lw-ledger"
+  | "lw-chronicle";
 
 export interface QuickTourFeatureBullet {
   label: string;
@@ -919,6 +925,148 @@ export const GAME_QUICK_TOURS: Record<SupportedGameSlug, GameQuickTourConfig> = 
       },
     ],
   },
+
+  "lantern-watch": {
+    slug: "lantern-watch",
+    title: "Lantern Watch",
+    subtitle: "6-step interactive guide to covert crews, public votes & secret roles",
+    estimatedSec: 45,
+    icon: "game-lantern",
+    steps: [
+      {
+        id: "lw-step-1",
+        targetId: "lw-header",
+        badge: "GOAL & BEACONS",
+        title: "5 Coastal Beacons & Chaos Track",
+        icon: "game-lantern",
+        accent: "amber",
+        summary:
+          "First faction to win **3 of 5 Coastal Beacons** claims the harbor — with **zero player elimination** so everyone stays in every vote!",
+        features: [
+          {
+            label: "Beacon Crew Sizes",
+            detail: "Each glowing circle shows how many couriers depart (7–8p Beacon 4 needs 2 Fails!).",
+          },
+          {
+            label: "Chaos Track (0/5)",
+            detail: "5 rejected proposals in a row collapses the Council — instant Shadow Mole win!",
+          },
+        ],
+        tryItHint: "Tap the Role Privacy pill in the top bar anytime to hide your secret identity!",
+        visualId: "lw-goal",
+      },
+      {
+        id: "lw-step-2",
+        targetId: "lw-council",
+        badge: "HARBOR COUNCIL",
+        title: "Commander Seal, Crew & Secret Sightings",
+        icon: "lw-commander",
+        accent: "sage",
+        summary:
+          "The **Lantern Commander** rotates clockwise after every vote. Watch for Commander badges, Brass Spyglass icons, and flipped public votes!",
+        features: [
+          {
+            label: "Tap Seats to Nominate",
+            detail: "When you hold the Commander Seal, tap any seats here to assemble your mission crew.",
+          },
+          {
+            label: "Private Intel Halos",
+            detail: "Oracle, Warden, Shadow Allies, and Spyglass checks mark seats privately for your eyes only.",
+          },
+        ],
+        tryItHint: "Every player's most recent Approve or Reject vote appears right on their seat card.",
+        visualId: "lw-council",
+      },
+      {
+        id: "lw-step-3",
+        targetId: "lw-actions",
+        badge: "ROUND LOOP",
+        title: "Propose, Vote Publicly & Execute Secretly",
+        icon: "lw-beacon",
+        accent: "amber",
+        summary:
+          "Every beacon follows **3 crisp steps**: Commander proposes a team, everyone votes **Approve** or **Reject**, then the crew plays secret cards!",
+        features: [
+          {
+            label: "Strict Majority Vote",
+            detail: "More Approves than Rejects launches the crew — ties count as Reject and raise Chaos.",
+          },
+          {
+            label: "Anonymous Mission Shuffle",
+            detail: "Loyal couriers can only play Light; Shadow Moles may Extinguish or bluff Light!",
+          },
+        ],
+        tryItHint: "At Chaos 4/5, Loyal players must Approve to prevent Shadow Council Collapse!",
+        visualId: "lw-actions",
+      },
+      {
+        id: "lw-step-4",
+        targetId: "lw-dossier",
+        badge: "SECRET ROLES",
+        title: "Your Dossier, Oracle & Brass Spyglass",
+        icon: "lw-oracle",
+        accent: "terracotta",
+        summary:
+          "Check your **Secret Dossier** for your faction, special role sightings, and any private **Brass Spyglass** inspections you perform!",
+        features: [
+          {
+            label: "Oracle & Warden",
+            detail: "Oracle sees Shadow Moles (except Veiled Mole at 7–8p); Warden sees Oracle + Mirage.",
+          },
+          {
+            label: "Brass Spyglass (5–8p)",
+            detail: "After Missions 2, 3, and 4 in Oracle mode, privately check 1 unchecked courier's faction!",
+          },
+        ],
+        tryItHint: "Use the Hide button on your Dossier whenever playing side-by-side or sharing a screen.",
+        visualId: "lw-dossier",
+      },
+      {
+        id: "lw-step-5",
+        targetId: "lw-ledger",
+        badge: "CORE WEAPON",
+        title: "Always-Visible Council Vote Ledger",
+        icon: "lw-warden",
+        accent: "sage",
+        summary:
+          "Deduction lives in the **Council Vote Ledger** — every proposed team, every player's **Approve/Reject** dot, and every shuffled Beacon tally!",
+        features: [
+          {
+            label: "Spot Voting Blocs",
+            detail: "Gold rings mark who was on each crew; see who pushed failed teams through!",
+          },
+          {
+            label: "Nightblade Clues",
+            detail: "Careful if you are The Oracle — voting too perfectly reveals you to the Nightblade!",
+          },
+        ],
+        tryItHint: "Look for players who rejected clean teams or eagerly approved sabotaged crews.",
+        visualId: "lw-ledger",
+      },
+      {
+        id: "lw-step-6",
+        targetId: "lw-chronicle",
+        badge: "FINAL CLIMAX",
+        title: "Watch Chronicle & Nightblade Unmasking",
+        icon: "lw-nightblade",
+        accent: "terracotta",
+        summary:
+          "Follow live Harbor Chronicle events and debate in **Table Chat**. In Oracle mode, 3 Lit Beacons triggers the **Nightblade's Final Shot**!",
+        features: [
+          {
+            label: "One Final Call",
+            detail: "The Nightblade names 1 Loyal courier as The Oracle — a direct hit steals Shadow victory!",
+          },
+          {
+            label: "Full Role Reveal",
+            detail: "Every identity reveals together at game end with instant 1-click Rematch!",
+          },
+        ],
+        tryItHint: "You're ready to take the Watch — study your Secret Dossier and trust the Ledger!",
+        visualId: "lw-chronicle",
+      },
+    ],
+  },
 };
 
 export function getGameQuickTour(slug?: string): GameQuickTourConfig {
@@ -927,6 +1075,7 @@ export function getGameQuickTour(slug?: string): GameQuickTourConfig {
   if (slug === "sunstone-guild") return GAME_QUICK_TOURS["sunstone-guild"];
   if (slug === "harborreach") return GAME_QUICK_TOURS.harborreach;
   if (slug === "dawnspire") return GAME_QUICK_TOURS.dawnspire;
+  if (slug === "lantern-watch") return GAME_QUICK_TOURS["lantern-watch"];
   return GAME_QUICK_TOURS["treasure-trails"];
 }
 

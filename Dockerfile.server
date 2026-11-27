@@ -17,6 +17,7 @@ COPY packages/game-engine/package.json packages/game-engine/
 COPY packages/games/dawnspire/package.json packages/games/dawnspire/
 COPY packages/games/harborreach/package.json packages/games/harborreach/
 COPY packages/games/hearthvale/package.json packages/games/hearthvale/
+COPY packages/games/lantern-watch/package.json packages/games/lantern-watch/
 COPY packages/games/sunstone-guild/package.json packages/games/sunstone-guild/
 COPY packages/games/treasure-trails/package.json packages/games/treasure-trails/
 COPY packages/games/velvet-masque/package.json packages/games/velvet-masque/
@@ -34,6 +35,7 @@ COPY packages/game-engine packages/game-engine
 COPY packages/games/dawnspire packages/games/dawnspire
 COPY packages/games/harborreach packages/games/harborreach
 COPY packages/games/hearthvale packages/games/hearthvale
+COPY packages/games/lantern-watch packages/games/lantern-watch
 COPY packages/games/sunstone-guild packages/games/sunstone-guild
 COPY packages/games/treasure-trails packages/games/treasure-trails
 COPY packages/games/velvet-masque packages/games/velvet-masque

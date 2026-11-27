@@ -45,11 +45,14 @@ import { soundEngine } from "@/lib/sound";
 import { BoardMarkerLayer, BoardMarkerToolbar } from "./BoardMarkerLayer";
 import { GameIcon, masqueToIconName } from "./GameIcons";
 import { GameQuickTour } from "./GameQuickTour";
+import { GuidedTutorialCoach } from "./GuidedTutorialCoach";
+import { buildVelvetMasqueGuide } from "@/lib/guidedTutorials";
 import { VelvetMasqueCardSvg } from "./VelvetMasqueCardSvg";
 
 interface VelvetMasqueOverlayProps {
   gameRoomId: string;
   myUserId: string;
+  tutorialMode?: boolean;
   onExitGame: (info?: { finished?: boolean; notice?: string }) => void;
   onOpenTutorial: () => void;
 }
@@ -247,6 +250,7 @@ function MasqueChatPanel({
 export function VelvetMasqueOverlay({
   gameRoomId,
   myUserId,
+  tutorialMode = false,
   onExitGame,
   onOpenTutorial,
 }: VelvetMasqueOverlayProps) {
@@ -807,6 +811,7 @@ export function VelvetMasqueOverlay({
       !pub ||
       pub.phase !== "IN_PROGRESS" ||
       isSpectator ||
+      tutorialMode ||
       pub.step === "CURTAIN_CALL"
     ) {
       return;
@@ -816,7 +821,7 @@ export function VelvetMasqueOverlay({
       const t = window.setTimeout(() => setShowQuickTour(true), 450);
       return () => window.clearTimeout(t);
     }
-  }, [pub, isSpectator]);
+  }, [pub, isSpectator, tutorialMode]);
 
   const isOpeningSwapOnly = Boolean(
     pub && pub.step === "CHOOSE_ACTION" && pub.turnNumber <= OPENING_SWAP_ONLY_TURNS
@@ -2119,6 +2124,25 @@ export function VelvetMasqueOverlay({
         onClose={() => setShowQuickTour(false)}
         onOpenFullRules={onOpenTutorial}
       />
+
+      {tutorialMode && !isSpectator && pub && myPublic && (
+        <GuidedTutorialCoach
+          model={buildVelvetMasqueGuide({
+            phase: pub.phase,
+            step: pub.step,
+            isMyChooseAction,
+            isMyCloakChoice,
+            isMyPowerChoice,
+            needsMyChallengeResponse,
+            isOpeningSwapOnly,
+            myCoins: myPublic.coins,
+            targetCoins: pub.config.targetCoins,
+            turnNumber: pub.turnNumber,
+          })}
+          onOpenRules={onOpenTutorial}
+          onExitTutorial={() => onExitGame({ finished: pub.phase === "COMPLETED" })}
+        />
+      )}
     </div>
   );
 }

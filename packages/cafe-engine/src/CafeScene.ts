@@ -1626,7 +1626,9 @@ export class CozyCafeScene extends Phaser.Scene {
                 ? 0x1e7d74
                 : slug === "dawnspire"
                   ? 0x8b3a62
-                  : 0xf2c25b;
+                  : slug === "lantern-watch"
+                    ? 0x2d3a59
+                    : 0xf2c25b;
       const innerColor =
         slug === "velvet-masque"
           ? 0xf4c145
@@ -1638,7 +1640,9 @@ export class CozyCafeScene extends Phaser.Scene {
                 ? 0xf2d17a
                 : slug === "dawnspire"
                   ? 0xf4c762
-                  : 0x529b76;
+                  : slug === "lantern-watch"
+                    ? 0xf2b749
+                    : 0x529b76;
       drawRoundedRect(ctx, -15, -10, 30, 20, 4, toRgba(outerColor, 1), toRgba(0x5c3e29, 1), 1.8);
       drawRoundedRect(ctx, -10, -6.5, 20, 13, 2, toRgba(innerColor, 1));
     });

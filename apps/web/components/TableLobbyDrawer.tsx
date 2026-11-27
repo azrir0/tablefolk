@@ -7,6 +7,7 @@ import {
   Check,
   Compass,
   Crown,
+  GraduationCap,
   LogOut,
   Play,
   Plus,
@@ -34,11 +35,13 @@ interface TableLobbyDrawerProps {
     targetPrestige: 12 | 15;
     targetVP: 8 | 10;
     wonderSide: "sunlit" | "starlit";
+    watchMode: "classic" | "oracle";
   }) => void;
   onResumeGame?: (gameRoomId: string) => void;
   onShareInvite?: () => void;
   onOpenTutorial: () => void;
   onOpenQuickTour?: () => void;
+  onStartGuidedTutorial?: () => void;
 }
 
 export function TableLobbyDrawer({
@@ -55,6 +58,7 @@ export function TableLobbyDrawer({
   onShareInvite,
   onOpenTutorial,
   onOpenQuickTour,
+  onStartGuidedTutorial,
 }: TableLobbyDrawerProps) {
   const [rounds, setRounds] = useState<1 | 3>(1);
   const [deckSize, setDeckSize] = useState<36 | 54>(36);
@@ -62,6 +66,7 @@ export function TableLobbyDrawer({
   const [targetPrestige, setTargetPrestige] = useState<12 | 15>(15);
   const [targetVP, setTargetVP] = useState<8 | 10>(10);
   const [wonderSide, setWonderSide] = useState<"sunlit" | "starlit">("sunlit");
+  const [watchMode, setWatchMode] = useState<"classic" | "oracle">("oracle");
   const [turnSeconds, setTurnSeconds] = useState<30 | 45 | 60 | 90>(45);
   const [mysteryRoles, setMysteryRoles] = useState(false);
 
@@ -71,34 +76,46 @@ export function TableLobbyDrawer({
   const botCount = occupied.filter((s) => s.isBot).length;
   const humanCount = occupied.filter((s) => !s.isBot).length;
 
-  const isDawnspire = table.selectedGameSlug === "dawnspire";
-  const isHarborreach = !isDawnspire && table.selectedGameSlug === "harborreach";
+  const isLanternWatch = table.selectedGameSlug === "lantern-watch";
+  const isDawnspire = !isLanternWatch && table.selectedGameSlug === "dawnspire";
+  const isHarborreach =
+    !isLanternWatch && !isDawnspire && table.selectedGameSlug === "harborreach";
   const isSunstoneGuild =
-    !isDawnspire && !isHarborreach && table.selectedGameSlug === "sunstone-guild";
+    !isLanternWatch &&
+    !isDawnspire &&
+    !isHarborreach &&
+    table.selectedGameSlug === "sunstone-guild";
   const isHearthvale =
+    !isLanternWatch &&
     !isDawnspire &&
     !isHarborreach &&
     !isSunstoneGuild &&
     (table.selectedGameSlug === "hearthvale" || table.capacity < 3);
   const isVelvetMasque =
+    !isLanternWatch &&
     !isDawnspire &&
     !isHarborreach &&
     !isSunstoneGuild &&
     !isHearthvale &&
     table.selectedGameSlug === "velvet-masque";
-  const gameTitle = isDawnspire
-    ? "Dawnspire"
-    : isHarborreach
-      ? "Harborreach"
-      : isSunstoneGuild
-        ? "Sunstone Guild"
-        : isHearthvale
-          ? "Hearthvale"
-          : isVelvetMasque
-            ? "Velvet Masque"
-            : "Treasure Trails";
-  const minPlayers =
-    isHearthvale || isSunstoneGuild || isHarborreach || isDawnspire ? 2 : 3;
+  const gameTitle = isLanternWatch
+    ? "Lantern Watch"
+    : isDawnspire
+      ? "Dawnspire"
+      : isHarborreach
+        ? "Harborreach"
+        : isSunstoneGuild
+          ? "Sunstone Guild"
+          : isHearthvale
+            ? "Hearthvale"
+            : isVelvetMasque
+              ? "Velvet Masque"
+              : "Treasure Trails";
+  const minPlayers = isLanternWatch
+    ? 4
+    : isHearthvale || isSunstoneGuild || isHarborreach || isDawnspire
+      ? 2
+      : 3;
   const maxPlayers = Math.min(
     table.capacity,
     isSunstoneGuild || isHarborreach
@@ -152,32 +169,36 @@ export function TableLobbyDrawer({
         <h3 className="flex items-center gap-2 font-display text-lg font-bold leading-tight text-espresso short:text-base">
           <span
             className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border shadow-sm short:h-6 short:w-6 ${
-              isDawnspire
-                ? "border-[#8B3A62]/60 bg-[#8B3A62]/15"
-                : isHarborreach
-                  ? "border-[#1E7D74]/60 bg-[#1E7D74]/15"
-                  : isSunstoneGuild
-                    ? "border-amberwarm-400/70 bg-[#2B5096]/15"
-                    : isHearthvale
-                      ? "border-amberwarm-400/60 bg-amberwarm-100"
-                      : isVelvetMasque
-                        ? "border-terracotta-500/40 bg-terracotta-100"
-                        : "border-sage-300 bg-sage-100"
+              isLanternWatch
+                ? "border-[#2D3A59]/60 bg-[#2D3A59]/15"
+                : isDawnspire
+                  ? "border-[#8B3A62]/60 bg-[#8B3A62]/15"
+                  : isHarborreach
+                    ? "border-[#1E7D74]/60 bg-[#1E7D74]/15"
+                    : isSunstoneGuild
+                      ? "border-amberwarm-400/70 bg-[#2B5096]/15"
+                      : isHearthvale
+                        ? "border-amberwarm-400/60 bg-amberwarm-100"
+                        : isVelvetMasque
+                          ? "border-terracotta-500/40 bg-terracotta-100"
+                          : "border-sage-300 bg-sage-100"
             }`}
           >
             <GameIcon
               name={
-                isDawnspire
-                  ? "game-dawnspire"
-                  : isHarborreach
-                    ? "game-harbor"
-                    : isSunstoneGuild
-                      ? "game-sunstone"
-                      : isHearthvale
-                        ? "game-hearthvale"
-                        : isVelvetMasque
-                          ? "game-masque"
-                          : "game-trails"
+                isLanternWatch
+                  ? "game-lantern"
+                  : isDawnspire
+                    ? "game-dawnspire"
+                    : isHarborreach
+                      ? "game-harbor"
+                      : isSunstoneGuild
+                        ? "game-sunstone"
+                        : isHearthvale
+                          ? "game-hearthvale"
+                          : isVelvetMasque
+                            ? "game-masque"
+                            : "game-trails"
               }
               className="h-4 w-4"
             />
@@ -187,29 +208,33 @@ export function TableLobbyDrawer({
 
         <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-oat-300/80 bg-oat-100 px-2.5 py-1 text-[11px] font-bold leading-none text-espresso-soft">
           <span>
-            {isDawnspire
-              ? "2–7p"
-              : isHarborreach || isSunstoneGuild
-                ? "2–4p"
-                : isHearthvale
-                  ? "2–5p"
-                  : "3–8p"}
+            {isLanternWatch
+              ? "4–8p"
+              : isDawnspire
+                ? "2–7p"
+                : isHarborreach || isSunstoneGuild
+                  ? "2–4p"
+                  : isHearthvale
+                    ? "2–5p"
+                    : "3–8p"}
           </span>
           <span className="text-oat-300" aria-hidden="true">
             ·
           </span>
           <span>
-            {isDawnspire
-              ? "Card Drafting"
-              : isHarborreach
-                ? "Island Strategy"
-                : isSunstoneGuild
-                  ? "Gem Engine"
-                  : isHearthvale
-                    ? "Tile Strategy"
-                    : isVelvetMasque
-                      ? "Bluff & Memory"
-                      : "Hidden Role"}
+            {isLanternWatch
+              ? "Social Deduction"
+              : isDawnspire
+                ? "Card Drafting"
+                : isHarborreach
+                  ? "Island Strategy"
+                  : isSunstoneGuild
+                    ? "Gem Engine"
+                    : isHearthvale
+                      ? "Tile Strategy"
+                      : isVelvetMasque
+                        ? "Bluff & Memory"
+                        : "Hidden Role"}
           </span>
         </span>
       </div>
@@ -308,10 +333,10 @@ export function TableLobbyDrawer({
                 </div>
               </div>
 
-              {/* Game Switcher (2-seat tables: 4 head-to-head games; 3+ seats: all 6!) */}
+              {/* Game Switcher (2-seat tables: 4 head-to-head games; 4+ seats: all 7!) */}
               {onSelectGame &&
                 (table.capacity >= 3 ? (
-                  <div className="grid grid-cols-3 gap-1 rounded-xl bg-white p-1 text-[10px] font-bold shadow-sm sm:text-[11px] short:p-0.5">
+                  <div className="grid grid-cols-3 gap-1 rounded-xl bg-white p-1 text-[10px] font-bold shadow-sm sm:grid-cols-4 sm:text-[10.5px] short:grid-cols-4 short:p-0.5">
                     <button
                       type="button"
                       onClick={() => onSelectGame("treasure-trails")}
@@ -320,7 +345,8 @@ export function TableLobbyDrawer({
                         !isVelvetMasque &&
                         !isSunstoneGuild &&
                         !isHarborreach &&
-                        !isDawnspire
+                        !isDawnspire &&
+                        !isLanternWatch
                           ? "bg-sage-500 text-white shadow-sm"
                           : "text-espresso-soft hover:bg-oat-100"
                       }`}
@@ -382,6 +408,19 @@ export function TableLobbyDrawer({
                     >
                       <GameIcon name="game-dawnspire" className="h-3.5 w-3.5 shrink-0" /> Dawnspire
                     </button>
+                    {table.capacity >= 4 && (
+                      <button
+                        type="button"
+                        onClick={() => onSelectGame("lantern-watch")}
+                        className={`col-span-3 inline-flex items-center justify-center gap-1 rounded-lg px-1.5 py-1.5 transition sm:col-span-2 short:col-span-2 short:py-1 ${
+                          isLanternWatch
+                            ? "bg-[#2D3A59] text-[#FDE68A] shadow-sm"
+                            : "text-espresso-soft hover:bg-oat-100"
+                        }`}
+                      >
+                        <GameIcon name="game-lantern" className="h-3.5 w-3.5 shrink-0" /> Lantern Watch
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-1 rounded-xl bg-white p-1 text-[10.5px] font-bold shadow-sm short:p-0.5">
@@ -445,7 +484,29 @@ export function TableLobbyDrawer({
 
               {/* Game-Specific Settings */}
               <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold">
-                {isDawnspire ? (
+                {isLanternWatch ? (
+                  <div className="flex rounded-lg bg-white p-0.5 shadow-sm">
+                    {(
+                      [
+                        ["oracle", "Oracle & Shade"],
+                        ["classic", "Classic Watch"],
+                      ] as const
+                    ).map(([m, label]) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setWatchMode(m)}
+                        className={`rounded-md px-2.5 py-1 ${
+                          watchMode === m
+                            ? "bg-[#2D3A59] text-[#FDE68A]"
+                            : "text-espresso-soft"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                ) : isDawnspire ? (
                   <div className="flex rounded-lg bg-white p-0.5 shadow-sm">
                     {(
                       [
@@ -586,6 +647,7 @@ export function TableLobbyDrawer({
                   !isSunstoneGuild &&
                   !isHarborreach &&
                   !isDawnspire &&
+                  !isLanternWatch &&
                   occupied.length >= 5 && (
                     <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-white px-2 py-1 shadow-sm">
                       <input
@@ -616,20 +678,23 @@ export function TableLobbyDrawer({
                     targetPrestige,
                     targetVP,
                     wonderSide,
+                    watchMode,
                   })
                 }
                 className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl py-2.5 font-display text-sm font-bold text-white shadow-sm transition disabled:bg-oat-300 disabled:text-espresso-muted short:py-1.5 short:text-xs ${
-                  isDawnspire
-                    ? "bg-[#8B3A62] hover:brightness-110"
-                    : isHarborreach
-                      ? "bg-[#1E7D74] hover:brightness-110"
-                      : isSunstoneGuild
-                        ? "bg-[#2B5096] hover:brightness-110"
-                        : isHearthvale
-                          ? "bg-amberwarm-600 hover:brightness-95"
-                          : isVelvetMasque
-                            ? "bg-terracotta-500 hover:bg-terracotta-700"
-                            : "bg-sage-500 hover:bg-sage-700"
+                  isLanternWatch
+                    ? "bg-[#2D3A59] text-[#FDE68A] hover:brightness-110"
+                    : isDawnspire
+                      ? "bg-[#8B3A62] hover:brightness-110"
+                      : isHarborreach
+                        ? "bg-[#1E7D74] hover:brightness-110"
+                        : isSunstoneGuild
+                          ? "bg-[#2B5096] hover:brightness-110"
+                          : isHearthvale
+                            ? "bg-amberwarm-600 hover:brightness-95"
+                            : isVelvetMasque
+                              ? "bg-terracotta-500 hover:bg-terracotta-700"
+                              : "bg-sage-500 hover:bg-sage-700"
                 }`}
               >
                 <Play className="h-4 w-4" />
@@ -653,6 +718,16 @@ export function TableLobbyDrawer({
               >
                 <Check className="h-4 w-4" />
                 {myReady ? "Ready! (Click to Unready)" : "I'm Ready!"}
+              </button>
+            )}
+            {onStartGuidedTutorial && (
+              <button
+                type="button"
+                onClick={onStartGuidedTutorial}
+                title={`Play a solo guided practice match of ${gameTitle} with Café Bots and live step-by-step coaching`}
+                className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-2xl bg-[#232D47] px-3 py-2.5 text-xs font-extrabold text-[#FDE68A] shadow-sm transition hover:brightness-110 short:px-2 short:py-1.5"
+              >
+                <GraduationCap className="h-3.5 w-3.5" /> Guided
               </button>
             )}
             {onOpenQuickTour && (

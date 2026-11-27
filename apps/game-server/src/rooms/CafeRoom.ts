@@ -4,6 +4,7 @@ const { Room, matchMaker } = colyseus;
 import { eq, gameCatalogue, getDb } from "@tablefolk/db";
 import {
   COZY_CAFE_MAP,
+  CafeStartTutorialPayloadSchema,
   ChatSendPayloadSchema,
   PlayerCarryGamePayloadSchema,
   PlayerEmotePayloadSchema,
@@ -19,6 +20,7 @@ import {
 import { getUserProfile, verifyAuthToken } from "../services/auth.js";
 import {
   abortGameRoom,
+  clearActiveGameForUser,
   getActiveGameForUser,
   registerCafeRoom,
   registerPrivateCafeCode,
@@ -471,7 +473,11 @@ export class CafeRoom extends Room<CafeRoomState> {
 
       // If player walked over carrying a compatible game box, place it on the table!
       if (player.carryingGameSlug) {
-        if (
+        if (player.carryingGameSlug === "lantern-watch" && table.capacity < 4) {
+          client.send("cafe.notice", {
+            message: `${table.name} only fits ${table.capacity} players — Lantern Watch needs 4–8 seats!`,
+          });
+        } else if (
           (player.carryingGameSlug === "treasure-trails" ||
             player.carryingGameSlug === "velvet-masque") &&
           table.capacity < 3
@@ -514,9 +520,16 @@ export class CafeRoom extends Room<CafeRoomState> {
         parsed.data.gameSlug !== "velvet-masque" &&
         parsed.data.gameSlug !== "sunstone-guild" &&
         parsed.data.gameSlug !== "harborreach" &&
-        parsed.data.gameSlug !== "dawnspire"
+        parsed.data.gameSlug !== "dawnspire" &&
+        parsed.data.gameSlug !== "lantern-watch"
       ) {
         client.send("cafe.error", { message: "That board game is coming soon!" });
+        return;
+      }
+      if (parsed.data.gameSlug === "lantern-watch" && table.capacity < 4) {
+        client.send("cafe.error", {
+          message: "Lantern Watch requires a 4–8 seat table.",
+        });
         return;
       }
       if (
@@ -659,6 +672,7 @@ export class CafeRoom extends Room<CafeRoomState> {
         targetPrestige,
         targetVP,
         wonderSide,
+        watchMode,
       } = parsed.data;
       const table = this.state.tables.get(tableId);
       if (!table || table.status === "IN_PROGRESS") return;
@@ -675,23 +689,26 @@ export class CafeRoom extends Room<CafeRoomState> {
         slug !== "velvet-masque" &&
         slug !== "sunstone-guild" &&
         slug !== "harborreach" &&
-        slug !== "dawnspire"
+        slug !== "dawnspire" &&
+        slug !== "lantern-watch"
       ) {
         client.send("cafe.error", {
           message:
-            "Select Treasure Trails, Hearthvale, Velvet Masque, Sunstone Guild, Harborreach, or Dawnspire!",
+            "Select Treasure Trails, Hearthvale, Velvet Masque, Sunstone Guild, Harborreach, Dawnspire, or Lantern Watch!",
         });
         return;
       }
 
       const occupiedSeats = table.seats.filter((s) => s.status !== "AVAILABLE");
       const minP =
-        slug === "hearthvale" ||
-        slug === "sunstone-guild" ||
-        slug === "harborreach" ||
-        slug === "dawnspire"
-          ? 2
-          : 3;
+        slug === "lantern-watch"
+          ? 4
+          : slug === "hearthvale" ||
+              slug === "sunstone-guild" ||
+              slug === "harborreach" ||
+              slug === "dawnspire"
+            ? 2
+            : 3;
       const maxP =
         slug === "sunstone-guild" || slug === "harborreach"
           ? 4
@@ -712,7 +729,9 @@ export class CafeRoom extends Room<CafeRoomState> {
                   ? "Harborreach"
                   : slug === "dawnspire"
                     ? "Dawnspire"
-                    : "Treasure Trails";
+                    : slug === "lantern-watch"
+                      ? "Lantern Watch"
+                      : "Treasure Trails";
         client.send("cafe.error", {
           message: `${gameTitle} needs ${minP}–${maxP} players (currently ${occupiedSeats.length}). Invite friends or adjust Practice Bots!`,
         });
@@ -792,12 +811,23 @@ export class CafeRoom extends Room<CafeRoomState> {
                       },
                       players: seatedPlayers,
                     })
-                  : await matchMaker.createRoom("game", {
-                      cafeRoomId: this.roomId,
-                      tableId: table.tableId,
-                      gameSlug: "treasure-trails",
-                      config: {
-                        totalRounds: rounds,
+                  : slug === "lantern-watch"
+                    ? await matchMaker.createRoom("lantern-watch", {
+                        cafeRoomId: this.roomId,
+                        tableId: table.tableId,
+                        gameSlug: "lantern-watch",
+                        config: {
+                          mode: watchMode,
+                          turnSeconds,
+                        },
+                        players: seatedPlayers,
+                      })
+                    : await matchMaker.createRoom("game", {
+                        cafeRoomId: this.roomId,
+                        tableId: table.tableId,
+                        gameSlug: "treasure-trails",
+                        config: {
+                          totalRounds: rounds,
                         turnSeconds,
                         mysteryRoles,
                       },
@@ -820,6 +850,126 @@ export class CafeRoom extends Room<CafeRoomState> {
             gameSlug: table.selectedGameSlug,
           });
         }
+      }
+    });
+
+    // 10b. Launch Guided Bot Practice Tutorial (1 Human + Smart Café Bots, zero table lock!)
+    this.onMessage("cafe.startTutorial", async (client, raw) => {
+      const player = this.state.players.get(client.sessionId);
+      if (!player) return;
+      const parsed = CafeStartTutorialPayloadSchema.safeParse(raw);
+      if (!parsed.success) return;
+
+      const slug = parsed.data.gameSlug;
+      const tutorialTableId = `tutorial_${player.userId}`;
+
+      // Clean up any previous tutorial session belonging to this user
+      const prevActive = getActiveGameForUser(player.userId);
+      if (prevActive && prevActive.tableId.startsWith("tutorial_")) {
+        abortGameRoom(prevActive.gameRoomId);
+        clearActiveGameForUser(player.userId, prevActive.gameRoomId);
+      }
+
+      const botCount =
+        slug === "lantern-watch"
+          ? 4
+          : slug === "treasure-trails" || slug === "velvet-masque"
+            ? 3
+            : slug === "dawnspire"
+              ? 2
+              : 1;
+
+      const tutorialPlayers = [
+        {
+          userId: player.userId,
+          displayName: player.displayName,
+          seatIndex: 0,
+          isBot: false,
+        },
+        ...Array.from({ length: botCount }, (_, idx) => ({
+          userId: `bot_tut_${slug}_${idx + 1}`,
+          displayName: BOT_NAMES[idx % BOT_NAMES.length]!,
+          seatIndex: idx + 1,
+          isBot: true,
+        })),
+      ];
+
+      const relaxedTurnSec = 120;
+      const gameRoom =
+        slug === "hearthvale"
+          ? await matchMaker.createRoom("hearthvale", {
+              cafeRoomId: this.roomId,
+              tableId: tutorialTableId,
+              gameSlug: "hearthvale",
+              config: { deckSize: 36, turnSeconds: relaxedTurnSec },
+              players: tutorialPlayers,
+            })
+          : slug === "velvet-masque"
+            ? await matchMaker.createRoom("velvet-masque", {
+                cafeRoomId: this.roomId,
+                tableId: tutorialTableId,
+                gameSlug: "velvet-masque",
+                config: { targetCoins: 10, turnSeconds: relaxedTurnSec },
+                players: tutorialPlayers,
+              })
+            : slug === "sunstone-guild"
+              ? await matchMaker.createRoom("sunstone-guild", {
+                  cafeRoomId: this.roomId,
+                  tableId: tutorialTableId,
+                  gameSlug: "sunstone-guild",
+                  config: { targetPrestige: 12, turnSeconds: relaxedTurnSec },
+                  players: tutorialPlayers,
+                })
+              : slug === "harborreach"
+                ? await matchMaker.createRoom("harborreach", {
+                    cafeRoomId: this.roomId,
+                    tableId: tutorialTableId,
+                    gameSlug: "harborreach",
+                    config: { targetVP: 8, turnSeconds: relaxedTurnSec },
+                    players: tutorialPlayers,
+                  })
+                : slug === "dawnspire"
+                  ? await matchMaker.createRoom("dawnspire", {
+                      cafeRoomId: this.roomId,
+                      tableId: tutorialTableId,
+                      gameSlug: "dawnspire",
+                      config: { wonderSide: "sunlit", turnSeconds: relaxedTurnSec },
+                      players: tutorialPlayers,
+                    })
+                  : slug === "lantern-watch"
+                    ? await matchMaker.createRoom("lantern-watch", {
+                        cafeRoomId: this.roomId,
+                        tableId: tutorialTableId,
+                        gameSlug: "lantern-watch",
+                        config: { mode: "oracle", turnSeconds: relaxedTurnSec },
+                        players: tutorialPlayers,
+                      })
+                    : await matchMaker.createRoom("game", {
+                        cafeRoomId: this.roomId,
+                        tableId: tutorialTableId,
+                        gameSlug: "treasure-trails",
+                        config: {
+                          totalRounds: 1,
+                          turnSeconds: relaxedTurnSec,
+                          mysteryRoles: false,
+                        },
+                        players: tutorialPlayers,
+                      });
+
+      client.send("cafe.tutorialStarted", {
+        gameRoomId: gameRoom.roomId,
+        gameSlug: slug,
+      });
+    });
+
+    // 10c. Cleanly abort solo tutorial room when user exits guided practice
+    this.onMessage("cafe.endTutorial", (client) => {
+      const player = this.state.players.get(client.sessionId);
+      if (!player) return;
+      const active = getActiveGameForUser(player.userId);
+      if (active && active.tableId.startsWith("tutorial_")) {
+        abortGameRoom(active.gameRoomId);
+        clearActiveGameForUser(player.userId, active.gameRoomId);
       }
     });
 

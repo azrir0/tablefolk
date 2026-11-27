@@ -17,6 +17,7 @@
     "@tablefolk/game-engine": "workspace:*",
     "@tablefolk/game-harborreach": "workspace:*",
     "@tablefolk/game-hearthvale": "workspace:*",
+    "@tablefolk/game-lantern-watch": "workspace:*",
     "@tablefolk/game-sunstone-guild": "workspace:*",
     "@tablefolk/game-treasure-trails": "workspace:*",
     "@tablefolk/game-velvet-masque": "workspace:*",

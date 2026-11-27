@@ -1103,6 +1103,135 @@ function StepInteractiveStage({ visualId }: { visualId: QuickTourVisualId }) {
           </p>
         </div>
       );
+
+    /* ========================= LANTERN WATCH ========================= */
+    case "lw-goal":
+      return (
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-[#2D3A59]/40 bg-gradient-to-br from-[#232D47] to-[#1A2236] p-3 text-oat-50">
+          <div className="flex items-center gap-2">
+            {[
+              { n: 1, res: "loyal", size: 2 },
+              { n: 2, res: "shadow", size: 3 },
+              { n: 3, res: "loyal", size: 4 },
+              { n: 4, res: "open", size: 3 },
+              { n: 5, res: "open", size: 4 },
+            ].map((b) => (
+              <div
+                key={b.n}
+                className={`flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-black shadow ${
+                  b.res === "loyal"
+                    ? "border-[#FDE68A] bg-amber-500 text-espresso"
+                    : b.res === "shadow"
+                      ? "border-rose-400 bg-rose-700 text-white"
+                      : "border-white/30 bg-white/10 text-oat-200"
+                }`}
+              >
+                {b.res === "loyal" ? "✓" : b.res === "shadow" ? "✕" : b.size}
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] font-bold text-[#FDE68A]">
+            First to 3 Coastal Beacons Wins · 5 Rejected Votes = Shadow Collapse!
+          </p>
+        </div>
+      );
+
+    case "lw-council":
+      return (
+        <div className="grid grid-cols-3 gap-2 rounded-2xl border border-[#2D3A59]/35 bg-[#232D47] p-3 text-oat-50">
+          {[
+            { name: "Mira", tag: "Commander", badge: "✓ Approved", tone: "emerald" },
+            { name: "Kaito", tag: "On Crew", badge: "Spyglass", tone: "amber" },
+            { name: "Sora", tag: "Shadow Mole?", badge: "✕ Rejected", tone: "rose" },
+          ].map((p) => (
+            <div key={p.name} className="rounded-xl border border-white/15 bg-white/10 p-2 text-center">
+              <div className="text-xs font-extrabold text-white">{p.name}</div>
+              <div className="text-[9.5px] font-bold text-[#FDE68A]">{p.tag}</div>
+              <span
+                className={`mt-1 inline-block rounded px-1.5 py-0.5 text-[9px] font-extrabold ${
+                  p.tone === "emerald"
+                    ? "bg-emerald-500/30 text-emerald-200"
+                    : p.tone === "amber"
+                      ? "bg-cyan-500/30 text-cyan-200"
+                      : "bg-rose-500/35 text-rose-200"
+                }`}
+              >
+                {p.badge}
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+
+    case "lw-actions":
+      return (
+        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-oat-300 bg-oat-100 p-3 text-center">
+          <div className="flex flex-col items-center gap-1 rounded-xl border border-amber-300 bg-amber-50 p-2.5 shadow-sm">
+            <GameIcon name="lw-beacon" className="h-7 w-7" />
+            <div className="text-xs font-black text-espresso">Light Beacon (✓)</div>
+            <div className="text-[10px] font-semibold text-espresso-soft">
+              Required for Loyal Watch
+            </div>
+          </div>
+          <div className="flex flex-col items-center gap-1 rounded-xl border border-rose-300 bg-rose-50 p-2.5 shadow-sm">
+            <GameIcon name="lw-sabotage" className="h-7 w-7" />
+            <div className="text-xs font-black text-rose-800">Extinguish (✕)</div>
+            <div className="text-[10px] font-semibold text-rose-700">
+              Shadow Sabotage (Shuffled!)
+            </div>
+          </div>
+        </div>
+      );
+
+    case "lw-dossier":
+      return (
+        <div className="grid grid-cols-3 gap-2 rounded-2xl border border-oat-300 bg-oat-100 p-2.5 text-center">
+          <div className="flex flex-col items-center rounded-xl bg-white p-2 shadow-sm">
+            <GameIcon name="lw-oracle" className="h-6 w-6" />
+            <div className="mt-1 text-[11px] font-extrabold text-espresso">Oracle</div>
+            <div className="text-[9.5px] font-semibold text-espresso-soft">Sees Moles</div>
+          </div>
+          <div className="flex flex-col items-center rounded-xl bg-white p-2 shadow-sm">
+            <GameIcon name="lw-warden" className="h-6 w-6" />
+            <div className="mt-1 text-[11px] font-extrabold text-espresso">Warden</div>
+            <div className="text-[9.5px] font-semibold text-espresso-soft">Sees 2 Clues</div>
+          </div>
+          <div className="flex flex-col items-center rounded-xl bg-white p-2 shadow-sm">
+            <GameIcon name="lw-spyglass" className="h-6 w-6" />
+            <div className="mt-1 text-[11px] font-extrabold text-espresso">Spyglass</div>
+            <div className="text-[9.5px] font-semibold text-espresso-soft">Checks 1 Seat</div>
+          </div>
+        </div>
+      );
+
+    case "lw-ledger":
+      return (
+        <div className="rounded-2xl border border-oat-300 bg-white p-2.5 text-[10.5px] shadow-sm">
+          <div className="flex items-center justify-between border-b border-oat-200 pb-1 font-extrabold text-[#2D3A59]">
+            <span>M1·1 · Crew: Mira + Kaito</span>
+            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-800">LIT (2✓)</span>
+          </div>
+          <div className="mt-1.5 flex items-center justify-between font-bold text-espresso-soft">
+            <span>M2·1 · Crew: Mira + Kaito + Sora</span>
+            <span className="rounded bg-rose-700 px-1.5 py-0.5 text-white">FAIL (1✕)</span>
+          </div>
+        </div>
+      );
+
+    case "lw-chronicle":
+      return (
+        <div className="flex items-center gap-3 rounded-2xl border border-rose-400/50 bg-gradient-to-r from-[#2B1B28] to-[#1E1929] p-3 text-oat-50">
+          <GameIcon name="lw-nightblade" className="h-9 w-9 shrink-0" />
+          <div className="text-left">
+            <div className="text-xs font-extrabold text-rose-200">
+              Nightblade&apos;s Final Unmasking!
+            </div>
+            <p className="text-[10.5px] text-oat-200">
+              At 3 Lit Beacons, Nightblade picks 1 Loyal courier as The Oracle — hit to steal victory!
+            </p>
+          </div>
+        </div>
+      );
   }
 }
 

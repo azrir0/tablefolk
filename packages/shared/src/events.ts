@@ -79,10 +79,23 @@ export const TableStartGamePayloadSchema = z.object({
   targetPrestige: z.union([z.literal(12), z.literal(15)]).default(15),
   targetVP: z.union([z.literal(8), z.literal(10)]).default(10),
   wonderSide: z.enum(["sunlit", "starlit"]).default("sunlit"),
+  watchMode: z.enum(["classic", "oracle"]).default("oracle"),
 });
 
 export const TableSpectatePayloadSchema = z.object({
   tableId: z.string().min(1).max(64),
+});
+
+export const CafeStartTutorialPayloadSchema = z.object({
+  gameSlug: z.enum([
+    "treasure-trails",
+    "hearthvale",
+    "velvet-masque",
+    "sunstone-guild",
+    "harborreach",
+    "dawnspire",
+    "lantern-watch",
+  ]),
 });
 
 /**

@@ -47,10 +47,13 @@ import { soundEngine } from "@/lib/sound";
 import { DawnCostPills, DawnspireHandCard } from "./DawnspireCard";
 import { dawnResourceToIconName, GameIcon } from "./GameIcons";
 import { GameQuickTour } from "./GameQuickTour";
+import { GuidedTutorialCoach } from "./GuidedTutorialCoach";
+import { buildDawnspireGuide } from "@/lib/guidedTutorials";
 
 interface DawnspireOverlayProps {
   gameRoomId: string;
   myUserId: string;
+  tutorialMode?: boolean;
   onExitGame: (info?: { finished?: boolean; notice?: string }) => void;
   onOpenTutorial: () => void;
 }
@@ -90,6 +93,7 @@ function collectTradablePreview(player: DawnPublicPlayerView): DawnResource[] {
 export function DawnspireOverlay({
   gameRoomId,
   myUserId,
+  tutorialMode = false,
   onExitGame,
   onOpenTutorial,
 }: DawnspireOverlayProps) {
@@ -234,16 +238,16 @@ export function DawnspireOverlay({
     };
   }, [gameRoomId, myUserId, onExitGame, flashNotice, flashBanner]);
 
-  // First-time auto-opening 6-step spotlight tour (uses boolean so bot locks never clear timer!)
+  // First-time auto-opening 6-step spotlight tour (skipped in interactive tutorialMode)
   const hasPublicState = Boolean(publicState);
   useEffect(() => {
-    if (!hasPublicState || isSpectator || autoTourCheckedRef.current) return;
+    if (!hasPublicState || isSpectator || tutorialMode || autoTourCheckedRef.current) return;
     autoTourCheckedRef.current = true;
     if (!hasCompletedQuickTour("dawnspire")) {
       const t = setTimeout(() => setShowQuickTour(true), 650);
       return () => clearTimeout(t);
     }
-  }, [hasPublicState, isSpectator]);
+  }, [hasPublicState, isSpectator, tutorialMode]);
 
   // Turn countdown tick
   useEffect(() => {
@@ -1224,6 +1228,30 @@ export function DawnspireOverlay({
         open={showQuickTour}
         onClose={() => setShowQuickTour(false)}
       />
+
+      {tutorialMode && !isSpectator && publicState && me && (
+        <GuidedTutorialCoach
+          model={buildDawnspireGuide({
+            phase: publicState.phase,
+            era: publicState.era,
+            turnInEra: publicState.turnInEra,
+            hasSelectedCard: Boolean(selectedEval),
+            hasLockedIn: myLocked,
+            selectedCardName: selectedEval?.card.name ?? null,
+            selectedCardCanBuild: Boolean(
+              selectedEval?.buildPlan.affordable && !selectedEval.buildPlan.isDuplicate
+            ),
+            selectedCardIsFreeChain: Boolean(selectedEval?.buildPlan.isFreeChain),
+            selectedCardTradeCost:
+              (selectedEval?.buildPlan.leftTradeCoins ?? 0) +
+              (selectedEval?.buildPlan.rightTradeCoins ?? 0),
+            builtCount: me.builtCards.length,
+            wonderStagesBuilt: me.wonderStagesBuilt,
+          })}
+          onOpenRules={onOpenTutorial}
+          onExitTutorial={() => onExitGame({ finished: publicState.phase === "FINISHED" })}
+        />
+      )}
     </div>
   );
 }

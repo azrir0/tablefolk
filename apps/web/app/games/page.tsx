@@ -7,7 +7,7 @@ import { GamesWardrobeRuleButton } from "@/components/GamesWardrobeRuleButton";
 export const metadata = {
   title: "Game Collection & Rules — TableFolk",
   description:
-    "Explore the TableFolk board game collection and learn how to play Dawnspire, Harborreach, Sunstone Guild, Velvet Masque, Hearthvale, and Treasure Trails inside Sunlit Oak Café.",
+    "Explore the TableFolk board game collection and learn how to play Lantern Watch, Dawnspire, Harborreach, Sunstone Guild, Velvet Masque, Hearthvale, and Treasure Trails inside Sunlit Oak Café.",
 };
 
 export default function GamesCataloguePage() {
@@ -40,12 +40,84 @@ export default function GamesCataloguePage() {
           </p>
         </div>
 
+        {/* Game #7: Lantern Watch */}
+        <article className="rounded-3xl border-2 border-[#2D3A59]/65 bg-oat-50 p-7 shadow-cozy">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <span className="rounded-full bg-[#2D3A59]/15 px-3 py-1 text-xs font-bold text-[#2D3A59]">
+                New • Hidden-Role Social Deduction &amp; Council Ledger
+              </span>
+              <h2 className="mt-2 flex items-center gap-2.5 font-display text-3xl font-bold text-espresso">
+                <GameIcon name="game-lantern" className="h-8 w-8" />
+                Lantern Watch
+              </h2>
+              <p className="mt-1 text-espresso-soft">
+                Form covert courier crews, read every public Approve/Reject vote in the
+                Council Ledger, and light 3 Coastal Beacons before hidden Shadow Moles
+                extinguish them — with zero player elimination!
+              </p>
+            </div>
+            <div className="flex gap-3 text-xs font-bold text-espresso-soft">
+              <span className="inline-flex items-center gap-1 rounded-xl bg-oat-100 px-3 py-2">
+                <Users className="h-4 w-4 text-sage-700" /> 4–8 Players
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-xl bg-oat-100 px-3 py-2">
+                <Clock className="h-4 w-4 text-amberwarm-600" /> 8–12 Min
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            <div className="rounded-2xl bg-oat-100 p-5">
+              <h3 className="flex items-center gap-2 font-display text-lg font-bold text-espresso">
+                <Compass className="h-5 w-5 text-[#2D3A59]" /> Public Votes, Secret Missions
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-espresso-soft">
+                <li>
+                  <strong>Always-Visible Council Ledger:</strong> Every proposed team, public
+                  Approve/Reject dot, and shuffled Beacon outcome stays logged for pure deduction!
+                </li>
+                <li>
+                  <strong>Zero Player Elimination:</strong> Every player proposes, debates, and
+                  votes all match — 5 consecutive rejections triggers a Shadow Council Collapse win!
+                </li>
+                <li>
+                  <strong>Canonical 4–8p Balance:</strong> Features exact 5–8p crew tables (with
+                  2-Fail Beacon 4 at 7–8p) plus cozy 4p Mini-Watch and fair Deduction Practice Bots!
+                </li>
+              </ul>
+            </div>
+
+            <div className="rounded-2xl bg-oat-100 p-5">
+              <h3 className="flex items-center gap-2 font-display text-lg font-bold text-espresso">
+                <Crown className="h-5 w-5 text-amberwarm-600" /> Two Playable Modes
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-espresso-soft">
+                <li>
+                  <strong>Classic Watch:</strong> Pure Resistance deduction — Loyal Couriers vs
+                  Shadow Moles who know each other from Turn 1.
+                </li>
+                <li>
+                  <strong>Oracle &amp; Shade:</strong> Unlocks The Oracle, The Warden, Mirage,
+                  Veiled Mole (7–8p), and the Brass Spyglass after Missions 2, 3 &amp; 4!
+                </li>
+                <li>
+                  <strong>Nightblade Unmasking Climax:</strong> If the Loyal Watch lights 3 Beacons,
+                  the Nightblade gets ONE dramatic shot to name The Oracle and steal victory!
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <GamesWardrobeRuleButton gameSlug="lantern-watch" />
+        </article>
+
         {/* Game #6: Dawnspire */}
         <article className="rounded-3xl border-2 border-[#8B3A62]/65 bg-oat-50 p-7 shadow-cozy">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <span className="rounded-full bg-[#8B3A62]/15 px-3 py-1 text-xs font-bold text-[#8B3A62]">
-                New • Simultaneous Card Drafting &amp; Wonders
+                Simultaneous Card Drafting &amp; Wonders
               </span>
               <h2 className="mt-2 flex items-center gap-2.5 font-display text-3xl font-bold text-espresso">
                 <GameIcon name="game-dawnspire" className="h-8 w-8" />

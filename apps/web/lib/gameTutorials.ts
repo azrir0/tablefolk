@@ -7,7 +7,8 @@ export type SupportedGameSlug =
   | "velvet-masque"
   | "sunstone-guild"
   | "harborreach"
-  | "dawnspire";
+  | "dawnspire"
+  | "lantern-watch";
 
 export interface WalkthroughChapter {
   id: string;
@@ -1693,6 +1694,285 @@ export const GAME_ONBOARDING: Record<SupportedGameSlug, GameOnboardingCurriculum
       videoUrl: null,
     },
   },
+
+  "lantern-watch": {
+    slug: "lantern-watch",
+    title: "Lantern Watch",
+    icon: "game-lantern",
+    accentBg: "from-slate-200/90 via-indigo-100/75 to-amber-100/85",
+    accentBorder: "border-[#2D3A59]/50",
+    atAGlance: {
+      players: "4–8 Players",
+      duration: "8–12 min",
+      category: "Social Deduction",
+      difficulty: "Medium",
+      winGoal:
+        "Loyal Watch lights 3 of 5 Coastal Beacons (and keeps The Oracle hidden). Shadow Moles extinguish 3 Beacons, force 5 rejected votes, or unmask The Oracle!",
+      signatureTwist:
+        "Zero player elimination, an always-visible Council Vote Ledger, Brass Spyglass private inspections, and a dramatic Nightblade Oracle Unmasking!",
+    },
+    turnSteps: [
+      {
+        step: 1,
+        title: "Propose a Courier Crew",
+        icon: "lw-commander",
+        accent: "amber",
+        summary:
+          "The rotating **Lantern Commander** picks the exact number of couriers required for the current Coastal Beacon.",
+      },
+      {
+        step: 2,
+        title: "Public Council Vote",
+        icon: "lw-warden",
+        accent: "sage",
+        summary:
+          "Everyone simultaneously casts **Approve (✓)** or **Reject (✕)**. Strict majority sends the crew; ties reject and push Chaos (+1) toward 5!",
+      },
+      {
+        step: 3,
+        title: "Secret Beacon Action",
+        icon: "lw-beacon",
+        accent: "terracotta",
+        summary:
+          "Selected couriers secretly play **Light Beacon** (Loyal only) or **Extinguish** (Shadow option). Cards shuffle anonymously before reveal!",
+      },
+    ],
+    scoringPillars: [
+      {
+        label: "Loyal Watch Victory",
+        value: "3 Lit Beacons",
+        detail:
+          "Light 3 coastal beacons — and in Oracle & Shade mode, ensure the Nightblade misses The Oracle!",
+        icon: "lw-beacon",
+        tone: "amber",
+      },
+      {
+        label: "Shadow Sabotage",
+        value: "3 Extinguished",
+        detail:
+          "Slip onto missions and play Extinguish (Mission 4 at 7–8p requires TWO Extinguish cards to fail!).",
+        icon: "lw-sabotage",
+        tone: "terracotta",
+      },
+      {
+        label: "Council Collapse",
+        value: "5 Rejected Votes",
+        detail:
+          "Reject 5 proposals in a row and the harbor council collapses into instant Shadow victory!",
+        icon: "lw-mole",
+        tone: "terracotta",
+      },
+      {
+        label: "Oracle Unmasking",
+        value: "Final Shot",
+        detail:
+          "In Oracle & Shade mode, if Loyal reaches 3 Lit Beacons, the Nightblade gets 1 shot to name The Oracle and steal victory!",
+        icon: "lw-nightblade",
+        tone: "sage",
+      },
+    ],
+    firstMatchTips: [
+      {
+        kind: "do",
+        text: "Check the **Council Vote Ledger** after every failed mission — Shadow Moles often approve teams containing their hidden ally!",
+      },
+      {
+        kind: "do",
+        text: "If you are **The Oracle**, avoid voting identically against every Shadow on Mission 1 — stay subtle so the Nightblade cannot spot you!",
+      },
+      {
+        kind: "watch",
+        text: "At **Chaos 4/5**, Loyal Watch MUST approve the 5th proposal — rejecting hands instant Council Collapse victory to Shadow Moles!",
+      },
+      {
+        kind: "watch",
+        text: "In **7–8 player** matches, **Beacon 4 (Tidegate Spire)** requires **2 Extinguish** cards to fail — a single Mole cannot sink it alone!",
+      },
+    ],
+    walkthroughDurationSec: 55,
+    walkthroughChapters: [
+      {
+        id: "lw-ch-1",
+        title: "Hidden Factions & Zero Elimination",
+        badge: "GOAL",
+        startSec: 0,
+        endSec: 11,
+        caption:
+          "Loyal Watch aims to light 3 Coastal Beacons while hidden Shadow Moles try to extinguish 3 — nobody is ever eliminated!",
+        narration:
+          "Welcome to Lantern Watch! Secretly split into the Loyal Watch and hidden Shadow Moles. Nobody is ever eliminated — first side to 3 Coastal Beacons claims the harbor!",
+      },
+      {
+        id: "lw-ch-2",
+        title: "Propose & Public Council Vote",
+        badge: "VOTE",
+        startSec: 11,
+        endSec: 22,
+        caption:
+          "The rotating Commander proposes a crew, then everyone votes Approve or Reject together. All votes flip publicly and log to the Ledger!",
+        narration:
+          "Each round, the Lantern Commander picks a courier team. Everyone votes Approve or Reject at once. A strict majority sends them out, while 5 rejections in a row gives Shadow a Collapse win!",
+      },
+      {
+        id: "lw-ch-3",
+        title: "Secret Mission Cards & 2-Fail Beacon 4",
+        badge: "MISSION",
+        startSec: 22,
+        endSec: 33,
+        caption:
+          "Couriers secretly play Light or Extinguish. Cards shuffle anonymously so nobody knows who sabotaged — read the Ledger to deduce!",
+        narration:
+          "Selected couriers secretly submit Light Beacon or Extinguish. Loyal couriers can only play Light, while Shadow Moles can sabotage or bluff Light. Cards shuffle anonymously before reveal!",
+      },
+      {
+        id: "lw-ch-4",
+        title: "Oracle, Warden & Brass Spyglass",
+        badge: "INTEL",
+        startSec: 33,
+        endSec: 44,
+        caption:
+          "In Oracle & Shade mode, The Oracle sees Shadow Moles, The Warden sees Oracle + Mirage, and the Brass Spyglass privately inspects couriers!",
+        narration:
+          "Play Oracle and Shade mode to unlock The Oracle, The Warden, Mirage, and the Brass Spyglass — activating after Missions 2, 3, and 4 to privately verify one unchecked courier!",
+      },
+      {
+        id: "lw-ch-5",
+        title: "The Nightblade's Final Unmasking",
+        badge: "CLIMAX",
+        startSec: 44,
+        endSec: 55,
+        caption:
+          "Even if the Loyal Watch lights 3 Beacons, the Nightblade gets ONE last chance to name The Oracle and steal victory for Shadow!",
+        narration:
+          "When Loyal Watch lights a third beacon in Oracle and Shade mode, hold your breath — the Nightblade names one Loyal courier as The Oracle. A direct hit steals victory for the Shadows!",
+      },
+    ],
+    shortClips: [
+      {
+        id: "lw-ch-2",
+        title: "Reading the Council Vote Ledger",
+        durationSec: 10,
+        tag: "Deduction",
+        icon: "lw-commander",
+        explanation:
+          "Every proposed team and every player's public Approve/Reject vote stays pinned in the Council Ledger. Compare who approved failed crews!",
+        proTip:
+          "At Chaos 4/5, Loyal players must Approve to stop a Shadow Council Collapse victory.",
+      },
+      {
+        id: "lw-ch-3",
+        title: "Anonymous Mission Cards & Bluffs",
+        durationSec: 10,
+        tag: "Missions",
+        icon: "lw-beacon",
+        explanation:
+          "Selected couriers submit Light or Extinguish simultaneously. Cards shuffle anonymously before reveal so deduction relies on crew overlap.",
+        proTip:
+          "As a Shadow Mole on Mission 1, occasionally bluffing Light earns huge trust for Mission 3 or 5!",
+      },
+      {
+        id: "lw-ch-4",
+        title: "Brass Spyglass Inspection",
+        durationSec: 10,
+        tag: "Oracle Mode",
+        icon: "lw-spyglass",
+        explanation:
+          "In 5–8 player Oracle & Shade matches, the Brass Spyglass activates after Missions 2, 3, and 4 — privately revealing one unchecked courier's faction!",
+        proTip:
+          "Remember: you hand the Spyglass to whoever you inspect, and nobody can be inspected twice.",
+      },
+      {
+        id: "lw-ch-5",
+        title: "Protecting The Oracle from Nightblade",
+        durationSec: 10,
+        tag: "Endgame",
+        icon: "lw-nightblade",
+        explanation:
+          "If the Loyal Watch lights 3 Beacons, the Nightblade studies the Ledger and names 1 Loyal player as The Oracle to steal victory!",
+        proTip:
+          "Warden should subtly mirror The Oracle's confident calls to draw the Nightblade's guess onto themselves!",
+      },
+    ],
+    fallbackTutorial: {
+      gameSlug: "lantern-watch",
+      title: "Lantern Watch",
+      summary:
+        "Form covert courier teams, read every vote in the Council Ledger, and light 3 coastal beacons before hidden Shadow Moles extinguish them — with zero player elimination!",
+      rulesMarkdown: `### Goal of the Game
+- **Loyal Watch:** Light **3 of 5 Coastal Beacons** *(and keep **The Oracle** hidden in Oracle & Shade mode!)*.
+- **Shadow Moles:** Extinguish **3 Beacons**, force **5 Rejected Proposals** in a row *(Council Collapse)*, OR unmask **The Oracle** after 3 beacons are lit!
+
+### Round Loop (Zero Elimination!)
+1. **Propose Team:** The rotating **Lantern Commander** selects the exact courier count required for the current Beacon.
+2. **Council Vote:** Everyone casts a simultaneous **public Approve (✓) or Reject (✕)** vote logged forever in the **Council Vote Ledger**.
+3. **Secret Mission:** Selected couriers secretly play **Light Beacon (✓)** *(Loyal only)* or **Extinguish (✕)** *(Shadow option)*. Cards shuffle anonymously before reveal!
+4. **Brass Spyglass *(Oracle Mode 5–8p)*:** After Missions 2, 3 & 4, privately inspect one unchecked courier and hand them the Spyglass.
+5. **Final Unmasking *(Oracle Mode)*:** At 3 Lit Beacons, the **Nightblade** names 1 Loyal player as **The Oracle** for a last-second steal!`,
+      cardReference: [
+        {
+          name: "Light Beacon / Extinguish",
+          category: "Secret Mission Cards",
+          icon: "lw-beacon",
+          description:
+            "Loyal Couriers only play Light. Shadow Moles may play Extinguish or bluff Light! Beacon 4 at 7–8p requires 2 Extinguish cards to fail!",
+        },
+        {
+          name: "The Oracle (Loyal Seer)",
+          category: "Oracle & Shade",
+          icon: "lw-oracle",
+          description:
+            "Secretly sees Shadow Moles (except Veiled Mole at 7–8p). Guide the council without revealing yourself!",
+        },
+        {
+          name: "The Warden (6–8p)",
+          category: "Oracle & Shade",
+          icon: "lw-warden",
+          description:
+            "Sees TWO silhouettes — the true Oracle and the Mirage decoy — and must deduce who to protect!",
+        },
+        {
+          name: "Nightblade & Shadow Moles",
+          category: "Shadow Faction",
+          icon: "lw-nightblade",
+          description:
+            "Know fellow Moles from Turn 1. If Loyal hits 3 Beacons, Nightblade gets 1 shot to unmask The Oracle!",
+        },
+        {
+          name: "Brass Spyglass (5–8p)",
+          category: "Private Inspection",
+          icon: "lw-spyglass",
+          description:
+            "Activates after Missions 2, 3 & 4 in Oracle mode — privately inspects one unchecked courier's faction!",
+        },
+        {
+          name: "Council Vote Ledger",
+          category: "Deduction Engine",
+          icon: "lw-commander",
+          description:
+            "Tracks every Commander proposal, every public Approve/Reject dot, and every shuffled Beacon tally!",
+        },
+      ],
+      faq: [
+        {
+          q: "Does anyone get eliminated during Lantern Watch?",
+          a: "Never! Every player votes on every proposal and stays active through the final reveal.",
+        },
+        {
+          q: "What happens if a Council Vote ties?",
+          a: "Approval requires a strict majority. A tie counts as REJECTED, raises Chaos (+1), and passes the Commander Seal clockwise!",
+        },
+        {
+          q: "Why does Mission 4 say 2✕ in 7–8 player games?",
+          a: "Beacon 4 (Tidegate Spire) in 7–8p requires TWO Extinguish cards to fail — a single sabotage still lights the beacon!",
+        },
+        {
+          q: "Classic Watch vs Oracle & Shade?",
+          a: "Classic Watch is pure Resistance deduction (Couriers vs Moles). Oracle & Shade adds Oracle, Warden, Nightblade, Mirage, Veiled Mole, Brass Spyglass, and the Final Oracle Unmasking!",
+        },
+      ],
+      videoUrl: null,
+    },
+  },
 };
 
 export function getOnboardingCurriculum(slug: string): GameOnboardingCurriculum {
@@ -1701,5 +1981,6 @@ export function getOnboardingCurriculum(slug: string): GameOnboardingCurriculum 
   if (slug === "sunstone-guild") return GAME_ONBOARDING["sunstone-guild"];
   if (slug === "harborreach") return GAME_ONBOARDING.harborreach;
   if (slug === "dawnspire") return GAME_ONBOARDING.dawnspire;
+  if (slug === "lantern-watch") return GAME_ONBOARDING["lantern-watch"];
   return GAME_ONBOARDING["treasure-trails"];
 }

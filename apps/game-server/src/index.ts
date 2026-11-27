@@ -10,6 +10,7 @@ import { DawnspireRoom } from "./rooms/DawnspireRoom.js";
 import { GameRoom } from "./rooms/GameRoom.js";
 import { HarborreachRoom } from "./rooms/HarborreachRoom.js";
 import { HearthvaleRoom } from "./rooms/HearthvaleRoom.js";
+import { LanternWatchRoom } from "./rooms/LanternWatchRoom.js";
 import { SunstoneGuildRoom } from "./rooms/SunstoneGuildRoom.js";
 import { VelvetMasqueRoom } from "./rooms/VelvetMasqueRoom.js";
 import { createApiRouter } from "./routes/api.js";
@@ -56,6 +57,7 @@ async function bootstrap() {
   gameServer.define("sunstone-guild", SunstoneGuildRoom);
   gameServer.define("harborreach", HarborreachRoom);
   gameServer.define("dawnspire", DawnspireRoom);
+  gameServer.define("lantern-watch", LanternWatchRoom);
 
   await gameServer.listen(PORT, "0.0.0.0");
   console.log(`☕ TableFolk Game Server listening on http://0.0.0.0:${PORT}`);

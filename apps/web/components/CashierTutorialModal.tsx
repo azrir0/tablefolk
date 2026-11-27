@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -9,6 +10,7 @@ import {
   Clock,
   Compass,
   Film,
+  GraduationCap,
   HelpCircle,
   Layers,
   PackageCheck,
@@ -23,6 +25,7 @@ import {
   getOnboardingCurriculum,
   type SupportedGameSlug,
 } from "@/lib/gameTutorials";
+import { GUIDED_TUTORIAL_META } from "@/lib/guidedTutorials";
 import { GameIcon, TutorialCardIcon, type GameIconName } from "./GameIcons";
 import {
   GameShortClipsPlayer,
@@ -39,6 +42,8 @@ interface CashierTutorialModalProps {
   carryingSlug?: string;
   onCarryGame?: (slug: string | null) => void;
   onBackToWardrobe?: () => void;
+  /** Launch a real interactive bot match with live step-by-step coaching! */
+  onStartGuidedTutorial?: (slug: SupportedGameSlug) => void;
   onClose: () => void;
 }
 
@@ -53,6 +58,7 @@ const AVAILABLE_RULEBOOKS: Array<{
   { slug: "sunstone-guild", label: "Sunstone Guild", icon: "game-sunstone" },
   { slug: "harborreach", label: "Harborreach", icon: "game-harbor" },
   { slug: "dawnspire", label: "Dawnspire", icon: "game-dawnspire" },
+  { slug: "lantern-watch", label: "Lantern Watch", icon: "game-lantern" },
 ];
 
 function normalizeSlug(slug?: string): SupportedGameSlug {
@@ -61,6 +67,7 @@ function normalizeSlug(slug?: string): SupportedGameSlug {
   if (slug === "sunstone-guild") return "sunstone-guild";
   if (slug === "harborreach") return "harborreach";
   if (slug === "dawnspire") return "dawnspire";
+  if (slug === "lantern-watch") return "lantern-watch";
   return "treasure-trails";
 }
 
@@ -92,6 +99,7 @@ export function CashierTutorialModal({
   carryingSlug,
   onCarryGame,
   onBackToWardrobe,
+  onStartGuidedTutorial,
   onClose,
 }: CashierTutorialModalProps) {
   const [selectedSlug, setSelectedSlug] = useState<SupportedGameSlug>(() =>
@@ -132,9 +140,10 @@ export function CashierTutorialModal({
   }, [selectedSlug, curriculum]);
 
   const isCarryingThis = carryingSlug === selectedSlug;
+  const guidedMeta = GUIDED_TUTORIAL_META[selectedSlug];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/50 p-3 backdrop-blur-sm sm:p-4 short:p-2">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-espresso/50 p-3 backdrop-blur-sm sm:p-4 short:p-2">
       <div className="flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border-2 border-oat-300 bg-oat-50 shadow-cozy short:max-h-[95dvh] short:rounded-2xl">
         {/* Header */}
         <div className="flex items-center justify-between gap-3 border-b border-oat-200 px-5 py-3.5 sm:px-6 short:px-4 short:py-2">
@@ -149,14 +158,36 @@ export function CashierTutorialModal({
             </h2>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close rulebook"
-            className="shrink-0 rounded-xl p-1.5 text-espresso-muted transition hover:bg-oat-200 hover:text-espresso short:p-1"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {onStartGuidedTutorial ? (
+              <button
+                type="button"
+                onClick={() => onStartGuidedTutorial(selectedSlug)}
+                className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-2xl bg-[#232D47] px-3.5 py-2 text-xs font-extrabold text-[#FDE68A] shadow-sm transition hover:brightness-110 short:px-2.5 short:py-1 short:text-[11px]"
+              >
+                <GraduationCap className="h-4 w-4 shrink-0" />
+                Play Guided Tutorial (vs Bots)
+              </button>
+            ) : (
+              <Link
+                href={`/cafe?tutorial=${selectedSlug}`}
+                onClick={onClose}
+                className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-2xl bg-[#232D47] px-3.5 py-2 text-xs font-extrabold text-[#FDE68A] shadow-sm transition hover:brightness-110 short:px-2.5 short:py-1 short:text-[11px]"
+              >
+                <GraduationCap className="h-4 w-4 shrink-0" />
+                Play Guided Tutorial (vs Bots)
+              </Link>
+            )}
+
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close rulebook"
+              className="shrink-0 rounded-xl p-1.5 text-espresso-muted transition hover:bg-oat-200 hover:text-espresso short:p-1"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {/* Game Switcher + Section Tabs */}
@@ -197,7 +228,9 @@ export function CashierTutorialModal({
                           ? "Island & Scrolls"
                           : selectedSlug === "dawnspire"
                             ? "7 Card Paths"
-                            : "Cards & Tools",
+                            : selectedSlug === "lantern-watch"
+                              ? "Roles & Beacons"
+                              : "Cards & Tools",
                   Layers,
                 ],
                 ["faq", "FAQ", HelpCircle],
@@ -221,6 +254,36 @@ export function CashierTutorialModal({
 
         {/* Scrollable Content Body */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6">
+          {/* Playable Guided Bot Practice Banner */}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-[#232D47]/20 bg-gradient-to-r from-[#232D47] via-[#2D3A59] to-[#232D47] px-4 py-3 text-oat-50 shadow-sm">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 text-[10.5px] font-extrabold uppercase tracking-wider text-[#FDE68A]">
+                <GraduationCap className="h-3.5 w-3.5" />
+                Learn by Playing · {guidedMeta.botSummary}
+              </div>
+              <p className="mt-0.5 text-xs font-semibold text-oat-100">
+                {guidedMeta.quickPitch}
+              </p>
+            </div>
+            {onStartGuidedTutorial ? (
+              <button
+                type="button"
+                onClick={() => onStartGuidedTutorial(selectedSlug)}
+                className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#F2B749] px-4 py-2 text-xs font-black text-espresso shadow-sm transition hover:brightness-105"
+              >
+                <GraduationCap className="h-4 w-4" /> Start Practice Match →
+              </button>
+            ) : (
+              <Link
+                href={`/cafe?tutorial=${selectedSlug}`}
+                onClick={onClose}
+                className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#F2B749] px-4 py-2 text-xs font-black text-espresso shadow-sm transition hover:brightness-105"
+              >
+                <GraduationCap className="h-4 w-4" /> Start Practice Match →
+              </Link>
+            )}
+          </div>
+
           {tab === "tour" ? (
             <QuickTutorialStepper
               gameSlug={selectedSlug}

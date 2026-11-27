@@ -67,6 +67,7 @@ import {
 import { DawnspireOverlay } from "./DawnspireOverlay";
 import { HarborreachOverlay } from "./HarborreachOverlay";
 import { HearthvaleOverlay } from "./HearthvaleOverlay";
+import { LanternWatchOverlay } from "./LanternWatchOverlay";
 import { SunstoneGuildOverlay } from "./SunstoneGuildOverlay";
 import { TableLobbyDrawer } from "./TableLobbyDrawer";
 import { TreasureTrailsOverlay } from "./TreasureTrailsOverlay";
@@ -224,19 +225,22 @@ export function CafeExperience() {
   const [reportReason, setReportReason] = useState("");
   const cafeChatScrollRef = useRef<HTMLDivElement | null>(null);
 
-  // Active Board Game overlay (Treasure Trails / Hearthvale) + Rejoin tracker
+  // Active Board Game overlay (All 7 games + Guided Tutorial mode) + Rejoin tracker
   const [activeGame, setActiveGame] = useState<{
     gameRoomId: string;
     gameSlug: string;
     isSpectator?: boolean;
+    tutorialMode?: boolean;
   } | null>(null);
   const [rejoinGame, setRejoinGame] = useState<ActiveGameRef | null>(null);
+  const autoTutorialTriggeredRef = useRef(false);
 
   const chatOpenRef = useRef(chatOpen);
   const activeGameRef = useRef<{
     gameRoomId: string;
     gameSlug: string;
     isSpectator?: boolean;
+    tutorialMode?: boolean;
   } | null>(activeGame);
   const userIdRef = useRef<string | null>(null);
   chatOpenRef.current = chatOpen;
@@ -248,6 +252,30 @@ export function CafeExperience() {
       setToast((curr) => (curr === msg ? null : curr));
     }, 3600);
   }, []);
+
+  const handleStartGuidedTutorial = useCallback(
+    (slug: string) => {
+      const validSlugs = new Set([
+        "treasure-trails",
+        "hearthvale",
+        "velvet-masque",
+        "sunstone-guild",
+        "harborreach",
+        "dawnspire",
+        "lantern-watch",
+      ]);
+      const safeSlug = validSlugs.has(slug) ? slug : "treasure-trails";
+      if (!cafeRoomRef.current) {
+        showToast("Connecting to café — please try again in a moment!");
+        return;
+      }
+      setShowCashierModal(false);
+      setShowWardrobeModal(false);
+      showToast("Starting Guided Tutorial match with Café Bots...");
+      cafeRoomRef.current.send("cafe.startTutorial", { gameSlug: safeSlug });
+    },
+    [showToast]
+  );
 
   const handleShareInvite = useCallback(async () => {
     if (typeof window === "undefined") return;
@@ -670,6 +698,40 @@ export function CafeExperience() {
             });
           }
         );
+
+        room.onMessage(
+          "cafe.tutorialStarted",
+          (p: { gameRoomId: string; gameSlug: string }) => {
+            soundEngine.playTurnChime();
+            setShowCashierModal(false);
+            setShowWardrobeModal(false);
+            setActiveGame({
+              gameRoomId: p.gameRoomId,
+              gameSlug: p.gameSlug || "treasure-trails",
+              tutorialMode: true,
+            });
+          }
+        );
+
+        // If arrived via /cafe?tutorial=<slug>, immediately launch the guided bot match!
+        const urlTutorial = searchParams?.get("tutorial");
+        if (urlTutorial && !autoTutorialTriggeredRef.current) {
+          const validSlugs = new Set([
+            "treasure-trails",
+            "hearthvale",
+            "velvet-masque",
+            "sunstone-guild",
+            "harborreach",
+            "dawnspire",
+            "lantern-watch",
+          ]);
+          if (validSlugs.has(urlTutorial)) {
+            autoTutorialTriggeredRef.current = true;
+            setTimeout(() => {
+              room.send("cafe.startTutorial", { gameSlug: urlTutorial });
+            }, 350);
+          }
+        }
 
         room.onLeave(() => {
           if (mySeq !== connectSeqRef.current || intentionalLeaveRef.current) return;
@@ -1225,6 +1287,12 @@ export function CafeExperience() {
               setTutorialInitialTab("tour");
               setShowCashierModal(true);
             }}
+            onStartGuidedTutorial={() =>
+              handleStartGuidedTutorial(
+                mySeatedTable.selectedGameSlug ||
+                  (mySeatedTable.capacity < 3 ? "hearthvale" : "treasure-trails")
+              )
+            }
           />
         </div>
       )}
@@ -1474,6 +1542,7 @@ export function CafeExperience() {
                 }
               : undefined
           }
+          onStartGuidedTutorial={(slug) => handleStartGuidedTutorial(slug)}
           onClose={() => {
             setShowCashierModal(false);
             setTutorialFromWardrobe(false);
@@ -1542,7 +1611,9 @@ export function CafeExperience() {
                                       ? "Harborreach (2–4p)"
                                       : t.selectedGameSlug === "dawnspire"
                                         ? "Dawnspire (2–7p)"
-                                        : "Treasure Trails (3–8p)"}
+                                        : t.selectedGameSlug === "lantern-watch"
+                                          ? "Lantern Watch (4–8p)"
+                                          : "Treasure Trails (3–8p)"}
                             </span>
                           </>
                         ) : (
@@ -1715,147 +1786,96 @@ export function CafeExperience() {
         </div>
       )}
 
-      {/* ACTIVE BOARD GAME OVERLAY (Hearthvale / Velvet Masque / Treasure Trails) */}
-      {activeGame && profile &&
-        (activeGame.gameSlug === "hearthvale" ? (
-          <HearthvaleOverlay
-            gameRoomId={activeGame.gameRoomId}
-            myUserId={profile.userId}
-            onExitGame={(info) => {
-              const wasSpectator = Boolean(activeGame.isSpectator);
-              setActiveGame(null);
-              if (info?.notice) showToast(info.notice);
-              if (wasSpectator) return;
-              if (info?.finished) {
-                setRejoinGame(null);
-              } else {
-                void fetchMyActiveGame()
-                  .then((ag) => setRejoinGame(ag))
-                  .catch(() => {});
-              }
-            }}
-            onOpenTutorial={() => {
-              setTutorialGameSlug("hearthvale");
-              setTutorialInitialTab("rules");
-              setShowCashierModal(true);
-            }}
-          />
-        ) : activeGame.gameSlug === "velvet-masque" ? (
-          <VelvetMasqueOverlay
-            gameRoomId={activeGame.gameRoomId}
-            myUserId={profile.userId}
-            onExitGame={(info) => {
-              const wasSpectator = Boolean(activeGame.isSpectator);
-              setActiveGame(null);
-              if (info?.notice) showToast(info.notice);
-              if (wasSpectator) return;
-              if (info?.finished) {
-                setRejoinGame(null);
-              } else {
-                void fetchMyActiveGame()
-                  .then((ag) => setRejoinGame(ag))
-                  .catch(() => {});
-              }
-            }}
-            onOpenTutorial={() => {
-              setTutorialGameSlug("velvet-masque");
-              setTutorialInitialTab("rules");
-              setShowCashierModal(true);
-            }}
-          />
-        ) : activeGame.gameSlug === "sunstone-guild" ? (
-          <SunstoneGuildOverlay
-            gameRoomId={activeGame.gameRoomId}
-            myUserId={profile.userId}
-            onExitGame={(info) => {
-              const wasSpectator = Boolean(activeGame.isSpectator);
-              setActiveGame(null);
-              if (info?.notice) showToast(info.notice);
-              if (wasSpectator) return;
-              if (info?.finished) {
-                setRejoinGame(null);
-              } else {
-                void fetchMyActiveGame()
-                  .then((ag) => setRejoinGame(ag))
-                  .catch(() => {});
-              }
-            }}
-            onOpenTutorial={() => {
-              setTutorialGameSlug("sunstone-guild");
-              setTutorialInitialTab("rules");
-              setShowCashierModal(true);
-            }}
-          />
-        ) : activeGame.gameSlug === "harborreach" ? (
-          <HarborreachOverlay
-            gameRoomId={activeGame.gameRoomId}
-            myUserId={profile.userId}
-            onExitGame={(info) => {
-              const wasSpectator = Boolean(activeGame.isSpectator);
-              setActiveGame(null);
-              if (info?.notice) showToast(info.notice);
-              if (wasSpectator) return;
-              if (info?.finished) {
-                setRejoinGame(null);
-              } else {
-                void fetchMyActiveGame()
-                  .then((ag) => setRejoinGame(ag))
-                  .catch(() => {});
-              }
-            }}
-            onOpenTutorial={() => {
-              setTutorialGameSlug("harborreach");
-              setTutorialInitialTab("rules");
-              setShowCashierModal(true);
-            }}
-          />
-        ) : activeGame.gameSlug === "dawnspire" ? (
-          <DawnspireOverlay
-            gameRoomId={activeGame.gameRoomId}
-            myUserId={profile.userId}
-            onExitGame={(info) => {
-              const wasSpectator = Boolean(activeGame.isSpectator);
-              setActiveGame(null);
-              if (info?.notice) showToast(info.notice);
-              if (wasSpectator) return;
-              if (info?.finished) {
-                setRejoinGame(null);
-              } else {
-                void fetchMyActiveGame()
-                  .then((ag) => setRejoinGame(ag))
-                  .catch(() => {});
-              }
-            }}
-            onOpenTutorial={() => {
-              setTutorialGameSlug("dawnspire");
-              setTutorialInitialTab("rules");
-              setShowCashierModal(true);
-            }}
-          />
-        ) : (
+      {/* ACTIVE BOARD GAME OVERLAY (All 7 Games + Guided Bot Tutorials) */}
+      {activeGame && profile && (() => {
+        const handleOverlayExit = (info?: { finished?: boolean; notice?: string }) => {
+          const wasSpectator = Boolean(activeGame.isSpectator);
+          const wasTutorial = Boolean(activeGame.tutorialMode);
+          setActiveGame(null);
+          if (info?.notice) showToast(info.notice);
+          if (wasTutorial) {
+            cafeRoomRef.current?.send("cafe.endTutorial");
+            setRejoinGame(null);
+            return;
+          }
+          if (wasSpectator) return;
+          if (info?.finished) {
+            setRejoinGame(null);
+          } else {
+            void fetchMyActiveGame()
+              .then((ag) => setRejoinGame(ag))
+              .catch(() => {});
+          }
+        };
+
+        const openRulesFor = (slug: string) => () => {
+          setTutorialGameSlug(slug);
+          setTutorialInitialTab("rules");
+          setShowCashierModal(true);
+        };
+
+        const commonProps = {
+          gameRoomId: activeGame.gameRoomId,
+          myUserId: profile.userId,
+          tutorialMode: Boolean(activeGame.tutorialMode),
+          onExitGame: handleOverlayExit,
+        };
+
+        if (activeGame.gameSlug === "hearthvale") {
+          return (
+            <HearthvaleOverlay
+              {...commonProps}
+              onOpenTutorial={openRulesFor("hearthvale")}
+            />
+          );
+        }
+        if (activeGame.gameSlug === "velvet-masque") {
+          return (
+            <VelvetMasqueOverlay
+              {...commonProps}
+              onOpenTutorial={openRulesFor("velvet-masque")}
+            />
+          );
+        }
+        if (activeGame.gameSlug === "sunstone-guild") {
+          return (
+            <SunstoneGuildOverlay
+              {...commonProps}
+              onOpenTutorial={openRulesFor("sunstone-guild")}
+            />
+          );
+        }
+        if (activeGame.gameSlug === "harborreach") {
+          return (
+            <HarborreachOverlay
+              {...commonProps}
+              onOpenTutorial={openRulesFor("harborreach")}
+            />
+          );
+        }
+        if (activeGame.gameSlug === "dawnspire") {
+          return (
+            <DawnspireOverlay
+              {...commonProps}
+              onOpenTutorial={openRulesFor("dawnspire")}
+            />
+          );
+        }
+        if (activeGame.gameSlug === "lantern-watch") {
+          return (
+            <LanternWatchOverlay
+              {...commonProps}
+              onOpenTutorial={openRulesFor("lantern-watch")}
+            />
+          );
+        }
+        return (
           <TreasureTrailsOverlay
-            gameRoomId={activeGame.gameRoomId}
-            myUserId={profile.userId}
-            onExitGame={(info) => {
-              const wasSpectator = Boolean(activeGame.isSpectator);
-              setActiveGame(null);
-              if (info?.notice) showToast(info.notice);
-              if (wasSpectator) return;
-              if (info?.finished) {
-                setRejoinGame(null);
-              } else {
-                void fetchMyActiveGame()
-                  .then((ag) => setRejoinGame(ag))
-                  .catch(() => {});
-              }
-            }}
-            onOpenTutorial={() => {
-              setTutorialGameSlug("treasure-trails");
-              setTutorialInitialTab("rules");
-              setShowCashierModal(true);
-            }}
+            {...commonProps}
+            onOpenTutorial={openRulesFor("treasure-trails")}
           />
-        ))}
+        );
+      })()}
     </div>
   );
 }

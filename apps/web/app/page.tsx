@@ -114,9 +114,8 @@ export default function LandingPage() {
           <p className="max-w-xl text-lg leading-relaxed text-espresso-soft">
             TableFolk recreates the warmth of visiting your favorite board game café.
             Stroll around in your customized character, learn rules from the cashier,
-            grab a seat at a table, and play server-authoritative tabletop hits like{" "}
-            <strong>Treasure Trails</strong>, <strong>Hearthvale</strong>, and{" "}
-            <strong>Velvet Masque</strong>.
+            grab a seat at a table, and play <strong>7 server-authoritative tabletop hits</strong>{" "}
+            from social deduction and gem engines to card drafting and island trading!
           </p>
 
           {/* Cozy Café Scene Preview Card */}
@@ -134,24 +133,31 @@ export default function LandingPage() {
               </div>
               <div className="flex-1 min-w-[200px]">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sage-700">
-                  <Compass className="h-4 w-4" /> 3 Playable Café Games
+                  <Compass className="h-4 w-4" /> 7 Playable Café Games
                 </div>
-                <h2 className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 font-display text-lg font-bold text-espresso sm:text-xl">
-                  <span className="inline-flex items-center gap-1">
-                    <GameIcon name="game-trails" className="h-5 w-5" /> Treasure Trails
-                  </span>
-                  <span className="text-oat-300">·</span>
-                  <span className="inline-flex items-center gap-1">
-                    <GameIcon name="game-hearthvale" className="h-5 w-5" /> Hearthvale
-                  </span>
-                  <span className="text-oat-300">·</span>
-                  <span className="inline-flex items-center gap-1">
-                    <GameIcon name="game-masque" className="h-5 w-5" /> Velvet Masque
-                  </span>
+                <h2 className="mt-1.5 flex flex-wrap items-center gap-1.5 font-display text-sm font-bold text-espresso">
+                  {(
+                    [
+                      ["game-lantern", "Lantern Watch"],
+                      ["game-dawnspire", "Dawnspire"],
+                      ["game-harbor", "Harborreach"],
+                      ["game-sunstone", "Sunstone Guild"],
+                      ["game-masque", "Velvet Masque"],
+                      ["game-hearthvale", "Hearthvale"],
+                      ["game-trails", "Treasure Trails"],
+                    ] as const
+                  ).map(([icon, title]) => (
+                    <span
+                      key={title}
+                      className="inline-flex items-center gap-1 rounded-xl border border-oat-200 bg-white px-2 py-0.5 text-xs shadow-sm"
+                    >
+                      <GameIcon name={icon} className="h-4 w-4" /> {title}
+                    </span>
+                  ))}
                 </h2>
-                <p className="mt-1 text-sm text-espresso-soft">
-                  Play hidden-role sabotage (3–8p), cozy tile-laying valley strategy
-                  (2–5p), or chaotic mask-swapping bluffs (3–8p)!
+                <p className="mt-1.5 text-sm text-espresso-soft">
+                  Social deduction, simultaneous drafting, coastal hex trading, gem engines,
+                  tile strategy &amp; party bluffing — with smart Practice Bots!
                 </p>
               </div>
               <Link

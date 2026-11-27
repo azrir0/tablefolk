@@ -1159,6 +1159,174 @@ function DawnspireStage({ sceneId, p }: { sceneId: string; p: number }) {
   );
 }
 
+function LanternWatchStage({ sceneId, p }: { sceneId: string; p: number }) {
+  if (sceneId === "lw-ch-1") {
+    const litCount = p > 0.65 ? 3 : p > 0.4 ? 2 : p > 0.18 ? 1 : 0;
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-4 py-3 text-oat-50">
+        <div className="flex items-center gap-2.5">
+          {[0, 1, 2, 3, 4].map((idx) => (
+            <div
+              key={idx}
+              className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all duration-500 ${
+                idx < litCount
+                  ? "scale-110 border-[#FDE68A] bg-amber-500 text-espresso shadow-[0_0_12px_rgba(245,158,11,0.85)]"
+                  : idx === 3 && p > 0.55
+                    ? "border-rose-400 bg-rose-700 text-white"
+                    : "border-white/25 bg-white/10 text-oat-200"
+              }`}
+            >
+              <GameIcon
+                name={idx < litCount ? "lw-beacon" : idx === 3 && p > 0.55 ? "lw-sabotage" : "game-lantern"}
+                className="h-5 w-5"
+              />
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 text-xs font-extrabold">
+          <span className="rounded-lg bg-amber-400/20 px-2.5 py-1 text-[#FDE68A]">
+            Loyal Watch: Light 3 Beacons
+          </span>
+          <span className="rounded-lg bg-rose-600/35 px-2.5 py-1 text-rose-200">
+            Shadow Moles: Extinguish 3
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (sceneId === "lw-ch-2") {
+    const flipped = p > 0.48;
+    const seats = [
+      { name: "Mira", approve: true },
+      { name: "Kaito", approve: true },
+      { name: "Sora", approve: false },
+      { name: "Wren", approve: true },
+    ];
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center gap-2.5 px-4 py-3 text-oat-50">
+        <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#FDE68A]">
+          {flipped ? "Votes Flip Publicly Together (3–1 Approved!)" : "Council Casts Simultaneous Votes..."}
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          {seats.map((s) => (
+            <div
+              key={s.name}
+              className="flex flex-col items-center rounded-xl border border-white/20 bg-white/10 px-3 py-2"
+            >
+              <span className="text-xs font-extrabold">{s.name}</span>
+              <span
+                className={`mt-1 rounded-md px-2 py-0.5 text-[10px] font-black transition-all ${
+                  !flipped
+                    ? "bg-white/15 text-oat-200"
+                    : s.approve
+                      ? "bg-emerald-500 text-white"
+                      : "bg-rose-600 text-white"
+                }`}
+              >
+                {!flipped ? "Locked" : s.approve ? "✓ YES" : "✕ NO"}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (sceneId === "lw-ch-3") {
+    const revealed = p > 0.5;
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-4 py-3 text-oat-50">
+        <div className="flex items-center gap-3">
+          {["light", "sabotage", "light"].map((card, i) => (
+            <div
+              key={i}
+              className={`flex h-20 w-16 flex-col items-center justify-center rounded-2xl border-2 transition-all duration-500 ${
+                !revealed
+                  ? "border-[#F2B749]/50 bg-[#232D47]"
+                  : card === "light"
+                    ? "border-amber-300 bg-amber-100 text-espresso"
+                    : "border-rose-400 bg-rose-100 text-rose-800"
+              }`}
+            >
+              <GameIcon
+                name={!revealed ? "game-lantern" : card === "light" ? "lw-beacon" : "lw-sabotage"}
+                className="h-8 w-8"
+              />
+              <span className="mt-1 text-[9.5px] font-black">
+                {!revealed ? "Sealed" : card === "light" ? "LIGHT" : "FAIL"}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="text-xs font-bold text-oat-100">
+          {revealed
+            ? "Shuffled Anonymously! 1 Extinguish snuffed the Beacon — check the Ledger!"
+            : "Couriers seal secret Light or Extinguish cards..."}
+        </div>
+      </div>
+    );
+  }
+
+  if (sceneId === "lw-ch-4") {
+    const checked = p > 0.52;
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center gap-2.5 px-4 py-3 text-oat-50">
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col items-center rounded-xl border border-indigo-400/50 bg-indigo-950/70 px-3 py-2">
+            <GameIcon name="lw-oracle" className="h-7 w-7" />
+            <span className="mt-1 text-[10px] font-extrabold text-indigo-200">Oracle</span>
+          </div>
+          <div className="flex flex-col items-center rounded-xl border border-cyan-400/60 bg-cyan-950/60 px-3.5 py-2">
+            <GameIcon name="lw-spyglass" className="h-7 w-7" />
+            <span className="mt-1 text-[10px] font-extrabold text-cyan-200">
+              {checked ? "Private: Shadow Mole!" : "Brass Spyglass"}
+            </span>
+          </div>
+          <div className="flex flex-col items-center rounded-xl border border-teal-400/50 bg-teal-950/70 px-3 py-2">
+            <GameIcon name="lw-warden" className="h-7 w-7" />
+            <span className="mt-1 text-[10px] font-extrabold text-teal-200">Warden</span>
+          </div>
+        </div>
+        <div className="text-[11px] font-bold text-oat-200">
+          Oracle &amp; Shade Mode: Asymmetric Hidden Intel + Private Lens Checks!
+        </div>
+      </div>
+    );
+  }
+
+  // lw-ch-5: Nightblade Final Unmasking
+  const struck = p > 0.55;
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-2.5 px-4 py-3 text-oat-50">
+      <div className="flex items-center gap-4">
+        <div className="flex flex-col items-center rounded-2xl border-2 border-rose-400 bg-rose-950/80 px-3.5 py-2">
+          <GameIcon name="lw-nightblade" className="h-8 w-8" />
+          <span className="mt-1 text-[10px] font-extrabold text-rose-200">Nightblade</span>
+        </div>
+        <span className="text-lg font-black text-[#FDE68A]">→</span>
+        <div
+          className={`flex flex-col items-center rounded-2xl border-2 px-3.5 py-2 transition-all duration-500 ${
+            struck
+              ? "scale-110 border-[#FDE68A] bg-indigo-900"
+              : "border-white/25 bg-white/10"
+          }`}
+        >
+          <GameIcon name={struck ? "lw-oracle" : "lw-beacon"} className="h-8 w-8" />
+          <span className="mt-1 text-[10px] font-extrabold text-[#FDE68A]">
+            {struck ? "The Oracle!" : "Loyal Suspect?"}
+          </span>
+        </div>
+      </div>
+      <div className="text-xs font-extrabold text-rose-200">
+        {struck
+          ? "Direct Hit Steals Shadow Victory — Keep The Oracle Hidden!"
+          : "3 Lit Beacons? One Last Shot to Unmask The Oracle!"}
+      </div>
+    </div>
+  );
+}
+
 function renderGameStage(slug: SupportedGameSlug, sceneId: string, progress: number) {
   if (slug === "hearthvale") {
     return <HearthvaleStage sceneId={sceneId} p={progress} />;
@@ -1174,6 +1342,9 @@ function renderGameStage(slug: SupportedGameSlug, sceneId: string, progress: num
   }
   if (slug === "dawnspire") {
     return <DawnspireStage sceneId={sceneId} p={progress} />;
+  }
+  if (slug === "lantern-watch") {
+    return <LanternWatchStage sceneId={sceneId} p={progress} />;
   }
   return <TreasureTrailsStage sceneId={sceneId} p={progress} />;
 }

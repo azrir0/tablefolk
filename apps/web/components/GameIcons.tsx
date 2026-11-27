@@ -12,6 +12,7 @@ export type GameIconName =
   | "game-sunstone"
   | "game-harbor"
   | "game-dawnspire"
+  | "game-lantern"
   // Treasure Trails Tools (1-to-1 shared between player gear slots & Break/Fix cards)
   | "tool-lantern"
   | "tool-compass"
@@ -75,6 +76,15 @@ export type GameIconName =
   | "ds-stone"
   | "ds-glass"
   | "ds-silk"
+  // Lantern Watch Roles, Beacons & Tools
+  | "lw-beacon"
+  | "lw-sabotage"
+  | "lw-oracle"
+  | "lw-warden"
+  | "lw-nightblade"
+  | "lw-mole"
+  | "lw-spyglass"
+  | "lw-commander"
   // Universal Tabletop Tokens & Café UI
   | "coin-gold"
   | "star-gold"
@@ -144,6 +154,7 @@ export function gameSlugToIconName(slug: string): GameIconName {
   if (slug === "sunstone-guild") return "game-sunstone";
   if (slug === "harborreach") return "game-harbor";
   if (slug === "dawnspire") return "game-dawnspire";
+  if (slug === "lantern-watch") return "game-lantern";
   return "game-trails";
 }
 
@@ -1076,6 +1087,99 @@ export function renderIconArt(name: GameIconName): React.ReactNode {
         </g>
       );
 
+    /* ===================== LANTERN WATCH (RESISTANCE / AVALON INSPIRED) ===================== */
+    case "game-lantern":
+      return (
+        <g>
+          <rect x="3" y="3" width="26" height="26" rx="7" fill="#2D3A59" stroke={INK} strokeWidth="2" />
+          {/* Warm lantern radiance over midnight harbor */}
+          <circle cx="16" cy="14" r="7.5" fill="#F2B749" opacity="0.28" />
+          <path d="M12.5 8.5H19.5L18.5 10.5H13.5L12.5 8.5Z" fill="#D99B36" stroke={INK} strokeWidth="1.4" strokeLinejoin="round" />
+          <rect x="11.5" y="10.5" width="9" height="9.5" rx="2" fill="#FDE68A" stroke={INK} strokeWidth="1.6" />
+          <path d="M16 12.2C17.4 14 18 15.2 18 16.5C18 17.7 17.1 18.6 16 18.6C14.9 18.6 14 17.7 14 16.5C14 15.2 14.6 14 16 12.2Z" fill="#F59E0B" />
+          <rect x="10.5" y="20" width="11" height="2.4" rx="1" fill="#C98A1A" stroke={INK} strokeWidth="1.4" />
+          <path d="M6.5 25C9.5 23.4 12.8 26 16 24.4C19.2 26 22.5 23.4 25.5 25" stroke="#93C5FD" strokeWidth="1.6" strokeLinecap="round" />
+        </g>
+      );
+
+    case "lw-beacon":
+      return (
+        <g>
+          <circle cx="16" cy="16" r="12.5" fill="#FEF3C7" stroke="#D97706" strokeWidth="1.8" />
+          <path d="M16 5.5C19.5 10.5 21.5 13.5 21.5 17.5C21.5 20.8 19 23.5 16 23.5C13 23.5 10.5 20.8 10.5 17.5C10.5 13.5 12.5 10.5 16 5.5Z" fill="#F59E0B" stroke={INK} strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="M16 11.5C17.8 14 18.8 15.8 18.8 17.8C18.8 19.5 17.5 20.8 16 20.8C14.5 20.8 13.2 19.5 13.2 17.8C13.2 15.8 14.2 14 16 11.5Z" fill="#FFFBEB" />
+          <rect x="11" y="23.5" width="10" height="3" rx="1.4" fill="#92400E" stroke={INK} strokeWidth="1.4" />
+        </g>
+      );
+
+    case "lw-sabotage":
+      return (
+        <g>
+          <circle cx="16" cy="16" r="12.5" fill="#FEE2E2" stroke="#B91C1C" strokeWidth="1.8" />
+          <path d="M11 19C11 15 13.5 13 16 10.5C18.5 13 21 15 21 19C21 21.8 18.8 24 16 24C13.2 24 11 21.8 11 19Z" fill="#475569" stroke={INK} strokeWidth="1.7" />
+          <path d="M9.5 9.5L22.5 22.5M22.5 9.5L9.5 22.5" stroke="#DC2626" strokeWidth="2.8" strokeLinecap="round" />
+        </g>
+      );
+
+    case "lw-oracle":
+      return (
+        <g>
+          <circle cx="16" cy="16" r="12.5" fill="#1E3A8A" stroke={INK} strokeWidth="1.9" />
+          <path d="M6.5 16C9.5 11.2 12.8 9.8 16 9.8C19.2 9.8 22.5 11.2 25.5 16C22.5 20.8 19.2 22.2 16 22.2C12.8 22.2 9.5 20.8 6.5 16Z" fill="#E0F2FE" stroke={INK} strokeWidth="1.7" strokeLinejoin="round" />
+          <circle cx="16" cy="16" r="4.2" fill="#3B82F6" stroke={INK} strokeWidth="1.4" />
+          <circle cx="16" cy="16" r="1.8" fill="#FDE047" />
+          <path d="M16 5.5V7.8M16 24.2V26.5" stroke="#FDE047" strokeWidth="1.8" strokeLinecap="round" />
+        </g>
+      );
+
+    case "lw-warden":
+      return (
+        <g>
+          <path d="M16 4.5L25.5 8.5V15.5C25.5 21.2 21.3 25.4 16 27.5C10.7 25.4 6.5 21.2 6.5 15.5V8.5L16 4.5Z" fill="#1E7D74" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
+          <path d="M16 8.5L22 11.2V15.5C22 19.2 19.4 22.2 16 23.8C12.6 22.2 10 19.2 10 15.5V11.2L16 8.5Z" fill="#5EC2B7" />
+          <circle cx="16" cy="15.5" r="3" fill="#FEF08A" stroke={INK} strokeWidth="1.4" />
+        </g>
+      );
+
+    case "lw-nightblade":
+      return (
+        <g>
+          <circle cx="16" cy="16" r="12.5" fill="#1E1B2E" stroke={INK} strokeWidth="1.9" />
+          <path d="M8.5 23.5L22.5 7.5L24.5 11.5L13 24.5L8.5 23.5Z" fill="#E2E8F0" stroke={INK} strokeWidth="1.6" strokeLinejoin="round" />
+          <path d="M10.5 19L15.5 23.5" stroke="#DC2626" strokeWidth="2.8" strokeLinecap="round" />
+          <circle cx="10" cy="10.5" r="1.8" fill="#F87171" />
+        </g>
+      );
+
+    case "lw-mole":
+      return (
+        <g>
+          <circle cx="16" cy="16" r="12.5" fill="#312E4A" stroke={INK} strokeWidth="1.9" />
+          <path d="M8.5 24C8.5 16.5 11.5 8 16 8C20.5 8 23.5 16.5 23.5 24H8.5Z" fill="#181826" stroke={INK} strokeWidth="1.7" strokeLinejoin="round" />
+          <ellipse cx="13.2" cy="15.5" rx="1.8" ry="1.2" fill="#FBBF24" />
+          <ellipse cx="18.8" cy="15.5" rx="1.8" ry="1.2" fill="#FBBF24" />
+        </g>
+      );
+
+    case "lw-spyglass":
+      return (
+        <g>
+          <path d="M6 21.5L13.5 15L17 18.5L9.5 25L6 21.5Z" fill="#B87333" stroke={INK} strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="M13 14.5L22.5 7L26.5 11L17 19L13 14.5Z" fill="#E5A93C" stroke={INK} strokeWidth="1.8" strokeLinejoin="round" />
+          <ellipse cx="24.5" cy="9" rx="2.6" ry="3.8" transform="rotate(-45 24.5 9)" fill="#67E8F9" stroke={INK} strokeWidth="1.6" />
+          <path d="M10.5 19.5L12.5 21.5" stroke="#FDE68A" strokeWidth="1.6" strokeLinecap="round" />
+        </g>
+      );
+
+    case "lw-commander":
+      return (
+        <g>
+          <circle cx="16" cy="16" r="12" fill="#2D3A59" stroke={INK} strokeWidth="1.9" />
+          <circle cx="16" cy="16" r="8.5" fill="#F2B749" stroke="#92400E" strokeWidth="1.5" />
+          <path d="M16 9.8L17.8 13.8L22 14.4L18.9 17.3L19.7 21.5L16 19.4L12.3 21.5L13.1 17.3L10 14.4L14.2 13.8Z" fill="#FFFBEB" stroke={INK} strokeWidth="1.2" strokeLinejoin="round" />
+        </g>
+      );
+
     /* ===================== UNIVERSAL TABLETOP TOKENS ===================== */
     case "coin-gold":
       return (
@@ -1379,6 +1483,15 @@ const TUTORIAL_ICON_MAP: Record<string, GameIconName> = {
   "ds-stone": "ds-stone",
   "ds-glass": "ds-glass",
   "ds-silk": "ds-silk",
+  "game-lantern": "game-lantern",
+  "lw-beacon": "lw-beacon",
+  "lw-sabotage": "lw-sabotage",
+  "lw-oracle": "lw-oracle",
+  "lw-warden": "lw-warden",
+  "lw-nightblade": "lw-nightblade",
+  "lw-mole": "lw-mole",
+  "lw-spyglass": "lw-spyglass",
+  "lw-commander": "lw-commander",
   boulder: "boulder",
   "action-peek-vault": "action-peek-vault",
   "action-blast-tile": "action-blast-tile",

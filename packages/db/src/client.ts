@@ -268,6 +268,22 @@ export async function seedDefaultData(db: TableFolkDb): Promise<void> {
       tutorialAvailable: true,
     },
     {
+      id: "game_lantern_watch",
+      slug: "lantern-watch",
+      title: "Lantern Watch",
+      tagline: "Form covert courier teams, read the council ledger & light 3 coastal beacons!",
+      description:
+        "A cozy gaslamp-noir social deduction game for 4–8 players inspired by The Resistance & Avalon. Nominate courier teams, cast simultaneous public Approve/Reject votes, watch every voting pattern in the Council Ledger, peer through the Brass Spyglass, and protect the Oracle from the Nightblade!",
+      category: "Social Deduction",
+      minPlayers: 4,
+      maxPlayers: 8,
+      estimatedMinutes: 10,
+      difficulty: "Medium",
+      coverTheme: "from-slate-200 via-indigo-100 to-amber-200",
+      isAvailable: true,
+      tutorialAvailable: true,
+    },
+    {
       id: "game_matcha_dominoes",
       slug: "matcha-dominoes",
       title: "Matcha Tiles",
@@ -919,6 +935,102 @@ export async function seedDefaultData(db: TableFolkDb): Promise<void> {
         rulesMarkdown: dsTutorialValues.rulesMarkdown,
         cardReferenceJson: dsTutorialValues.cardReferenceJson,
         faqJson: dsTutorialValues.faqJson,
+      },
+    });
+
+  const lwTutorialValues = {
+    id: "tut_lantern_watch_en",
+    gameSlug: "lantern-watch",
+    locale: "en",
+    summary:
+      "Form covert courier teams, read every vote in the Council Ledger, and light 3 coastal beacons before hidden Shadow Moles extinguish them — with zero player elimination!",
+    rulesMarkdown: `### Goal of the Game
+- **Loyal Watch:** Light **3 of 5 Coastal Beacons** *(and keep **The Oracle** hidden from the Nightblade in Oracle & Shade mode!)*.
+- **Shadow Moles:** Extinguish **3 Beacons**, force **5 Rejected Proposals** in a row *(Council Collapse)*, OR unmask **The Oracle** after 3 beacons are lit!
+
+### Round Loop (Zero Elimination!)
+1. **Propose Team:** The **Lantern Commander** *(rotates clockwise after every vote)* selects the exact number of couriers required for the current Beacon.
+2. **Council Vote:** Every player simultaneously casts a **public Approve (✓) or Reject (✕)** vote. All votes flip together and are permanently logged in the **Council Vote Ledger**!
+   - **Strict Majority Approve:** The team departs on the mission.
+   - **Tie or Majority Reject:** Chaos rises *(+1)*. **5 consecutive rejections = instant Shadow Collapse Win!**
+3. **Secret Mission:** Selected couriers secretly play **Light Beacon (✓)** *(Loyal must play Light)* or **Extinguish (✕)** *(Shadow may Sabotage or bluff Light)*. Cards shuffle anonymously before reveal!
+4. **Brass Spyglass *(Oracle Mode, 5–8p after Missions 2, 3 & 4)*:** The holder privately inspects one unchecked courier's true faction, then hands them the Spyglass.
+5. **Final Unmasking *(Oracle Mode)*:** If the Loyal Watch lights 3 Beacons, the **Nightblade** gets one last call to name **The Oracle** and steal victory!`,
+    cardReferenceJson: [
+      {
+        name: "Light Beacon / Extinguish",
+        category: "Secret Mission Cards",
+        icon: "lw-beacon",
+        description:
+          "Loyal Watch couriers may only play Light Beacon. Shadow Moles may play Extinguish to sabotage — or bluff Light! Mission 4 at 7–8 players requires 2 Extinguish cards to fail!",
+      },
+      {
+        name: "The Oracle (Loyal Seer)",
+        category: "Oracle & Shade Mode",
+        icon: "lw-oracle",
+        description:
+          "Secretly sees the Shadow Moles (except the Veiled Mole at 7–8p). Steer votes without drawing the Nightblade's eye!",
+      },
+      {
+        name: "The Warden (6–8 Players)",
+        category: "Oracle & Shade Mode",
+        icon: "lw-warden",
+        description:
+          "Sees TWO silhouettes — the true Oracle and the Shadow Mirage decoy — and must deduce who to trust and shield!",
+      },
+      {
+        name: "Nightblade & Shadow Moles",
+        category: "Shadow Faction",
+        icon: "lw-nightblade",
+        description:
+          "Know their fellow Moles from Turn 1. If the Watch reaches 3 Lit Beacons, the Nightblade gets one dramatic shot to unmask the Oracle!",
+      },
+      {
+        name: "Brass Spyglass (5–8 Players)",
+        category: "Private Inspection",
+        icon: "lw-spyglass",
+        description:
+          "Activates after Missions 2, 3, and 4 in Oracle & Shade mode: privately reveals one unchecked player's faction, then passes the Spyglass to them!",
+      },
+      {
+        name: "Council Vote Ledger",
+        category: "Core Deduction Tool",
+        icon: "lw-commander",
+        description:
+          "Always visible beside the board — tracks every Commander's proposed crew, every public Approve/Reject vote, and every shuffled Beacon tally!",
+      },
+    ],
+    faqJson: [
+      {
+        q: "Does anyone ever get eliminated during Lantern Watch?",
+        a: "Never! Every player stays active in every council proposal, debate, and public vote from Beacon 1 to the dramatic finale.",
+      },
+      {
+        q: "What happens on a tied Council Vote?",
+        a: "Approval requires a strict majority (more Approves than Rejects). A tie counts as REJECTED, advances Chaos (+1), and passes the Commander Seal clockwise!",
+      },
+      {
+        q: "Why does Mission 4 say '2 Fails' in 7–8 player games?",
+        a: "In 7–8 player matches, Beacon 4 (Tidegate Spire) requires TWO Extinguish cards to fail — if only 1 Shadow sabotages, the beacon still lights!",
+      },
+      {
+        q: "What is the difference between Classic Watch and Oracle & Shade?",
+        a: "Classic Watch is pure Resistance deduction (Loyal Couriers vs Shadow Moles only). Oracle & Shade adds the Oracle, Warden, Nightblade, Mirage, Veiled Mole, Brass Spyglass, and the Final Oracle Unmasking!",
+      },
+    ],
+    videoUrl: null,
+  };
+
+  await db
+    .insert(schema.gameTutorials)
+    .values(lwTutorialValues)
+    .onConflictDoUpdate({
+      target: schema.gameTutorials.id,
+      set: {
+        summary: lwTutorialValues.summary,
+        rulesMarkdown: lwTutorialValues.rulesMarkdown,
+        cardReferenceJson: lwTutorialValues.cardReferenceJson,
+        faqJson: lwTutorialValues.faqJson,
       },
     });
 }

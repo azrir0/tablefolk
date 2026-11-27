@@ -47,10 +47,13 @@ import { FOLK_COLOR_STYLES, HearthvaleTileSvg } from "./HearthvaleTileSvg";
 import { BoardMarkerLayer, BoardMarkerToolbar } from "./BoardMarkerLayer";
 import { GameIcon, type GameIconName } from "./GameIcons";
 import { GameQuickTour } from "./GameQuickTour";
+import { GuidedTutorialCoach } from "./GuidedTutorialCoach";
+import { buildHearthvaleGuide } from "@/lib/guidedTutorials";
 
 interface HearthvaleOverlayProps {
   gameRoomId: string;
   myUserId: string;
+  tutorialMode?: boolean;
   onExitGame: (info?: { finished?: boolean; notice?: string }) => void;
   onOpenTutorial: () => void;
 }
@@ -279,6 +282,7 @@ function HearthvaleChatPanel({
 export function HearthvaleOverlay({
   gameRoomId,
   myUserId,
+  tutorialMode = false,
   onExitGame,
   onOpenTutorial,
 }: HearthvaleOverlayProps) {
@@ -791,7 +795,8 @@ export function HearthvaleOverlay({
       autoTourCheckedRef.current ||
       !pub ||
       pub.phase !== "IN_PROGRESS" ||
-      isSpectator
+      isSpectator ||
+      tutorialMode
     ) {
       return;
     }
@@ -800,7 +805,7 @@ export function HearthvaleOverlay({
       const t = window.setTimeout(() => setShowQuickTour(true), 500);
       return () => window.clearTimeout(t);
     }
-  }, [pub, isSpectator]);
+  }, [pub, isSpectator, tutorialMode]);
 
   const isMyTurn =
     !isSpectator && pub?.phase === "IN_PROGRESS" && pub.activePlayerId === myUserId;
@@ -1889,6 +1894,23 @@ export function HearthvaleOverlay({
         onClose={() => setShowQuickTour(false)}
         onOpenFullRules={onOpenTutorial}
       />
+
+      {tutorialMode && !isSpectator && pub && myPublic && (
+        <GuidedTutorialCoach
+          model={buildHearthvaleGuide({
+            phase: pub.phase,
+            turnStep: pub.turnStep,
+            isMyTurn: Boolean(isMyTurn),
+            tilesRemaining: pub.deckCount,
+            myScore: myPublic.score,
+            myFolkRemaining: myPublic.villagersLeft + myPublic.mayorsLeft,
+            hasPreviewSpot: Boolean(previewSpot),
+            turnsPlayed: Math.max(0, Math.floor((pub.turnNumber - 1) / Math.max(1, pub.players.length))),
+          })}
+          onOpenRules={onOpenTutorial}
+          onExitTutorial={() => onExitGame({ finished: pub.phase === "COMPLETED" })}
+        />
+      )}
     </div>
   );
 }

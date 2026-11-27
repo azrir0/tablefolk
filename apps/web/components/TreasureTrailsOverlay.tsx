@@ -54,11 +54,14 @@ import {
   type GameIconName,
 } from "./GameIcons";
 import { GameQuickTour } from "./GameQuickTour";
+import { GuidedTutorialCoach } from "./GuidedTutorialCoach";
+import { buildTreasureTrailsGuide } from "@/lib/guidedTutorials";
 import { PathTileSvg } from "./TreasureTrailsTileSvg";
 
 interface TreasureTrailsOverlayProps {
   gameRoomId: string;
   myUserId: string;
+  tutorialMode?: boolean;
   onExitGame: (info?: { finished?: boolean; notice?: string }) => void;
   onOpenTutorial: () => void;
 }
@@ -385,6 +388,7 @@ function computeEndTrailHighlight(
 export function TreasureTrailsOverlay({
   gameRoomId,
   myUserId,
+  tutorialMode = false,
   onExitGame,
   onOpenTutorial,
 }: TreasureTrailsOverlayProps) {
@@ -1332,6 +1336,7 @@ export function TreasureTrailsOverlay({
       !pub ||
       pub.phase !== "IN_PROGRESS" ||
       isSpectator ||
+      tutorialMode ||
       isIntroBlocking
     ) {
       return;
@@ -1341,7 +1346,7 @@ export function TreasureTrailsOverlay({
       const t = window.setTimeout(() => setShowQuickTour(true), 450);
       return () => window.clearTimeout(t);
     }
-  }, [pub, isSpectator, isIntroBlocking]);
+  }, [pub, isSpectator, tutorialMode, isIntroBlocking]);
 
   const isMyTurn =
     !isSpectator &&
@@ -2773,6 +2778,23 @@ export function TreasureTrailsOverlay({
         onClose={() => setShowQuickTour(false)}
         onOpenFullRules={onOpenTutorial}
       />
+
+      {tutorialMode && !isSpectator && !isIntroBlocking && pub && (
+        <GuidedTutorialCoach
+          model={buildTreasureTrailsGuide({
+            phase: pub.phase,
+            isMyTurn: Boolean(isMyTurn),
+            myRole: priv?.role === "TRICKSTER" ? "IMPOSTOR" : priv?.role ? "EXPLORER" : null,
+            hasBrokenTool: myBrokenGears.length > 0,
+            selectedCardKind: selectedCard?.kind ?? null,
+            handCount: priv?.hand.length ?? 0,
+            tilesOnBoard: Object.keys(pub.board).length,
+            turnNumber: pub.turnNumber,
+          })}
+          onOpenRules={onOpenTutorial}
+          onExitTutorial={() => onExitGame({ finished: pub.phase === "COMPLETED" })}
+        />
+      )}
     </div>
   );
 }

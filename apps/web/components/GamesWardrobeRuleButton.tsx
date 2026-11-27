@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { BookOpen, Compass, Film, Play } from "lucide-react";
+import Link from "next/link";
+import { BookOpen, Compass, Film, GraduationCap, Play } from "lucide-react";
 import type { SupportedGameSlug } from "@/lib/gameTutorials";
 import { CashierTutorialModal, type TutorialModalTab } from "./CashierTutorialModal";
 
@@ -12,7 +13,7 @@ interface GamesWardrobeRuleButtonProps {
 /**
  * Interactive Quick Tour, Rules & Video Walkthrough launcher for the public /games "Game Wardrobe" page.
  * Matches the exact buttons inside the in-café Game Wardrobe & Table Lobby so players can
- * walk through core features step-by-step or watch the 55s walkthrough before entering Sunlit Oak Café.
+ * walk through core features step-by-step or launch a live Guided Tutorial Match with bots.
  */
 export function GamesWardrobeRuleButton({
   gameSlug,
@@ -22,10 +23,18 @@ export function GamesWardrobeRuleButton({
   return (
     <>
       <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-oat-200/80 pt-4">
+        <Link
+          href={`/cafe?tutorial=${gameSlug}`}
+          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-2xl bg-[#232D47] px-4 py-2 text-xs font-extrabold text-[#FDE68A] shadow-sm transition hover:brightness-110"
+        >
+          <GraduationCap className="h-3.5 w-3.5" />
+          Play Guided Tutorial (vs Bots)
+        </Link>
+
         <button
           type="button"
           onClick={() => setOpenTab("tour")}
-          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-2xl bg-sage-500 px-4 py-2 text-xs font-extrabold text-white shadow-sm transition hover:bg-sage-700"
+          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-2xl bg-sage-500 px-3.5 py-2 text-xs font-extrabold text-white shadow-sm transition hover:bg-sage-700"
         >
           <Compass className="h-3.5 w-3.5" />
           Quick Tour (6 Steps)

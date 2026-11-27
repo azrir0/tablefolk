@@ -45,6 +45,8 @@ import { hasCompletedQuickTour } from "@/lib/gameQuickTours";
 import { soundEngine } from "@/lib/sound";
 import { GameIcon, sunstoneGemToIconName } from "./GameIcons";
 import { GameQuickTour } from "./GameQuickTour";
+import { GuidedTutorialCoach } from "./GuidedTutorialCoach";
+import { buildSunstoneGuildGuide } from "@/lib/guidedTutorials";
 import {
   GemBankButton,
   PatronTile,
@@ -55,6 +57,7 @@ import {
 interface SunstoneGuildOverlayProps {
   gameRoomId: string;
   myUserId: string;
+  tutorialMode?: boolean;
   onExitGame: (info?: { finished?: boolean; notice?: string }) => void;
   onOpenTutorial: () => void;
 }
@@ -77,6 +80,7 @@ interface SelectedCardState {
 export function SunstoneGuildOverlay({
   gameRoomId,
   myUserId,
+  tutorialMode = false,
   onExitGame,
   onOpenTutorial,
 }: SunstoneGuildOverlayProps) {
@@ -256,15 +260,15 @@ export function SunstoneGuildOverlay({
     };
   }, [gameRoomId, myUserId, onExitGame, flashNotice, flashBanner]);
 
-  // First-time automatic Quick Tour launch once state loads
+  // First-time automatic Quick Tour launch once state loads (skipped in interactive tutorialMode)
   useEffect(() => {
-    if (!publicState || isSpectator || autoTourCheckedRef.current) return;
+    if (!publicState || isSpectator || tutorialMode || autoTourCheckedRef.current) return;
     autoTourCheckedRef.current = true;
     if (!hasCompletedQuickTour("sunstone-guild")) {
       const t = setTimeout(() => setShowQuickTour(true), 650);
       return () => clearTimeout(t);
     }
-  }, [publicState, isSpectator]);
+  }, [publicState, isSpectator, tutorialMode]);
 
   // Turn countdown tick
   useEffect(() => {
@@ -1295,6 +1299,33 @@ export function SunstoneGuildOverlay({
           onOpenTutorial();
         }}
       />
+
+      {tutorialMode && !isSpectator && publicState && me && (
+        <GuidedTutorialCoach
+          model={buildSunstoneGuildGuide({
+            phase: publicState.phase,
+            step,
+            isMyTurn,
+            stagedGemCount: stagedGems.length,
+            myTokenCount,
+            myRelicCount: me.craftedCount,
+            myPrestige: me.prestige,
+            targetPrestige: publicState.targetPrestige,
+            canAffordAnyRelic:
+              ([1, 2, 3] as RelicTier[]).some((tier) =>
+                publicState.market[tier].some(
+                  (card) => card && calculateCardPayment(me.tokens, me.bonuses, card).canAfford
+                )
+              ) ||
+              myReservedFull.some(
+                (slot) => calculateCardPayment(me.tokens, me.bonuses, slot.card).canAfford
+              ),
+            reservedCount: myReservedFull.length,
+          })}
+          onOpenRules={onOpenTutorial}
+          onExitTutorial={() => onExitGame({ finished: publicState.phase === "GAME_END" })}
+        />
+      )}
     </div>
   );
 }
