@@ -10,8 +10,11 @@
   },
   "dependencies": {
     "@tablefolk/cafe-engine": "workspace:*",
+    "@tablefolk/game-dawnspire": "workspace:*",
     "@tablefolk/game-engine": "workspace:*",
+    "@tablefolk/game-harborreach": "workspace:*",
     "@tablefolk/game-hearthvale": "workspace:*",
+    "@tablefolk/game-sunstone-guild": "workspace:*",
     "@tablefolk/game-treasure-trails": "workspace:*",
     "@tablefolk/game-velvet-masque": "workspace:*",
     "@tablefolk/shared": "workspace:*",

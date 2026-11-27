@@ -76,6 +76,9 @@ export const TableStartGamePayloadSchema = z.object({
   mysteryRoles: z.boolean().default(false),
   deckSize: z.union([z.literal(36), z.literal(54)]).default(36),
   targetCoins: z.union([z.literal(10), z.literal(13)]).default(13),
+  targetPrestige: z.union([z.literal(12), z.literal(15)]).default(15),
+  targetVP: z.union([z.literal(8), z.literal(10)]).default(10),
+  wonderSide: z.enum(["sunlit", "starlit"]).default("sunlit"),
 });
 
 export const TableSpectatePayloadSchema = z.object({

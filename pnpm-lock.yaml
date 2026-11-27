@@ -206,12 +206,21 @@ importers:
       '@tablefolk/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@tablefolk/game-dawnspire':
+        specifier: workspace:*
+        version: link:../../packages/games/dawnspire
       '@tablefolk/game-engine':
         specifier: workspace:*
         version: link:../../packages/game-engine
+      '@tablefolk/game-harborreach':
+        specifier: workspace:*
+        version: link:../../packages/games/harborreach
       '@tablefolk/game-hearthvale':
         specifier: workspace:*
         version: link:../../packages/games/hearthvale
+      '@tablefolk/game-sunstone-guild':
+        specifier: workspace:*
+        version: link:../../packages/games/sunstone-guild
       '@tablefolk/game-treasure-trails':
         specifier: workspace:*
         version: link:../../packages/games/treasure-trails
@@ -258,12 +267,21 @@ importers:
       '@tablefolk/cafe-engine':
         specifier: workspace:*
         version: link:../../packages/cafe-engine
+      '@tablefolk/game-dawnspire':
+        specifier: workspace:*
+        version: link:../../packages/games/dawnspire
       '@tablefolk/game-engine':
         specifier: workspace:*
         version: link:../../packages/game-engine
+      '@tablefolk/game-harborreach':
+        specifier: workspace:*
+        version: link:../../packages/games/harborreach
       '@tablefolk/game-hearthvale':
         specifier: workspace:*
         version: link:../../packages/games/hearthvale
+      '@tablefolk/game-sunstone-guild':
+        specifier: workspace:*
+        version: link:../../packages/games/sunstone-guild
       '@tablefolk/game-treasure-trails':
         specifier: workspace:*
         version: link:../../packages/games/treasure-trails
@@ -358,7 +376,58 @@ importers:
         specifier: ^5.8.2
         version: 5.9.3
 
+  packages/games/dawnspire:
+    dependencies:
+      '@tablefolk/game-engine':
+        specifier: workspace:*
+        version: link:../../game-engine
+      '@tablefolk/shared':
+        specifier: workspace:*
+        version: link:../../shared
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.6.2
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@22.20.5)(jiti@1.21.7)(tsx@4.23.15)
+
+  packages/games/harborreach:
+    dependencies:
+      '@tablefolk/game-engine':
+        specifier: workspace:*
+        version: link:../../game-engine
+      zod:
+        specifier: ^3.24.2
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.8.2
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.8
+        version: 3.2.7(@types/node@22.20.5)(jiti@1.21.7)(tsx@4.23.15)
+
   packages/games/hearthvale:
+    dependencies:
+      '@tablefolk/game-engine':
+        specifier: workspace:*
+        version: link:../../game-engine
+      zod:
+        specifier: ^3.24.2
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.8.2
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.8
+        version: 3.2.7(@types/node@22.20.5)(jiti@1.21.7)(tsx@4.23.15)
+
+  packages/games/sunstone-guild:
     dependencies:
       '@tablefolk/game-engine':
         specifier: workspace:*

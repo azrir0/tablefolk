@@ -511,7 +511,10 @@ export class CafeRoom extends Room<CafeRoomState> {
       if (
         parsed.data.gameSlug !== "treasure-trails" &&
         parsed.data.gameSlug !== "hearthvale" &&
-        parsed.data.gameSlug !== "velvet-masque"
+        parsed.data.gameSlug !== "velvet-masque" &&
+        parsed.data.gameSlug !== "sunstone-guild" &&
+        parsed.data.gameSlug !== "harborreach" &&
+        parsed.data.gameSlug !== "dawnspire"
       ) {
         client.send("cafe.error", { message: "That board game is coming soon!" });
         return;
@@ -588,7 +591,14 @@ export class CafeRoom extends Room<CafeRoomState> {
       if (!table || table.hostUserId !== player.userId || table.status === "IN_PROGRESS") return;
 
       const occupiedCount = table.seats.filter((s) => s.status !== "AVAILABLE").length;
-      const maxForGame = table.selectedGameSlug === "hearthvale" ? 5 : 8;
+      const maxForGame =
+        table.selectedGameSlug === "sunstone-guild" || table.selectedGameSlug === "harborreach"
+          ? 4
+          : table.selectedGameSlug === "hearthvale"
+            ? 5
+            : table.selectedGameSlug === "dawnspire"
+              ? 7
+              : 8;
       if (occupiedCount >= maxForGame) {
         client.send("cafe.error", {
           message: `This game supports up to ${maxForGame} players.`,
@@ -632,14 +642,24 @@ export class CafeRoom extends Room<CafeRoomState> {
       this.recomputeTableStatus(table);
     });
 
-    // 10. Start Board Game Session (Spawns GameRoom/HearthvaleRoom while keeping avatars seated!)
+    // 10. Start Board Game Session (Spawns dedicated GameRoom while keeping avatars seated!)
     this.onMessage("table.startGame", async (client, raw) => {
       const player = this.state.players.get(client.sessionId);
       if (!player) return;
       const parsed = TableStartGamePayloadSchema.safeParse(raw);
       if (!parsed.success) return;
 
-      const { tableId, rounds, turnSeconds, mysteryRoles, deckSize, targetCoins } = parsed.data;
+      const {
+        tableId,
+        rounds,
+        turnSeconds,
+        mysteryRoles,
+        deckSize,
+        targetCoins,
+        targetPrestige,
+        targetVP,
+        wonderSide,
+      } = parsed.data;
       const table = this.state.tables.get(tableId);
       if (!table || table.status === "IN_PROGRESS") return;
 
@@ -652,24 +672,47 @@ export class CafeRoom extends Room<CafeRoomState> {
       if (
         slug !== "treasure-trails" &&
         slug !== "hearthvale" &&
-        slug !== "velvet-masque"
+        slug !== "velvet-masque" &&
+        slug !== "sunstone-guild" &&
+        slug !== "harborreach" &&
+        slug !== "dawnspire"
       ) {
         client.send("cafe.error", {
-          message: "Select Treasure Trails, Hearthvale, or Velvet Masque to play!",
+          message:
+            "Select Treasure Trails, Hearthvale, Velvet Masque, Sunstone Guild, Harborreach, or Dawnspire!",
         });
         return;
       }
 
       const occupiedSeats = table.seats.filter((s) => s.status !== "AVAILABLE");
-      const minP = slug === "hearthvale" ? 2 : 3;
-      const maxP = slug === "hearthvale" ? 5 : 8;
+      const minP =
+        slug === "hearthvale" ||
+        slug === "sunstone-guild" ||
+        slug === "harborreach" ||
+        slug === "dawnspire"
+          ? 2
+          : 3;
+      const maxP =
+        slug === "sunstone-guild" || slug === "harborreach"
+          ? 4
+          : slug === "hearthvale"
+            ? 5
+            : slug === "dawnspire"
+              ? 7
+              : 8;
       if (occupiedSeats.length < minP || occupiedSeats.length > maxP) {
         const gameTitle =
           slug === "hearthvale"
             ? "Hearthvale"
             : slug === "velvet-masque"
               ? "Velvet Masque"
-              : "Treasure Trails";
+              : slug === "sunstone-guild"
+                ? "Sunstone Guild"
+                : slug === "harborreach"
+                  ? "Harborreach"
+                  : slug === "dawnspire"
+                    ? "Dawnspire"
+                    : "Treasure Trails";
         client.send("cafe.error", {
           message: `${gameTitle} needs ${minP}–${maxP} players (currently ${occupiedSeats.length}). Invite friends or adjust Practice Bots!`,
         });
@@ -716,17 +759,50 @@ export class CafeRoom extends Room<CafeRoomState> {
                 },
                 players: seatedPlayers,
               })
-            : await matchMaker.createRoom("game", {
-                cafeRoomId: this.roomId,
-                tableId: table.tableId,
-                gameSlug: "treasure-trails",
-                config: {
-                  totalRounds: rounds,
-                  turnSeconds,
-                  mysteryRoles,
-                },
-                players: seatedPlayers,
-              });
+            : slug === "sunstone-guild"
+              ? await matchMaker.createRoom("sunstone-guild", {
+                  cafeRoomId: this.roomId,
+                  tableId: table.tableId,
+                  gameSlug: "sunstone-guild",
+                  config: {
+                    targetPrestige,
+                    turnSeconds,
+                  },
+                  players: seatedPlayers,
+                })
+              : slug === "harborreach"
+                ? await matchMaker.createRoom("harborreach", {
+                    cafeRoomId: this.roomId,
+                    tableId: table.tableId,
+                    gameSlug: "harborreach",
+                    config: {
+                      targetVP,
+                      turnSeconds,
+                    },
+                    players: seatedPlayers,
+                  })
+                : slug === "dawnspire"
+                  ? await matchMaker.createRoom("dawnspire", {
+                      cafeRoomId: this.roomId,
+                      tableId: table.tableId,
+                      gameSlug: "dawnspire",
+                      config: {
+                        wonderSide,
+                        turnSeconds,
+                      },
+                      players: seatedPlayers,
+                    })
+                  : await matchMaker.createRoom("game", {
+                      cafeRoomId: this.roomId,
+                      tableId: table.tableId,
+                      gameSlug: "treasure-trails",
+                      config: {
+                        totalRounds: rounds,
+                        turnSeconds,
+                        mysteryRoles,
+                      },
+                      players: seatedPlayers,
+                    });
 
       table.status = "IN_PROGRESS";
       table.activeGameRoomId = gameRoom.roomId;

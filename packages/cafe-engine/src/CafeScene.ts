@@ -1620,13 +1620,25 @@ export class CozyCafeScene extends Phaser.Scene {
           ? 0x7a1c34
           : slug === "hearthvale"
             ? 0xd97c5e
-            : 0xf2c25b;
+            : slug === "sunstone-guild"
+              ? 0x2b5096
+              : slug === "harborreach"
+                ? 0x1e7d74
+                : slug === "dawnspire"
+                  ? 0x8b3a62
+                  : 0xf2c25b;
       const innerColor =
         slug === "velvet-masque"
           ? 0xf4c145
           : slug === "hearthvale"
             ? 0x7db37a
-            : 0x529b76;
+            : slug === "sunstone-guild"
+              ? 0xf3c349
+              : slug === "harborreach"
+                ? 0xf2d17a
+                : slug === "dawnspire"
+                  ? 0xf4c762
+                  : 0x529b76;
       drawRoundedRect(ctx, -15, -10, 30, 20, 4, toRgba(outerColor, 1), toRgba(0x5c3e29, 1), 1.8);
       drawRoundedRect(ctx, -10, -6.5, 20, 13, 2, toRgba(innerColor, 1));
     });

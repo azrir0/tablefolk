@@ -9,6 +9,9 @@ export type GameIconName =
   | "game-trails"
   | "game-hearthvale"
   | "game-masque"
+  | "game-sunstone"
+  | "game-harbor"
+  | "game-dawnspire"
   // Treasure Trails Tools (1-to-1 shared between player gear slots & Break/Fix cards)
   | "tool-lantern"
   | "tool-compass"
@@ -42,6 +45,36 @@ export type GameIconName =
   | "vm-jester"
   | "vm-taxmaster"
   | "vm-smuggler"
+  // Sunstone Guild Gems & Patrons
+  | "sg-ruby"
+  | "sg-sapphire"
+  | "sg-emerald"
+  | "sg-amethyst"
+  | "sg-pearl"
+  | "sg-gold"
+  | "sg-patron"
+  | "sg-crown"
+  // Harborreach Resources & Island Pieces
+  | "hr-timber"
+  | "hr-clay"
+  | "hr-wool"
+  | "hr-grain"
+  | "hr-ore"
+  | "hr-cottage"
+  | "hr-town"
+  | "hr-harbor"
+  | "hr-bandit"
+  | "hr-scroll"
+  // Dawnspire Wonders, Categories & Crafts
+  | "ds-wonder"
+  | "ds-civic"
+  | "ds-commerce"
+  | "ds-military"
+  | "ds-science"
+  | "ds-guild"
+  | "ds-stone"
+  | "ds-glass"
+  | "ds-silk"
   // Universal Tabletop Tokens & Café UI
   | "coin-gold"
   | "star-gold"
@@ -70,9 +103,47 @@ export function masqueToIconName(maskId: MasqueId): GameIconName {
   return `vm-${maskId}` as GameIconName;
 }
 
+export function sunstoneGemToIconName(color: string): GameIconName {
+  const map: Record<string, GameIconName> = {
+    ruby: "sg-ruby",
+    sapphire: "sg-sapphire",
+    emerald: "sg-emerald",
+    amethyst: "sg-amethyst",
+    pearl: "sg-pearl",
+    gold: "sg-gold",
+  };
+  return map[color] ?? "sg-gold";
+}
+
+export function harborResourceToIconName(res: string): GameIconName {
+  const map: Record<string, GameIconName> = {
+    timber: "hr-timber",
+    clay: "hr-clay",
+    wool: "hr-wool",
+    grain: "hr-grain",
+    ore: "hr-ore",
+  };
+  return map[res] ?? "hr-harbor";
+}
+
+export function dawnResourceToIconName(res: string): GameIconName {
+  const map: Record<string, GameIconName> = {
+    timber: "hr-timber",
+    stone: "ds-stone",
+    clay: "hr-clay",
+    ore: "hr-ore",
+    glass: "ds-glass",
+    silk: "ds-silk",
+  };
+  return map[res] ?? "ds-wonder";
+}
+
 export function gameSlugToIconName(slug: string): GameIconName {
   if (slug === "hearthvale") return "game-hearthvale";
   if (slug === "velvet-masque") return "game-masque";
+  if (slug === "sunstone-guild") return "game-sunstone";
+  if (slug === "harborreach") return "game-harbor";
+  if (slug === "dawnspire") return "game-dawnspire";
   return "game-trails";
 }
 
@@ -180,6 +251,35 @@ export function renderIconArt(name: GameIconName): React.ReactNode {
           <ellipse cx="11" cy="16.2" rx="3.1" ry="2.1" fill="#FFF8E8" stroke={INK} strokeWidth="1.3" />
           <ellipse cx="21" cy="16.2" rx="3.1" ry="2.1" fill="#FFF8E8" stroke={INK} strokeWidth="1.3" />
           <circle cx="16" cy="12" r="2" fill="#F5CA63" stroke={INK} strokeWidth="1.2" />
+        </g>
+      );
+
+    case "game-sunstone":
+      return (
+        <g>
+          <circle cx="16" cy="16" r="13.5" fill="#2B5096" stroke={INK} strokeWidth="2" />
+          <path
+            d="M16 4.5L24.5 13L16 27.5L7.5 13L16 4.5Z"
+            fill="#F4C145"
+            stroke={INK}
+            strokeWidth="1.9"
+            strokeLinejoin="round"
+          />
+          <path d="M16 4.5L20 13L16 27.5L12 13Z" fill="#FDE68A" opacity="0.72" />
+          <path d="M7.5 13H24.5" stroke={INK} strokeWidth="1.3" strokeOpacity="0.65" />
+          <circle cx="16" cy="13" r="2.2" fill="#FFFDF5" />
+        </g>
+      );
+
+    case "game-harbor":
+      return (
+        <g>
+          <circle cx="16" cy="16" r="13.5" fill="#7AC5CE" stroke={INK} strokeWidth="2" />
+          <path d="M4.5 22.5C9.5 19 22.5 19 27.5 22.5C25 27 21 29.5 16 29.5C11 29.5 7 27 4.5 22.5Z" fill="#2A7B88" />
+          <path d="M8 21C11.5 18 20.5 18 24 21Z" fill="#F2D17A" stroke={INK} strokeWidth="1.5" />
+          <path d="M13 20.5L14.2 10H17.8L19 20.5Z" fill="#FFF8EC" stroke={INK} strokeWidth="1.7" strokeLinejoin="round" />
+          <path d="M13.6 15H18.4" stroke="#D64045" strokeWidth="2.4" />
+          <circle cx="16" cy="8.2" r="2.2" fill="#FDE047" stroke={INK} strokeWidth="1.4" />
         </g>
       );
 
@@ -626,6 +726,356 @@ export function renderIconArt(name: GameIconName): React.ReactNode {
         </g>
       );
 
+    /* ===================== SUNSTONE GUILD GEMS & PATRONS ===================== */
+    case "sg-ruby":
+      return (
+        <g>
+          {/* Crimson Faceted Diamond Cut */}
+          <path
+            d="M16 3.5L27 16L16 28.5L5 16L16 3.5Z"
+            fill="#D64045"
+            stroke={INK}
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+          <path d="M16 7.5L22.5 16L16 24.5L9.5 16Z" fill="#F27277" opacity="0.6" />
+          <path d="M16 3.5V28.5M5 16H27" stroke="#7A181D" strokeWidth="1.1" strokeOpacity="0.45" />
+          <path d="M12.5 11.5L16 8.5L18 11.5" fill="none" stroke="#FFF5F5" strokeWidth="1.8" strokeLinecap="round" />
+        </g>
+      );
+
+    case "sg-sapphire":
+      return (
+        <g>
+          {/* Cobalt Octagon Cushion Cut */}
+          <path
+            d="M10.5 4.5H21.5L27.5 10.5V21.5L21.5 27.5H10.5L4.5 21.5V10.5L10.5 4.5Z"
+            fill="#2D6CDF"
+            stroke={INK}
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M12 8.5H20L23.5 12V20L20 23.5H12L8.5 20V12L12 8.5Z"
+            fill="#6DA0F6"
+            stroke="#1C4694"
+            strokeWidth="1.1"
+          />
+          <path d="M11 11.5H17.5" stroke="#EEF5FF" strokeWidth="1.8" strokeLinecap="round" />
+        </g>
+      );
+
+    case "sg-emerald":
+      return (
+        <g>
+          {/* Verdant Step-Cut Rectangle */}
+          <path
+            d="M9 4H23L26 7V25L23 28H9L6 25V7L9 4Z"
+            fill="#28965A"
+            stroke={INK}
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+          <rect x="10" y="8.5" width="12" height="15" rx="1.5" fill="#5CC98B" stroke="#186039" strokeWidth="1.2" />
+          <path d="M6 7L10 8.5M26 7L22 8.5M6 25L10 23.5M26 25L22 23.5" stroke="#186039" strokeWidth="1.1" />
+          <path d="M12 11V17" stroke="#ECFFF4" strokeWidth="1.9" strokeLinecap="round" />
+        </g>
+      );
+
+    case "sg-amethyst":
+      return (
+        <g>
+          {/* Royal Plum Hexagon Crystal */}
+          <path
+            d="M16 3.5L26.5 9.8V22.2L16 28.5L5.5 22.2V9.8L16 3.5Z"
+            fill="#8B4CC6"
+            stroke={INK}
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+          <path d="M16 8L22 11.8V20.2L16 24L10 20.2V11.8L16 8Z" fill="#BA8AE8" opacity="0.72" />
+          <path d="M16 3.5V8M26.5 9.8L22 11.8M5.5 9.8L10 11.8M16 28.5V24" stroke="#4D2278" strokeWidth="1.1" />
+          <path d="M12 12L16 9.6" stroke="#FAF5FF" strokeWidth="1.8" strokeLinecap="round" />
+        </g>
+      );
+
+    case "sg-pearl":
+      return (
+        <g>
+          {/* Lustrous Silver-Teal Moonstone Pearl Sphere */}
+          <circle cx="16" cy="16" r="12" fill="#DCE9EF" stroke={INK} strokeWidth="2" />
+          <path
+            d="M7 20C10.5 25.5 21.5 25.5 25 20C22.5 23 18.5 24 15 23.5C11.5 23 8.8 21.8 7 20Z"
+            fill="#7EA1B2"
+          />
+          <circle cx="16" cy="16" r="9.5" fill="none" stroke="#85A7B8" strokeWidth="1.3" strokeOpacity="0.6" />
+          <ellipse cx="12" cy="11" rx="3.4" ry="2.2" transform="rotate(-25 12 11)" fill="#FFFFFF" />
+          <circle cx="15.5" cy="9.2" r="1" fill="#FFFFFF" />
+        </g>
+      );
+
+    case "sg-gold":
+      return (
+        <g>
+          {/* Radiant 8-Point Wild Sunstone Coin */}
+          <circle cx="16" cy="16" r="12.5" fill="#F2B824" stroke={INK} strokeWidth="2" />
+          <circle cx="16" cy="16" r="9.2" fill="#FCE07A" stroke="#B4760A" strokeWidth="1.3" />
+          <path
+            d="M16 7.5L18.1 12.7L23.5 11.5L19.8 15.8L24 19.8L18.4 19.3L16 24.5L13.6 19.3L8 19.8L12.2 15.8L8.5 11.5L13.9 12.7Z"
+            fill="#FFFDF2"
+            stroke="#A16207"
+            strokeWidth="1.1"
+            strokeLinejoin="round"
+          />
+        </g>
+      );
+
+    case "sg-patron":
+      return (
+        <g>
+          {/* Royal Guild Parchment Seal */}
+          <rect x="6" y="4.5" width="20" height="23" rx="4" fill="#FBF2DE" stroke={INK} strokeWidth="2" />
+          <path d="M10 10.5H22M10 14.5H19" stroke="#8F6E4E" strokeWidth="1.8" strokeLinecap="round" />
+          <circle cx="19.5" cy="21" r="4.5" fill="#D64045" stroke={INK} strokeWidth="1.5" />
+          <path d="M17.5 24.5L16.5 29L19.5 27.2L22.5 29L21.5 24.5" fill="#D64045" stroke={INK} strokeWidth="1.2" strokeLinejoin="round" />
+        </g>
+      );
+
+    case "sg-crown":
+      return (
+        <g>
+          {/* Jeweled Sunstone Guild Crown */}
+          <path
+            d="M4.5 23L6.5 10.5L12 15.5L16 7L20 15.5L25.5 10.5L27.5 23H4.5Z"
+            fill="#F4C145"
+            stroke={INK}
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+          <rect x="5.5" y="23" width="21" height="4" rx="1.5" fill="#C98A1A" stroke={INK} strokeWidth="1.7" />
+          <circle cx="16" cy="17.8" r="2.2" fill="#2D6CDF" stroke={INK} strokeWidth="1" />
+          <circle cx="10.2" cy="18.8" r="1.6" fill="#D64045" />
+          <circle cx="21.8" cy="18.8" r="1.6" fill="#28965A" />
+        </g>
+      );
+
+    /* ===================== HARBORREACH RESOURCES & PIECES ===================== */
+    case "hr-timber":
+      return (
+        <g>
+          {/* Cozy layered pine tree */}
+          <rect x="13.5" y="22.5" width="5" height="5.5" rx="1" fill="#8C5A3C" stroke={INK} strokeWidth="1.7" />
+          <path d="M6.5 23L16 12L25.5 23H6.5Z" fill="#2D8A56" stroke={INK} strokeWidth="1.9" strokeLinejoin="round" />
+          <path d="M8.5 16.5L16 5.5L23.5 16.5H8.5Z" fill="#46A870" stroke={INK} strokeWidth="1.9" strokeLinejoin="round" />
+        </g>
+      );
+
+    case "hr-clay":
+      return (
+        <g>
+          {/* Stacked warm terracotta clay bricks */}
+          <rect x="4.5" y="16" width="11" height="8" rx="1.8" fill="#C85A3F" stroke={INK} strokeWidth="1.8" />
+          <rect x="16.5" y="16" width="11" height="8" rx="1.8" fill="#D87155" stroke={INK} strokeWidth="1.8" />
+          <rect x="10.5" y="8" width="11" height="8" rx="1.8" fill="#E3866B" stroke={INK} strokeWidth="1.8" />
+        </g>
+      );
+
+    case "hr-wool":
+      return (
+        <g>
+          {/* Cute fluffy cloud/sheep fleece */}
+          <circle cx="11.5" cy="17.5" r="6" fill="#FFFDF8" stroke={INK} strokeWidth="1.8" />
+          <circle cx="20.5" cy="17.5" r="6" fill="#FFFDF8" stroke={INK} strokeWidth="1.8" />
+          <circle cx="16" cy="12.5" r="6.5" fill="#FFFDF8" stroke={INK} strokeWidth="1.8" />
+          <circle cx="16" cy="17" r="6.2" fill="#FFFDF8" />
+          <circle cx="11.5" cy="23.5" r="1.4" fill="#6B4E37" />
+          <circle cx="20.5" cy="23.5" r="1.4" fill="#6B4E37" />
+          <circle cx="21.5" cy="16" r="3" fill="#6B4E37" stroke={INK} strokeWidth="1.3" />
+          <circle cx="22.3" cy="15.5" r="0.8" fill="#FFF" />
+        </g>
+      );
+
+    case "hr-grain":
+      return (
+        <g>
+          {/* Golden wheat sheaf */}
+          <path d="M16 27V7" stroke="#A66D14" strokeWidth="2.2" strokeLinecap="round" />
+          <ellipse cx="12.5" cy="10.5" rx="3.2" ry="1.9" transform="rotate(-35 12.5 10.5)" fill="#F2C14E" stroke={INK} strokeWidth="1.4" />
+          <ellipse cx="19.5" cy="10.5" rx="3.2" ry="1.9" transform="rotate(35 19.5 10.5)" fill="#F2C14E" stroke={INK} strokeWidth="1.4" />
+          <ellipse cx="12" cy="16" rx="3.5" ry="2" transform="rotate(-35 12 16)" fill="#E6A928" stroke={INK} strokeWidth="1.4" />
+          <ellipse cx="20" cy="16" rx="3.5" ry="2" transform="rotate(35 20 16)" fill="#E6A928" stroke={INK} strokeWidth="1.4" />
+          <ellipse cx="12.5" cy="21.5" rx="3.2" ry="1.9" transform="rotate(-35 12.5 21.5)" fill="#D99B26" stroke={INK} strokeWidth="1.4" />
+          <ellipse cx="19.5" cy="21.5" rx="3.2" ry="1.9" transform="rotate(35 19.5 21.5)" fill="#D99B26" stroke={INK} strokeWidth="1.4" />
+        </g>
+      );
+
+    case "hr-ore":
+      return (
+        <g>
+          {/* Faceted alpine mineral peaks */}
+          <path d="M4.5 24.5L13 8.5L21 24.5H4.5Z" fill="#7D8E9E" stroke={INK} strokeWidth="1.9" strokeLinejoin="round" />
+          <path d="M13 24.5L20 11.5L27.5 24.5H13Z" fill="#5B6F82" stroke={INK} strokeWidth="1.9" strokeLinejoin="round" />
+          <path d="M10.5 13.5L13 8.5L15.5 13.5L13 12.2Z" fill="#EAF2F8" />
+          <path d="M17.8 15.5L20 11.5L22.2 15.5L20 14.3Z" fill="#EAF2F8" />
+        </g>
+      );
+
+    case "hr-cottage":
+      return (
+        <g>
+          <rect x="8" y="14" width="16" height="12" rx="1.5" fill="#F8EBDA" stroke={INK} strokeWidth="1.9" />
+          <path d="M5.5 15L16 6L26.5 15H5.5Z" fill="#D96B4F" stroke={INK} strokeWidth="1.9" strokeLinejoin="round" />
+          <rect x="13.5" y="19" width="5" height="7" rx="1.5" fill="#7A4E33" />
+        </g>
+      );
+
+    case "hr-town":
+      return (
+        <g>
+          <rect x="5" y="15" width="12" height="11" rx="1.2" fill="#F5DFC4" stroke={INK} strokeWidth="1.8" />
+          <rect x="15" y="10" width="12" height="16" rx="1.2" fill="#FFF4E2" stroke={INK} strokeWidth="1.8" />
+          <path d="M13.5 10.5L21 4.5L28.5 10.5H13.5Z" fill="#2B6CB0" stroke={INK} strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="M3.5 15.5L11 10.5L16 15.5H3.5Z" fill="#D96B4F" stroke={INK} strokeWidth="1.7" strokeLinejoin="round" />
+          <rect x="19" y="18" width="4" height="8" rx="1" fill="#7A4E33" />
+        </g>
+      );
+
+    case "hr-harbor":
+      return (
+        <g>
+          <path d="M16 6V21" stroke={INK} strokeWidth="2" strokeLinecap="round" />
+          <path d="M16 7L25 18H16V7Z" fill="#FFFDF6" stroke={INK} strokeWidth="1.6" strokeLinejoin="round" />
+          <path d="M16 9L9 18H16V9Z" fill="#F5CA63" stroke={INK} strokeWidth="1.6" strokeLinejoin="round" />
+          <path d="M6.5 21H25.5L22.5 26H9.5L6.5 21Z" fill="#9E6240" stroke={INK} strokeWidth="1.9" strokeLinejoin="round" />
+        </g>
+      );
+
+    case "hr-bandit":
+      return (
+        <g>
+          {/* Cute Bandit Fox emblem */}
+          <path d="M7 8.5L13 13H19L25 8.5L24.5 20.5L16 26.5L7.5 20.5L7 8.5Z" fill="#D96B38" stroke={INK} strokeWidth="1.9" strokeLinejoin="round" />
+          <path d="M8.5 19.5L16 26.5L23.5 19.5L19.5 18.2L16 20.8L12.5 18.2Z" fill="#FFF8EC" />
+          <rect x="9.5" y="13.5" width="13" height="3.8" rx="1.9" fill="#2E221D" />
+          <circle cx="13" cy="15.4" r="1.1" fill="#FDE047" />
+          <circle cx="19" cy="15.4" r="1.1" fill="#FDE047" />
+        </g>
+      );
+
+    case "hr-scroll":
+      return (
+        <g>
+          <rect x="7" y="5" width="18" height="22" rx="3.5" fill="#FBF2DE" stroke={INK} strokeWidth="1.9" />
+          <path d="M10.5 10.5H21.5M10.5 14.5H19.5M10.5 18.5H17" stroke="#8C6B4D" strokeWidth="1.7" strokeLinecap="round" />
+          <circle cx="20.5" cy="21.5" r="3.8" fill="#2B6CB0" stroke={INK} strokeWidth="1.4" />
+        </g>
+      );
+
+    /* ===================== DAWNSPIRE (7 WONDERS INSPIRED) ===================== */
+    case "game-dawnspire":
+      return (
+        <g>
+          <rect x="3" y="3" width="26" height="26" rx="7" fill="#8B3A62" stroke={INK} strokeWidth="2" />
+          {/* Sunburst behind golden stepped Wonder spire */}
+          <circle cx="16" cy="11.5" r="5" fill="#FDE047" opacity="0.9" />
+          <path d="M8 24H24L21.5 18H10.5L8 24Z" fill="#F4C762" stroke={INK} strokeWidth="1.6" strokeLinejoin="round" />
+          <path d="M11 18H21L18.5 12.5H13.5L11 18Z" fill="#FFF4D6" stroke={INK} strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M16 7.5L18 12.5H14L16 7.5Z" fill="#F4C762" stroke={INK} strokeWidth="1.4" strokeLinejoin="round" />
+        </g>
+      );
+
+    case "ds-wonder":
+      return (
+        <g>
+          <path d="M5 25H27L23.5 17H8.5L5 25Z" fill="#E8B95B" stroke={INK} strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="M9 17H23L20 10.5H12L9 17Z" fill="#F8DF9C" stroke={INK} strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="M16 5L19 10.5H13L16 5Z" fill="#FFF4D6" stroke={INK} strokeWidth="1.7" strokeLinejoin="round" />
+        </g>
+      );
+
+    case "ds-civic":
+      return (
+        <g>
+          <path d="M6 12L16 5.5L26 12H6Z" fill="#68A4E6" stroke={INK} strokeWidth="1.8" strokeLinejoin="round" />
+          <rect x="8.5" y="12" width="3" height="11" fill="#E8F2FC" stroke={INK} strokeWidth="1.5" />
+          <rect x="14.5" y="12" width="3" height="11" fill="#E8F2FC" stroke={INK} strokeWidth="1.5" />
+          <rect x="20.5" y="12" width="3" height="11" fill="#E8F2FC" stroke={INK} strokeWidth="1.5" />
+          <rect x="5.5" y="23" width="21" height="3.5" rx="1.2" fill="#2D6BB0" stroke={INK} strokeWidth="1.6" />
+        </g>
+      );
+
+    case "ds-commerce":
+      return (
+        <g>
+          <circle cx="16" cy="16" r="11" fill="#F4C145" stroke={INK} strokeWidth="1.9" />
+          <path d="M11 16H21M16 10.5V21.5" stroke="#8C530A" strokeWidth="2.1" strokeLinecap="round" />
+          <circle cx="16" cy="16" r="4.5" fill="#FFF7D6" stroke="#B45309" strokeWidth="1.5" />
+        </g>
+      );
+
+    case "ds-military":
+      return (
+        <g>
+          <path
+            d="M16 4.5L25.5 8.5V15.5C25.5 21 21.3 25.2 16 27.2C10.7 25.2 6.5 21 6.5 15.5V8.5L16 4.5Z"
+            fill="#D45047"
+            stroke={INK}
+            strokeWidth="1.9"
+            strokeLinejoin="round"
+          />
+          <path d="M16 9V22M11 14H21" stroke="#FFF4E6" strokeWidth="2.2" strokeLinecap="round" />
+        </g>
+      );
+
+    case "ds-science":
+      return (
+        <g>
+          <circle cx="16" cy="16" r="11" fill="#3B9C66" stroke={INK} strokeWidth="1.9" />
+          <path d="M16 8.5L11.5 22.5M16 8.5L20.5 22.5" stroke="#FFFDF6" strokeWidth="2.1" strokeLinecap="round" />
+          <circle cx="16" cy="9.5" r="2.2" fill="#FDE047" stroke={INK} strokeWidth="1.2" />
+          <path d="M12.5 18H19.5" stroke="#FDE047" strokeWidth="1.8" strokeLinecap="round" />
+        </g>
+      );
+
+    case "ds-guild":
+      return (
+        <g>
+          <path
+            d="M7 23L5.5 10L12 14.5L16 7.5L20 14.5L26.5 10L25 23H7Z"
+            fill="#8E4AA3"
+            stroke={INK}
+            strokeWidth="1.9"
+            strokeLinejoin="round"
+          />
+          <circle cx="16" cy="16.5" r="2.4" fill="#FDE047" />
+        </g>
+      );
+
+    case "ds-stone":
+      return (
+        <g>
+          <path d="M6 23L9.5 11L17 7.5L25 13L26 23H6Z" fill="#9BA3B0" stroke={INK} strokeWidth="1.9" strokeLinejoin="round" />
+          <path d="M9.5 11L16 16.5L25 13" stroke="#E5E7EB" strokeWidth="1.6" strokeLinecap="round" />
+          <path d="M16 16.5V23" stroke={INK} strokeWidth="1.4" />
+        </g>
+      );
+
+    case "ds-glass":
+      return (
+        <g>
+          <path d="M12 6H20L18.5 11.5L23 22.5C23.4 23.6 22.6 25 21.3 25H10.7C9.4 25 8.6 23.6 9 22.5L13.5 11.5L12 6Z" fill="#7AD1EB" stroke={INK} strokeWidth="1.9" strokeLinejoin="round" />
+          <path d="M12 19H20" stroke="#E0F7FF" strokeWidth="2" strokeLinecap="round" />
+        </g>
+      );
+
+    case "ds-silk":
+      return (
+        <g>
+          <rect x="7" y="7" width="18" height="18" rx="4" fill="#C48AD4" stroke={INK} strokeWidth="1.9" />
+          <path d="M7 13H25M7 19H25M13 7V25M19 7V25" stroke="#F8E9FC" strokeWidth="1.6" />
+        </g>
+      );
+
     /* ===================== UNIVERSAL TABLETOP TOKENS ===================== */
     case "coin-gold":
       return (
@@ -899,6 +1349,36 @@ const TUTORIAL_ICON_MAP: Record<string, GameIconName> = {
   "game-trails": "game-trails",
   "game-hearthvale": "game-hearthvale",
   "game-masque": "game-masque",
+  "game-sunstone": "game-sunstone",
+  "sg-ruby": "sg-ruby",
+  "sg-sapphire": "sg-sapphire",
+  "sg-emerald": "sg-emerald",
+  "sg-amethyst": "sg-amethyst",
+  "sg-pearl": "sg-pearl",
+  "sg-gold": "sg-gold",
+  "sg-patron": "sg-patron",
+  "sg-crown": "sg-crown",
+  "game-harbor": "game-harbor",
+  "hr-timber": "hr-timber",
+  "hr-clay": "hr-clay",
+  "hr-wool": "hr-wool",
+  "hr-grain": "hr-grain",
+  "hr-ore": "hr-ore",
+  "hr-cottage": "hr-cottage",
+  "hr-town": "hr-town",
+  "hr-harbor": "hr-harbor",
+  "hr-bandit": "hr-bandit",
+  "hr-scroll": "hr-scroll",
+  "game-dawnspire": "game-dawnspire",
+  "ds-wonder": "ds-wonder",
+  "ds-civic": "ds-civic",
+  "ds-commerce": "ds-commerce",
+  "ds-military": "ds-military",
+  "ds-science": "ds-science",
+  "ds-guild": "ds-guild",
+  "ds-stone": "ds-stone",
+  "ds-glass": "ds-glass",
+  "ds-silk": "ds-silk",
   boulder: "boulder",
   "action-peek-vault": "action-peek-vault",
   "action-blast-tile": "action-blast-tile",

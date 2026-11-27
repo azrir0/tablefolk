@@ -5,9 +5,9 @@ import { GameIcon } from "@/components/GameIcons";
 import { GamesWardrobeRuleButton } from "@/components/GamesWardrobeRuleButton";
 
 export const metadata = {
-  title: "Game Wardrobe & Rules — TableFolk",
+  title: "Game Collection & Rules — TableFolk",
   description:
-    "Explore the TableFolk board game collection and learn how to play Treasure Trails, Hearthvale, and Velvet Masque inside Sunlit Oak Café.",
+    "Explore the TableFolk board game collection and learn how to play Dawnspire, Harborreach, Sunstone Guild, Velvet Masque, Hearthvale, and Treasure Trails inside Sunlit Oak Café.",
 };
 
 export default function GamesCataloguePage() {
@@ -32,13 +32,228 @@ export default function GamesCataloguePage() {
         <div>
           <h1 className="flex items-center gap-3 font-display text-4xl font-bold text-espresso">
             <GameIcon name="bookshelf" className="h-9 w-9" />
-            The Game Wardrobe
+            TableFolk Game Collection
           </h1>
           <p className="mt-2 text-espresso-soft">
-            Browse every tabletop game available inside Sunlit Oak Café. Walk up to
-            the wooden bookshelf in-game to pick up a box and carry it to your table!
+            Browse every tabletop game playable inside Sunlit Oak Café. Sit at any
+            table to switch games, invite friends, or practice solo with smart Café Bots!
           </p>
         </div>
+
+        {/* Game #6: Dawnspire */}
+        <article className="rounded-3xl border-2 border-[#8B3A62]/65 bg-oat-50 p-7 shadow-cozy">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <span className="rounded-full bg-[#8B3A62]/15 px-3 py-1 text-xs font-bold text-[#8B3A62]">
+                New • Simultaneous Card Drafting &amp; Wonders
+              </span>
+              <h2 className="mt-2 flex items-center gap-2.5 font-display text-3xl font-bold text-espresso">
+                <GameIcon name="game-dawnspire" className="h-8 w-8" />
+                Dawnspire
+              </h2>
+              <p className="mt-1 text-espresso-soft">
+                Draft three eras of sunlit wonders simultaneously! Chain structures for free,
+                borrow neighbor resources automatically, clash Shields each Era, and score across
+                7 victory paths!
+              </p>
+            </div>
+            <div className="flex gap-3 text-xs font-bold text-espresso-soft">
+              <span className="inline-flex items-center gap-1 rounded-xl bg-oat-100 px-3 py-2">
+                <Users className="h-4 w-4 text-sage-700" /> 2–7 Players
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-xl bg-oat-100 px-3 py-2">
+                <Clock className="h-4 w-4 text-amberwarm-600" /> 6–10 Min
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            <div className="rounded-2xl bg-oat-100 p-5">
+              <h3 className="flex items-center gap-2 font-display text-lg font-bold text-espresso">
+                <Compass className="h-5 w-5 text-[#8B3A62]" /> Zero-Downtime Drafting
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-espresso-soft">
+                <li>
+                  <strong>Simultaneous 3-Era Draft:</strong> Everyone chooses at once and passes
+                  hands Left → Right → Left — a 7-player match plays just as fast as 3!
+                </li>
+                <li>
+                  <strong>Smart Auto-Trade &amp; Free Chains:</strong> Instant badges show exact
+                  cheapest Left/Right trade splits and 0g Era II/III chain upgrades.
+                </li>
+                <li>
+                  <strong>7 Scoring Paths:</strong> Military Clashes, Treasury, Wonders, Blue
+                  Civic, Yellow Markets, Purple Grand Guilds, and exponential Green Science!
+                </li>
+              </ul>
+            </div>
+
+            <div className="rounded-2xl bg-oat-100 p-5">
+              <h3 className="flex items-center gap-2 font-display text-lg font-bold text-espresso">
+                <Crown className="h-5 w-5 text-amberwarm-600" /> Dual-Sided Wonders &amp; Twist
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-espresso-soft">
+                <li>
+                  <strong>☀ Sunlit &amp; ✦ Starlit Sides:</strong> Pick balanced Sunlit Wonders
+                  or bold asymmetric Starlit powers (Free Builds, Wild Science, Copy Guild!).
+                </li>
+                <li>
+                  <strong>Sunlit Caravan Bonus (+4g):</strong> Selling a card gives +3 Gold — or
+                  +4 Gold whenever you hold the lowest Gold at the table!
+                </li>
+                <li>
+                  <strong>2–7 Players Everywhere:</strong> Supports 3–7p neighbor circles PLUS a
+                  crisp 2-player Caravan Duel mode at the cozy Window Nook!
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <GamesWardrobeRuleButton gameSlug="dawnspire" />
+        </article>
+
+        {/* Game #5: Harborreach */}
+        <article className="rounded-3xl border-2 border-[#1E7D74]/65 bg-oat-50 p-7 shadow-cozy">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <span className="rounded-full bg-[#1E7D74]/15 px-3 py-1 text-xs font-bold text-[#1E7D74]">
+                New • Coastal Hex Trading &amp; Settlement Builder
+              </span>
+              <h2 className="mt-2 flex items-center gap-2.5 font-display text-3xl font-bold text-espresso">
+                <GameIcon name="game-harbor" className="h-8 w-8" />
+                Harborreach
+              </h2>
+              <p className="mt-1 text-espresso-soft">
+                Settle a sunlit 19-hex coastal island, harvest Timber, Clay, Wool, Grain &amp;
+                Ore on 2d6 rolls, trade across Harbors &amp; Pioneers, command the Bandit Fox,
+                and race to 10 Victory Points!
+              </p>
+            </div>
+            <div className="flex gap-3 text-xs font-bold text-espresso-soft">
+              <span className="inline-flex items-center gap-1 rounded-xl bg-oat-100 px-3 py-2">
+                <Users className="h-4 w-4 text-sage-700" /> 2–4 Players
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-xl bg-oat-100 px-3 py-2">
+                <Clock className="h-4 w-4 text-amberwarm-600" /> 10–18 Min
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            <div className="rounded-2xl bg-oat-100 p-5">
+              <h3 className="flex items-center gap-2 font-display text-lg font-bold text-espresso">
+                <Map className="h-5 w-5 text-[#1E7D74]" /> Living Coastal Island
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-espresso-soft">
+                <li>
+                  <strong>Balanced 19-Hex Island:</strong> Fair random generation guaranteeing
+                  zero adjacent red 6/8 tokens, plus 9 coastal 3:1 &amp; 2:1 Harbors!
+                </li>
+                <li>
+                  <strong>Build &amp; Upgrade:</strong> Snake-draft 2 founding Cottages, expand
+                  with Roads, upgrade to double-harvest Towns (+2★), and draw Guild Scrolls!
+                </li>
+                <li>
+                  <strong>Structured Live Trading:</strong> Trade 4:1 Bank, coastal Harbors, or
+                  send 1-click Trade Offers to humans &amp; responsive Practice Bots!
+                </li>
+              </ul>
+            </div>
+
+            <div className="rounded-2xl bg-oat-100 p-5">
+              <h3 className="flex items-center gap-2 font-display text-lg font-bold text-espresso">
+                <Crown className="h-5 w-5 text-amberwarm-600" /> Cozy Signature Twists
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-espresso-soft">
+                <li>
+                  <strong>Dry-Spell Harbor Compass:</strong> Missed a non-7 roll? Gain +1 Compass
+                  charge — spend 3 bandit-proof charges for ANY 1 resource!
+                </li>
+                <li>
+                  <strong>Bandit Fox &amp; 5 Guild Scrolls:</strong> Move the Fox on 7-rolls or
+                  Ranger Scouts, claim Longest Trade Route (5+) &amp; Largest Watch (3+) for +2★!
+                </li>
+                <li>
+                  <strong>Quick (8★) or Classic (10★):</strong> Play head-to-head in the cozy
+                  Window Nook or up to 4 Pioneers around any café table.
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <GamesWardrobeRuleButton gameSlug="harborreach" />
+        </article>
+
+        {/* Game #4: Sunstone Guild */}
+        <article className="rounded-3xl border-2 border-[#2B5096]/65 bg-oat-50 p-7 shadow-cozy">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <span className="rounded-full bg-[#2B5096]/15 px-3 py-1 text-xs font-bold text-[#2B5096]">
+                New • Gem-Drafting Engine Builder
+              </span>
+              <h2 className="mt-2 flex items-center gap-2.5 font-display text-3xl font-bold text-espresso">
+                <GameIcon name="game-sunstone" className="h-8 w-8" />
+                Sunstone Guild
+              </h2>
+              <p className="mt-1 text-espresso-soft">
+                Draft radiant gems, forge permanent Relic discounts, spark Tier I Catalysts &amp;
+                2× Grand Masterworks, attract Royal Patrons, and race to 15 Prestige!
+              </p>
+            </div>
+            <div className="flex gap-3 text-xs font-bold text-espresso-soft">
+              <span className="inline-flex items-center gap-1 rounded-xl bg-oat-100 px-3 py-2">
+                <Users className="h-4 w-4 text-sage-700" /> 2–4 Players
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-xl bg-oat-100 px-3 py-2">
+                <Clock className="h-4 w-4 text-amberwarm-600" /> 6–10 Min
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            <div className="rounded-2xl bg-oat-100 p-5">
+              <h3 className="flex items-center gap-2 font-display text-lg font-bold text-espresso">
+                <Compass className="h-5 w-5 text-[#2B5096]" /> Tactile Gem Engine
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-espresso-soft">
+                <li>
+                  <strong>Draft 3 Different or 2 Same:</strong> Pick 1 each of 3 base gems, or 2
+                  matching gems when 4+ remain in stock (10-gem pouch cap).
+                </li>
+                <li>
+                  <strong>Permanent Discounts:</strong> Every Relic you craft stays forever,
+                  lowering future costs — plus automatic Wild Sunstone Gold fill!
+                </li>
+                <li>
+                  <strong>Reserve Face-Up or Blind:</strong> Hold up to 3 Relics and claim +1
+                  Wild Sunstone Gold — blind deck reserves stay secret from rivals!
+                </li>
+              </ul>
+            </div>
+
+            <div className="rounded-2xl bg-oat-100 p-5">
+              <h3 className="flex items-center gap-2 font-display text-lg font-bold text-espresso">
+                <Crown className="h-5 w-5 text-amberwarm-600" /> Cozy Signature Twists
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-espresso-soft">
+                <li>
+                  <strong>⚡ Tier I Catalysts:</strong> Spark-badged Workshop cards refund +1
+                  matching gem immediately on craft for snappy opening turns!
+                </li>
+                <li>
+                  <strong>2× Grand Masterworks:</strong> Select Tier III relics award double
+                  permanent discounts to leap straight into Royal Patrons (+3★)!
+                </li>
+                <li>
+                  <strong>Quick (12★) or Classic (15★):</strong> Plays head-to-head in the cozy
+                  Window Nook or up to 4 artisans around any café table.
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <GamesWardrobeRuleButton gameSlug="sunstone-guild" />
+        </article>
 
         {/* Game #3: Velvet Masque */}
         <article className="rounded-3xl border-2 border-terracotta-500/70 bg-oat-50 p-7 shadow-cozy">

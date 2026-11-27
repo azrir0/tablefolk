@@ -64,7 +64,10 @@ import {
   emoteIdToIconName,
   gameSlugToIconName,
 } from "./GameIcons";
+import { DawnspireOverlay } from "./DawnspireOverlay";
+import { HarborreachOverlay } from "./HarborreachOverlay";
 import { HearthvaleOverlay } from "./HearthvaleOverlay";
+import { SunstoneGuildOverlay } from "./SunstoneGuildOverlay";
 import { TableLobbyDrawer } from "./TableLobbyDrawer";
 import { TreasureTrailsOverlay } from "./TreasureTrailsOverlay";
 import { VelvetMasqueOverlay } from "./VelvetMasqueOverlay";
@@ -1089,7 +1092,13 @@ export function CafeExperience() {
                   ? "Active Hearthvale Match"
                   : effectiveRejoinGame.gameSlug === "velvet-masque"
                     ? "Active Velvet Masque Gala"
-                    : "Active Treasure Trails Match"}
+                    : effectiveRejoinGame.gameSlug === "sunstone-guild"
+                      ? "Active Sunstone Guild Match"
+                      : effectiveRejoinGame.gameSlug === "harborreach"
+                        ? "Active Harborreach Match"
+                        : effectiveRejoinGame.gameSlug === "dawnspire"
+                          ? "Active Dawnspire Match"
+                          : "Active Treasure Trails Match"}
               </span>
             </div>
             <div className="truncate text-[10px] font-semibold text-espresso-muted">
@@ -1527,7 +1536,13 @@ export function CafeExperience() {
                                 ? "Hearthvale (2–5p)"
                                 : t.selectedGameSlug === "velvet-masque"
                                   ? "Velvet Masque (3–8p)"
-                                  : "Treasure Trails (3–8p)"}
+                                  : t.selectedGameSlug === "sunstone-guild"
+                                    ? "Sunstone Guild (2–4p)"
+                                    : t.selectedGameSlug === "harborreach"
+                                      ? "Harborreach (2–4p)"
+                                      : t.selectedGameSlug === "dawnspire"
+                                        ? "Dawnspire (2–7p)"
+                                        : "Treasure Trails (3–8p)"}
                             </span>
                           </>
                         ) : (
@@ -1744,6 +1759,75 @@ export function CafeExperience() {
             }}
             onOpenTutorial={() => {
               setTutorialGameSlug("velvet-masque");
+              setTutorialInitialTab("rules");
+              setShowCashierModal(true);
+            }}
+          />
+        ) : activeGame.gameSlug === "sunstone-guild" ? (
+          <SunstoneGuildOverlay
+            gameRoomId={activeGame.gameRoomId}
+            myUserId={profile.userId}
+            onExitGame={(info) => {
+              const wasSpectator = Boolean(activeGame.isSpectator);
+              setActiveGame(null);
+              if (info?.notice) showToast(info.notice);
+              if (wasSpectator) return;
+              if (info?.finished) {
+                setRejoinGame(null);
+              } else {
+                void fetchMyActiveGame()
+                  .then((ag) => setRejoinGame(ag))
+                  .catch(() => {});
+              }
+            }}
+            onOpenTutorial={() => {
+              setTutorialGameSlug("sunstone-guild");
+              setTutorialInitialTab("rules");
+              setShowCashierModal(true);
+            }}
+          />
+        ) : activeGame.gameSlug === "harborreach" ? (
+          <HarborreachOverlay
+            gameRoomId={activeGame.gameRoomId}
+            myUserId={profile.userId}
+            onExitGame={(info) => {
+              const wasSpectator = Boolean(activeGame.isSpectator);
+              setActiveGame(null);
+              if (info?.notice) showToast(info.notice);
+              if (wasSpectator) return;
+              if (info?.finished) {
+                setRejoinGame(null);
+              } else {
+                void fetchMyActiveGame()
+                  .then((ag) => setRejoinGame(ag))
+                  .catch(() => {});
+              }
+            }}
+            onOpenTutorial={() => {
+              setTutorialGameSlug("harborreach");
+              setTutorialInitialTab("rules");
+              setShowCashierModal(true);
+            }}
+          />
+        ) : activeGame.gameSlug === "dawnspire" ? (
+          <DawnspireOverlay
+            gameRoomId={activeGame.gameRoomId}
+            myUserId={profile.userId}
+            onExitGame={(info) => {
+              const wasSpectator = Boolean(activeGame.isSpectator);
+              setActiveGame(null);
+              if (info?.notice) showToast(info.notice);
+              if (wasSpectator) return;
+              if (info?.finished) {
+                setRejoinGame(null);
+              } else {
+                void fetchMyActiveGame()
+                  .then((ag) => setRejoinGame(ag))
+                  .catch(() => {});
+              }
+            }}
+            onOpenTutorial={() => {
+              setTutorialGameSlug("dawnspire");
               setTutorialInitialTab("rules");
               setShowCashierModal(true);
             }}

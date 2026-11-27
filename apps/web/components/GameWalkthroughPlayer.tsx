@@ -1011,12 +1011,169 @@ function VelvetMasqueStage({ sceneId, p }: { sceneId: string; p: number }) {
   );
 }
 
+function SunstoneGuildStage({ sceneId, p }: { sceneId: string; p: number }) {
+  const showGems = sceneId === "sg-intro" || sceneId === "sg-bank";
+  const showPatron = sceneId === "sg-patrons";
+  const showReserve = sceneId === "sg-reserve";
+
+  return (
+    <div className="relative flex h-full w-full flex-col items-center justify-center gap-3 overflow-hidden bg-gradient-to-br from-[#233E75] via-[#2F528F] to-[#1D325E] p-4 text-white">
+      <div className="flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-[11px] font-extrabold text-amberwarm-100">
+        <GameIcon name="game-sunstone" className="h-4 w-4" />
+        <span>
+          {showPatron
+            ? "Royal Patrons Auto-Visit (+3★)"
+            : showReserve
+              ? "Reserve Relics + Wild Sunstone Gold"
+              : showGems
+                ? "Draft 3 Different or 2 Matching Gems"
+                : "Permanent Relic Discounts & ⚡ Catalysts"}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2.5">
+        {(["sg-ruby", "sg-sapphire", "sg-emerald", "sg-amethyst", "sg-pearl", "sg-gold"] as const).map(
+          (icon, idx) => {
+            const lift = Math.sin(p * Math.PI * 2 + idx * 0.7) > 0.35;
+            return (
+              <div
+                key={icon}
+                className={`flex h-11 w-11 items-center justify-center rounded-2xl border-2 bg-white/95 shadow-md transition-transform duration-300 ${
+                  lift ? "-translate-y-1.5 border-amberwarm-400" : "border-white/50"
+                }`}
+              >
+                <GameIcon name={icon} className="h-6 w-6" />
+              </div>
+            );
+          }
+        )}
+      </div>
+
+      <div className="w-4/5 max-w-xs overflow-hidden rounded-full bg-white/20 p-0.5">
+        <div
+          className="h-2 rounded-full bg-gradient-to-r from-amberwarm-400 to-emerald-400 transition-all duration-300"
+          style={{ width: `${Math.min(100, Math.round(25 + p * 75))}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function HarborreachStage({ sceneId, p }: { sceneId: string; p: number }) {
+  const showBandit = sceneId === "hr-ch-5" || sceneId === "hr-bandit-scrolls";
+  const showTrade = sceneId === "hr-ch-3" || sceneId === "hr-trading";
+  const showCompass = sceneId === "hr-ch-2" || sceneId === "hr-compass-twist";
+  const showBuild = sceneId === "hr-ch-4";
+  return (
+    <div className="relative flex h-full w-full flex-col items-center justify-center gap-3 overflow-hidden bg-gradient-to-br from-[#175B62] via-[#1E7D74] to-[#13464A] p-4 text-white">
+      <div className="flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-[11px] font-extrabold text-amberwarm-100">
+        <GameIcon name="game-harbor" className="h-4 w-4" />
+        <span>
+          {showBandit
+            ? "Bandit Fox (7) · Ranger Scouts · Island Awards (+2★)"
+            : showTrade
+              ? "4:1 Bank · 3:1 / 2:1 Coastal Harbors · Player Offers"
+              : showCompass
+                ? "Roll 2d6 Harvest · Dry-Spell Compass (3 → Wild!)"
+                : showBuild
+                  ? "Build Roads, Cottages (+1★), Towns (+2★) & Scrolls"
+                  : "Founding Snake Draft on the 19-Hex Coastal Island"}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        {(
+          ["hr-timber", "hr-clay", "hr-wool", "hr-grain", "hr-ore", "hr-cottage"] as const
+        ).map((icon, idx) => {
+          const lift = Math.sin(p * Math.PI * 2 + idx * 0.75) > 0.35;
+          return (
+            <div
+              key={icon}
+              className={`flex h-11 w-11 items-center justify-center rounded-2xl border-2 bg-white/95 shadow-md transition-transform duration-300 ${
+                lift ? "-translate-y-1.5 border-amberwarm-400" : "border-white/50"
+              }`}
+            >
+              <GameIcon name={icon} className="h-6 w-6" />
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="w-4/5 max-w-xs overflow-hidden rounded-full bg-white/20 p-0.5">
+        <div
+          className="h-2 rounded-full bg-gradient-to-r from-amberwarm-400 to-emerald-400 transition-all duration-300"
+          style={{ width: `${Math.min(100, Math.round(25 + p * 75))}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function DawnspireStage({ sceneId, p }: { sceneId: string; p: number }) {
+  const showScience = sceneId === "ds-ch-5" || sceneId === "ds-science-guilds";
+  const showMilitary = sceneId === "ds-ch-4";
+  const showWonder = sceneId === "ds-ch-3" || sceneId === "ds-wonder-caravan";
+  const showTrade = sceneId === "ds-ch-2" || sceneId === "ds-trade-chain";
+  return (
+    <div className="relative flex h-full w-full flex-col items-center justify-center gap-3 overflow-hidden bg-gradient-to-br from-[#6B2648] via-[#8B3A62] to-[#461830] p-4 text-white">
+      <div className="flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-[11px] font-extrabold text-amberwarm-100">
+        <GameIcon name="game-dawnspire" className="h-4 w-4" />
+        <span>
+          {showScience
+            ? "Science Sets (n² + 7★) · Grand Guilds · 7-Path Score"
+            : showMilitary
+              ? "End-of-Era Shield Clashes (+1★ / +3★ / +5★)"
+              : showWonder
+                ? "Raise Sunlit/Starlit Wonder · Sunlit Caravan (+4g)"
+                : showTrade
+                  ? "Free Chaining · Auto Neighbor Trade (2g / 1g)"
+                  : "Zero-Downtime Simultaneous Drafting Across 3 Eras"}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        {(
+          ["ds-wonder", "ds-civic", "ds-commerce", "ds-military", "ds-science", "ds-guild"] as const
+        ).map((icon, idx) => {
+          const lift = Math.sin(p * Math.PI * 2 + idx * 0.75) > 0.35;
+          return (
+            <div
+              key={icon}
+              className={`flex h-11 w-11 items-center justify-center rounded-2xl border-2 bg-white/95 shadow-md transition-transform duration-300 ${
+                lift ? "-translate-y-1.5 border-amberwarm-400" : "border-white/50"
+              }`}
+            >
+              <GameIcon name={icon} className="h-6 w-6" />
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="w-4/5 max-w-xs overflow-hidden rounded-full bg-white/20 p-0.5">
+        <div
+          className="h-2 rounded-full bg-gradient-to-r from-amberwarm-400 to-emerald-400 transition-all duration-300"
+          style={{ width: `${Math.min(100, Math.round(25 + p * 75))}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function renderGameStage(slug: SupportedGameSlug, sceneId: string, progress: number) {
   if (slug === "hearthvale") {
     return <HearthvaleStage sceneId={sceneId} p={progress} />;
   }
   if (slug === "velvet-masque") {
     return <VelvetMasqueStage sceneId={sceneId} p={progress} />;
+  }
+  if (slug === "sunstone-guild") {
+    return <SunstoneGuildStage sceneId={sceneId} p={progress} />;
+  }
+  if (slug === "harborreach") {
+    return <HarborreachStage sceneId={sceneId} p={progress} />;
+  }
+  if (slug === "dawnspire") {
+    return <DawnspireStage sceneId={sceneId} p={progress} />;
   }
   return <TreasureTrailsStage sceneId={sceneId} p={progress} />;
 }

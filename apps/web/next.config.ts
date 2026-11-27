@@ -4,8 +4,11 @@ const nextConfig: NextConfig = {
   transpilePackages: [
     "@tablefolk/shared",
     "@tablefolk/cafe-engine",
+    "@tablefolk/game-dawnspire",
     "@tablefolk/game-engine",
+    "@tablefolk/game-harborreach",
     "@tablefolk/game-hearthvale",
+    "@tablefolk/game-sunstone-guild",
     "@tablefolk/game-treasure-trails",
     "@tablefolk/game-velvet-masque",
     "@tablefolk/ui",

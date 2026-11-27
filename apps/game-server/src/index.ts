@@ -6,8 +6,11 @@ const { Server } = colyseus;
 import { WebSocketTransport } from "@colyseus/ws-transport";
 import { getDb } from "@tablefolk/db";
 import { CafeRoom } from "./rooms/CafeRoom.js";
+import { DawnspireRoom } from "./rooms/DawnspireRoom.js";
 import { GameRoom } from "./rooms/GameRoom.js";
+import { HarborreachRoom } from "./rooms/HarborreachRoom.js";
 import { HearthvaleRoom } from "./rooms/HearthvaleRoom.js";
+import { SunstoneGuildRoom } from "./rooms/SunstoneGuildRoom.js";
 import { VelvetMasqueRoom } from "./rooms/VelvetMasqueRoom.js";
 import { createApiRouter } from "./routes/api.js";
 import { assertProductionAuthConfig } from "./services/auth.js";
@@ -50,6 +53,9 @@ async function bootstrap() {
   gameServer.define("game", GameRoom);
   gameServer.define("hearthvale", HearthvaleRoom);
   gameServer.define("velvet-masque", VelvetMasqueRoom);
+  gameServer.define("sunstone-guild", SunstoneGuildRoom);
+  gameServer.define("harborreach", HarborreachRoom);
+  gameServer.define("dawnspire", DawnspireRoom);
 
   await gameServer.listen(PORT, "0.0.0.0");
   console.log(`☕ TableFolk Game Server listening on http://0.0.0.0:${PORT}`);

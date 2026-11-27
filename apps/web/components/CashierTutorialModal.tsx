@@ -50,11 +50,17 @@ const AVAILABLE_RULEBOOKS: Array<{
   { slug: "treasure-trails", label: "Treasure Trails", icon: "game-trails" },
   { slug: "hearthvale", label: "Hearthvale", icon: "game-hearthvale" },
   { slug: "velvet-masque", label: "Velvet Masque", icon: "game-masque" },
+  { slug: "sunstone-guild", label: "Sunstone Guild", icon: "game-sunstone" },
+  { slug: "harborreach", label: "Harborreach", icon: "game-harbor" },
+  { slug: "dawnspire", label: "Dawnspire", icon: "game-dawnspire" },
 ];
 
 function normalizeSlug(slug?: string): SupportedGameSlug {
   if (slug === "hearthvale") return "hearthvale";
   if (slug === "velvet-masque") return "velvet-masque";
+  if (slug === "sunstone-guild") return "sunstone-guild";
+  if (slug === "harborreach") return "harborreach";
+  if (slug === "dawnspire") return "dawnspire";
   return "treasure-trails";
 }
 
@@ -185,7 +191,13 @@ export function CashierTutorialModal({
                     ? "Tiles & Scoring"
                     : selectedSlug === "velvet-masque"
                       ? "8-Mask Roster"
-                      : "Cards & Tools",
+                      : selectedSlug === "sunstone-guild"
+                        ? "Gems & Relics"
+                        : selectedSlug === "harborreach"
+                          ? "Island & Scrolls"
+                          : selectedSlug === "dawnspire"
+                            ? "7 Card Paths"
+                            : "Cards & Tools",
                   Layers,
                 ],
                 ["faq", "FAQ", HelpCircle],

@@ -19,7 +19,25 @@ export type QuickTourVisualId =
   | "vm-stage-fine"
   | "vm-cloak-swap"
   | "vm-challenge"
-  | "vm-table-tools";
+  | "vm-table-tools"
+  | "sg-goal"
+  | "sg-bank"
+  | "sg-market"
+  | "sg-engine"
+  | "sg-reserve"
+  | "sg-patrons"
+  | "hr-goal"
+  | "hr-island"
+  | "hr-hand"
+  | "hr-build"
+  | "hr-scrolls"
+  | "hr-awards"
+  | "ds-goal"
+  | "ds-wonder"
+  | "ds-hand"
+  | "ds-actions"
+  | "ds-neighbors"
+  | "ds-kingdoms";
 
 export interface QuickTourFeatureBullet {
   label: string;
@@ -475,11 +493,440 @@ export const GAME_QUICK_TOURS: Record<SupportedGameSlug, GameQuickTourConfig> = 
       },
     ],
   },
+
+  "sunstone-guild": {
+    slug: "sunstone-guild",
+    title: "Sunstone Guild",
+    subtitle: "6-step interactive tour of gems, Relic engines, Catalysts & Patrons",
+    estimatedSec: 45,
+    icon: "game-sunstone",
+    steps: [
+      {
+        id: "sg-step-1",
+        targetId: "sg-header",
+        badge: "GOAL & PACE",
+        title: "Race to 15 Prestige (Final Round!)",
+        icon: "game-sunstone",
+        accent: "amber",
+        summary:
+          "Track the **Round**, **Prestige Goal** (12★ Quick or 15★ Classic), and **Turn Clock** up top. Reaching the goal triggers an equal-turns **Final Round**!",
+        features: [
+          {
+            label: "Clean Tiebreaker",
+            detail: "Tied at highest Prestige? The artisan with FEWER crafted Relics wins the Crown!",
+          },
+          {
+            label: "Tour & Rules Anytime",
+            detail: "Tap Tour or Rules in the top bar whenever you want a quick refresher.",
+          },
+        ],
+        tryItHint: "Watch for the glowing FINAL ROUND badge once someone reaches the target!",
+        visualId: "sg-goal",
+      },
+      {
+        id: "sg-step-2",
+        targetId: "sg-bank",
+        badge: "GEM BANK",
+        title: "Draft 3 Different or 2 Matching Gems",
+        icon: "sg-ruby",
+        accent: "sage",
+        summary:
+          "Tap gem chips in the **Gem Bank** to stage your pick, then tap **Take Gems**. You can hold up to **10 gems** at the end of your turn.",
+        features: [
+          {
+            label: "3 Different Base Colors",
+            detail: "Take 1 each of up to 3 distinct colors (Ruby, Sapphire, Emerald, Amethyst, Pearl).",
+          },
+          {
+            label: "2 of the Same Color",
+            detail: "Tap one color twice to take 2 — ONLY allowed when 4+ remain in that stack!",
+          },
+        ],
+        tryItHint: "Try tapping gem chips in the bank — valid double-takes highlight automatically!",
+        visualId: "sg-bank",
+      },
+      {
+        id: "sg-step-3",
+        targetId: "sg-market",
+        badge: "ARTISAN MARKET",
+        title: "3 Tiers of Relics, ⚡ Catalysts & 2× Masterworks",
+        icon: "sg-emerald",
+        accent: "sage",
+        summary:
+          "Every crafted **Relic** stays in your workshop forever, permanently discounting future cards of its color! Cards you can buy right now glow **emerald**.",
+        features: [
+          {
+            label: "⚡ Tier I Catalysts",
+            detail: "Spark-badged Tier I cards immediately refund +1 free matching gem from the bank!",
+          },
+          {
+            label: "2× Tier III Masterworks",
+            detail: "Select high-tier Masterworks award 2× permanent discounts to skyrocket toward Patrons!",
+          },
+        ],
+        tryItHint: "Tap any Market card to inspect exact discounts & auto-Gold fill before crafting.",
+        visualId: "sg-market",
+      },
+      {
+        id: "sg-step-4",
+        targetId: "sg-atelier",
+        badge: "YOUR ATELIER",
+        title: "Permanent Discounts & Wild Sunstone Gold",
+        icon: "sg-gold",
+        accent: "amber",
+        summary:
+          "Your **Atelier Panel** tracks held gems on top and permanent **−Discount** badges underneath — discounts are NEVER spent when crafting!",
+        features: [
+          {
+            label: "Reserve (+1 ★ Wild Gold)",
+            detail: "Lock up to 3 Relics (face-up OR blind from a Tier deck) to claim Wild Sunstone Gold!",
+          },
+          {
+            label: "Auto-Gold Bridge",
+            detail: "Sunstone Gold automatically covers any missing gem when you tap Craft Relic.",
+          },
+        ],
+        tryItHint: "Tap any glowing card inside your Reserved Relics tray to craft it directly!",
+        visualId: "sg-reserve",
+      },
+      {
+        id: "sg-step-5",
+        targetId: "sg-patrons",
+        badge: "ROYAL PATRONS",
+        title: "Attract Guild Patrons for Free +3★",
+        icon: "sg-crown",
+        accent: "terracotta",
+        summary:
+          "Royal **Guild Patrons** watch your permanent **Engine Discounts** (not loose gems in hand). Match a Patron's requirements to welcome them automatically!",
+        features: [
+          {
+            label: "Instant +3 Prestige",
+            detail: "Patrons visit automatically at the end of your turn — no extra action needed!",
+          },
+          {
+            label: "Max 1 Per Turn",
+            detail: "If you qualify for 2 Patrons on the same turn, tap whichever glowing Patron you prefer.",
+          },
+        ],
+        tryItHint: "Check the green have/req pills on Patrons early to steer your Tier I picks!",
+        visualId: "sg-patrons",
+      },
+      {
+        id: "sg-step-6",
+        targetId: "sg-players",
+        badge: "GUILD STANDINGS",
+        title: "Scout Rivals & Block Key Masterworks",
+        icon: "sg-sapphire",
+        accent: "sage",
+        summary:
+          "Keep an eye on **Guild Artisans** on the right — each chip shows Discounts / Held Gems, ★ Gold wilds, and locked Reserves!",
+        features: [
+          {
+            label: "Spot Incoming Crafts",
+            detail: "See which colors rivals are hoarding so you can Reserve a key Masterwork first!",
+          },
+          {
+            label: "Blind Reserve Secrecy",
+            detail: "Blind Tier deck reserves show only T1/T2/T3 to rivals — keeping your endgame secret!",
+          },
+        ],
+        tryItHint: "You're ready to forge your legacy — may the Sunstone shine on your atelier!",
+        visualId: "sg-engine",
+      },
+    ],
+  },
+
+  harborreach: {
+    slug: "harborreach",
+    title: "Harborreach",
+    subtitle: "6-step interactive tour of hex harvests, Compass charges, Harbors & Scrolls",
+    estimatedSec: 45,
+    icon: "game-harbor",
+    steps: [
+      {
+        id: "hr-step-1",
+        targetId: "hr-header",
+        badge: "GOAL & PACE",
+        title: "Race to 10 Victory Points",
+        icon: "game-harbor",
+        accent: "amber",
+        summary:
+          "Track the **Round**, **2d6 Dice Roll**, **VP Goal** (8★ Quick or 10★ Classic), and **Turn Clock** up top. Hit the target VP on your turn to win instantly!",
+        features: [
+          {
+            label: "Founding Snake Draft",
+            detail: "Place 2 free Cottages + 2 Roads first — your 2nd Cottage harvests immediately!",
+          },
+          {
+            label: "Instant Victory",
+            detail: "Secret +1★ Landmark Charter Scrolls count automatically on your turn.",
+          },
+        ],
+        tryItHint: "Watch the pulsing green status badge up top — it always tells you what to tap next!",
+        visualId: "hr-goal",
+      },
+      {
+        id: "hr-step-2",
+        targetId: "hr-board",
+        badge: "COASTAL ISLAND",
+        title: "19 Hexes, Glowing Corners & 9 Harbors",
+        icon: "hr-cottage",
+        accent: "sage",
+        summary:
+          "Every Cottage touching a rolled hex number harvests **+1 resource** (Towns harvest **+2**!). Red **6** and **8** tokens roll most often and never sit adjacent!",
+        features: [
+          {
+            label: "Tap-Safe Glowing Targets",
+            detail: "Valid Road edges, Cottage corners, and Town upgrades pulse automatically on the map.",
+          },
+          {
+            label: "Coastal Harbor Ports",
+            detail: "Settle on a pier corner to unlock permanent 3:1 wild or 2:1 specialty swaps!",
+          },
+        ],
+        tryItHint: "Tap glowing green corners during Founding Setup — pick spots touching 3 rich terrains!",
+        visualId: "hr-island",
+      },
+      {
+        id: "hr-step-3",
+        targetId: "hr-hand",
+        badge: "HAND & COMPASS",
+        title: "5 Resources & Dry-Spell Compass",
+        icon: "hr-grain",
+        accent: "amber",
+        summary:
+          "Track your **Timber, Clay, Wool, Grain & Ore** here. Stay at **7 or fewer cards** when ending your turn to avoid discarding half if a **7** is rolled!",
+        features: [
+          {
+            label: "Dry-Spell Harbor Compass",
+            detail: "Miss a non-7 roll? Gain +1 Compass charge — spend 3 charges for ANY 1 resource!",
+          },
+          {
+            label: "Bandit-Proof Charges",
+            detail: "Compass charges never count toward the 7-card cap and can't be stolen!",
+          },
+        ],
+        tryItHint: "Once your Compass reaches 3/3, tap Redeem Wild to grab the exact resource you need!",
+        visualId: "hr-hand",
+      },
+      {
+        id: "hr-step-4",
+        targetId: "hr-build",
+        badge: "BUILD & TRADE",
+        title: "Roads, Cottages, Towns & Smart Trading",
+        icon: "hr-town",
+        accent: "sage",
+        summary:
+          "After rolling dice, trade and build in any order! Tap **Road**, **Cottage**, or **Town** to light up valid placements on the island, or tap **Trade** to swap!",
+        features: [
+          {
+            label: "Harbor & Bank Swaps",
+            detail: "Instant 4:1 Bank swaps — automatically upgraded to 3:1 or 2:1 at your Harbors.",
+          },
+          {
+            label: "Player & Bot Offers",
+            detail: "Propose 1-click deals to rivals — Practice Bots gladly accept fair 1:1 swaps!",
+          },
+        ],
+        tryItHint: "Tap a build button once to activate targeting, then tap any glowing spot on the map!",
+        visualId: "hr-build",
+      },
+      {
+        id: "hr-step-5",
+        targetId: "hr-scrolls",
+        badge: "GUILD SCROLLS",
+        title: "Scouts, Road Builders, Plenty & Monopoly",
+        icon: "hr-scroll",
+        accent: "terracotta",
+        summary:
+          "Spend **1 Wool · 1 Grain · 1 Ore** to draw from the 25-card **Guild Scroll** deck. Play 1 action Scroll per turn (bought on an earlier turn)!",
+        features: [
+          {
+            label: "Ranger Scouts (14)",
+            detail: "Move the Bandit Fox (even BEFORE rolling!) and steal 1 card — 3+ earns +2★ Watch!",
+          },
+          {
+            label: "Big Swing Scrolls",
+            detail: "Road Builder (+2 Roads), Harvest Plenty (+2 Wild), Monopoly, & secret +1★ Charters.",
+          },
+        ],
+        tryItHint: "Got the Bandit Fox sitting on your 8 hex? Play a Ranger Scout before clicking Roll 2d6!",
+        visualId: "hr-scrolls",
+      },
+      {
+        id: "hr-step-6",
+        targetId: "hr-players",
+        badge: "ISLAND AWARDS",
+        title: "Longest Route, Largest Watch & Standings",
+        icon: "hr-bandit",
+        accent: "amber",
+        summary:
+          "Track every Pioneer's public VP, cards in hand, continuous road length, and Ranger Scouts played — two **+2★ Island Awards** can swing any close race!",
+        features: [
+          {
+            label: "Longest Trade Route (+2★)",
+            detail: "Claimed at 5+ unbroken Roads (enemy Cottages split rival routes!).",
+          },
+          {
+            label: "Largest Harbor Watch (+2★)",
+            detail: "Claimed at 3+ played Ranger Scouts — rivals must strictly beat you to steal!",
+          },
+        ],
+        tryItHint: "You're ready to settle Harborreach — pick a rich corner and chart your coastline!",
+        visualId: "hr-awards",
+      },
+    ],
+  },
+
+  dawnspire: {
+    slug: "dawnspire",
+    title: "Dawnspire",
+    subtitle: "6-step interactive tour of simultaneous drafting, Wonders, auto-trade & 7-path scoring",
+    estimatedSec: 45,
+    icon: "game-dawnspire",
+    steps: [
+      {
+        id: "ds-step-1",
+        targetId: "ds-header",
+        badge: "3 ERAS · ZERO WAIT",
+        title: "Simultaneous Card Drafting",
+        icon: "game-dawnspire",
+        accent: "amber",
+        summary:
+          "Play across **3 Eras (I, II, III)** of **6 turns each**. Everyone drafts **at the exact same time** — then remaining hands pass **Left**, **Right**, and **Left**!",
+        features: [
+          {
+            label: "Pass Direction Badge",
+            detail: "Watch Pass Left / Pass Right up top so you know which neighbor receives your leftovers.",
+          },
+          {
+            label: "Sunlit vs Starlit Wonders",
+            detail: "Sunlit offers balanced wonders; Starlit unlocks bold asymmetric empire powers!",
+          },
+        ],
+        tryItHint: "No waiting for slow turns — lock in your pick and the whole table flips together!",
+        visualId: "ds-goal",
+      },
+      {
+        id: "ds-step-2",
+        targetId: "ds-wonder",
+        badge: "YOUR WONDER & REALM",
+        title: "Wonder Stages & 7-Color Tableau",
+        icon: "ds-wonder",
+        accent: "sage",
+        summary:
+          "Your **Wonder** grants a permanent **Starting Resource** and 2–3 iconic **Stages**. Every structure you build lines up underneath by color!",
+        features: [
+          {
+            label: "Renewable Production",
+            detail: "Brown Raw & Silver Craft resources produce fresh EVERY turn — they are never spent!",
+          },
+          {
+            label: "Live VP & KPI Bar",
+            detail: "Track your Gold (3g = +1★), Red Shields, and live Victory Point estimate anytime.",
+          },
+        ],
+        tryItHint: "Aim to complete at least 2 Wonder Stages — they unlock massive points & unique powers!",
+        visualId: "ds-wonder",
+      },
+      {
+        id: "ds-step-3",
+        targetId: "ds-hand",
+        badge: "YOUR HAND",
+        title: "Smart Cost Badges & Free Chains",
+        icon: "ds-civic",
+        accent: "sage",
+        summary:
+          "Every card in your hand automatically calculates your exact status: **Ready · Free**, **FREE CHAIN!**, **Buy · 2g (1← 1→)**, or missing resources!",
+        features: [
+          {
+            label: "Free Chaining (0 Gold!)",
+            detail: "Building Era I prerequisites unlocks powerful Era II & III structures completely FREE!",
+          },
+          {
+            label: "No Duplicates",
+            detail: "You can only build each structure name once — tuck extras under your Wonder or Sell them!",
+          },
+        ],
+        tryItHint: "Tap any card in your hand to inspect its Auto-Trade split in the action bar below!",
+        visualId: "ds-hand",
+      },
+      {
+        id: "ds-step-4",
+        targetId: "ds-actions",
+        badge: "3 ACTIONS",
+        title: "Build, Raise Wonder Stage, or Sell",
+        icon: "ds-commerce",
+        accent: "amber",
+        summary:
+          "With a card selected, choose **1 of 3 instant moves**: **Build** the card, tuck it to raise your **Next Wonder Stage**, or **Sell** it for Gold!",
+        features: [
+          {
+            label: "Sunlit Caravan Bonus (+4g)",
+            detail: "Selling always gives +3 Gold — or +4 Gold whenever you hold the lowest Gold at the table!",
+          },
+          {
+            label: "Wonder Stage Tuck",
+            detail: "Raising a Wonder Stage pays the Stage's cost (NOT the card's) — great for denying rival cards!",
+          },
+        ],
+        tryItHint: "You can switch your choice before the final player locks in!",
+        visualId: "ds-actions",
+      },
+      {
+        id: "ds-step-5",
+        targetId: "ds-neighbors",
+        badge: "TRADE & BORDERS",
+        title: "Neighbor Trade & Era Military Clashes",
+        icon: "ds-military",
+        accent: "terracotta",
+        summary:
+          "You only **Trade** and **Clash Shields** with your immediate **Left & Right Neighbors**! Borrowing costs **2g** (cut to **1g** by Markets!).",
+        features: [
+          {
+            label: "Non-Blocking Trade",
+            detail: "Paying a neighbor for Stone or Glass never removes it from them — both realms use it!",
+          },
+          {
+            label: "Escalating Era Clashes",
+            detail: "Beat a neighbor's Shields at Era end for +1★ (Era I), +3★ (Era II), or +5★ (Era III)!",
+          },
+        ],
+        tryItHint: "Check your neighbors' Shields around Turn 5 of each Era to snatch easy Military wins!",
+        visualId: "ds-neighbors",
+      },
+      {
+        id: "ds-step-6",
+        targetId: "ds-kingdoms",
+        badge: "7 SCORING PATHS",
+        title: "Science Combos, Grand Guilds & Standings",
+        icon: "ds-science",
+        accent: "sage",
+        summary:
+          "Tap any rival realm to inspect all their built cards! After Era III, score **Military, Gold, Wonders, Blue, Yellow, Purple Guilds & Green Science**!",
+        features: [
+          {
+            label: "Exponential Science",
+            detail: "Tablets, Compasses & Gears score n² each PLUS +7★ per complete set of all 3!",
+          },
+          {
+            label: "Era III Grand Guilds",
+            detail: "Purple Guilds score huge bonuses from your neighbors' cards, Wonders, or Wild Science!",
+          },
+        ],
+        tryItHint: "You're ready to raise a timeless realm — tap a card in your Era I hand to begin!",
+        visualId: "ds-kingdoms",
+      },
+    ],
+  },
 };
 
 export function getGameQuickTour(slug?: string): GameQuickTourConfig {
   if (slug === "hearthvale") return GAME_QUICK_TOURS.hearthvale;
   if (slug === "velvet-masque") return GAME_QUICK_TOURS["velvet-masque"];
+  if (slug === "sunstone-guild") return GAME_QUICK_TOURS["sunstone-guild"];
+  if (slug === "harborreach") return GAME_QUICK_TOURS.harborreach;
+  if (slug === "dawnspire") return GAME_QUICK_TOURS.dawnspire;
   return GAME_QUICK_TOURS["treasure-trails"];
 }
 

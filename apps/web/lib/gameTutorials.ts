@@ -1,7 +1,13 @@
 import type { GameTutorialDTO } from "@tablefolk/shared";
 import type { GameIconName } from "@/components/GameIcons";
 
-export type SupportedGameSlug = "treasure-trails" | "hearthvale" | "velvet-masque";
+export type SupportedGameSlug =
+  | "treasure-trails"
+  | "hearthvale"
+  | "velvet-masque"
+  | "sunstone-guild"
+  | "harborreach"
+  | "dawnspire";
 
 export interface WalkthroughChapter {
   id: string;
@@ -889,10 +895,811 @@ export const GAME_ONBOARDING: Record<SupportedGameSlug, GameOnboardingCurriculum
       videoUrl: null,
     },
   },
+
+  "sunstone-guild": {
+    slug: "sunstone-guild",
+    title: "Sunstone Guild",
+    icon: "game-sunstone",
+    accentBg: "from-indigo-100/85 via-oat-50 to-amber-100/85",
+    accentBorder: "border-amberwarm-400/70",
+    atAGlance: {
+      players: "2–4 Players",
+      duration: "6–10 min",
+      category: "Engine Builder",
+      difficulty: "Easy",
+      winGoal:
+        "Reach 15 Prestige (or 12 in Quick mode) by crafting Artisan Relics & attracting Royal Guild Patrons, then hold the highest score at the end of the Final Round!",
+      signatureTwist:
+        "Tier I ⚡ Catalyst cards refund +1 matching gem immediately, and select Tier III Grand Masterworks grant 2× permanent gem discounts!",
+    },
+    turnSteps: [
+      {
+        step: 1,
+        title: "Draft Gems from the Bank",
+        icon: "sg-ruby",
+        accent: "sage",
+        summary:
+          "Take **3 different base gems**, OR take **2 of the same color** when **4+ remain** in that bank stack. Keep at most 10 gems at end of turn.",
+      },
+      {
+        step: 2,
+        title: "Or Craft an Artisan Relic",
+        icon: "sg-emerald",
+        accent: "amber",
+        summary:
+          "Pay a Relic's cost minus your **permanent Engine Discounts** *(Sunstone Gold auto-fills gaps)*. You gain its **Prestige** & a permanent gem discount forever!",
+      },
+      {
+        step: 3,
+        title: "Or Reserve (+1 Wild Gold)",
+        icon: "sg-gold",
+        accent: "terracotta",
+        summary:
+          "Lock any face-up Relic *(or blind Tier deck card)* into your private Reserve Tray *(max 3)* and take **+1 Sunstone Gold Wild** from the bank!",
+      },
+    ],
+    scoringPillars: [
+      {
+        label: "Workshop & Atelier Relics",
+        value: "0–3★",
+        detail: "Build permanent gem discounts that make later Relics cheap or completely free.",
+        icon: "sg-sapphire",
+        tone: "sage",
+      },
+      {
+        label: "Grand Masterworks (2×)",
+        value: "3–5★",
+        detail: "Tier III crown jewels pack huge Prestige — and select cards grant 2× permanent discounts!",
+        icon: "sg-amethyst",
+        tone: "amber",
+      },
+      {
+        label: "Royal Guild Patrons",
+        value: "+3★ Free",
+        detail: "Auto-visit your guild the instant your permanent discounts match their requirements!",
+        icon: "sg-crown",
+        tone: "terracotta",
+      },
+    ],
+    firstMatchTips: [
+      {
+        kind: "do",
+        text: "Watch the Royal Patrons on Turn 1 — building toward two overlapping Patron colors can net +6 free Prestige!",
+      },
+      {
+        kind: "do",
+        text: "Grab Tier I ⚡ Catalyst Relics early: they refund +1 matching gem immediately to accelerate your engine.",
+      },
+      {
+        kind: "watch",
+        text: "If a rival is 1 turn from a 5★ Masterwork, Reserve it before they do — you block them AND score a Wild Gold!",
+      },
+    ],
+    walkthroughDurationSec: 48,
+    walkthroughChapters: [
+      {
+        id: "sg-intro",
+        title: "Welcome to Sunstone Guild",
+        badge: "0:00",
+        startSec: 0,
+        endSec: 10,
+        caption: "Draft gems, forge permanent Relic discounts, and race to 15 Prestige!",
+        narration:
+          "Welcome to Sunstone Guild! Draft radiant gems to craft Relics that permanently discount future purchases, and race to 15 Prestige!",
+      },
+      {
+        id: "sg-bank",
+        title: "Gem Bank & 10-Gem Limit",
+        badge: "0:10",
+        startSec: 10,
+        endSec: 20,
+        caption: "Take 3 different colors OR 2 of the same color (if 4+ remain in stock).",
+        narration:
+          "Tap three different gem colors, or tap one color twice when at least four remain in the bank. Hold up to ten gems at turn end.",
+      },
+      {
+        id: "sg-engine",
+        title: "Permanent Engine & Catalysts",
+        badge: "0:20",
+        startSec: 20,
+        endSec: 30,
+        caption: "Crafted Relics stay forever — reducing costs & sparking ⚡ bonus gems!",
+        narration:
+          "Every crafted Relic permanently discounts its gem color. Watch for Tier One Catalyst cards that immediately refund a free matching gem!",
+      },
+      {
+        id: "sg-reserve",
+        title: "Reserving & Wild Sunstone Gold",
+        badge: "0:30",
+        startSec: 30,
+        endSec: 39,
+        caption: "Reserve up to 3 Relics (face-up or blind) to claim Wild Sunstone Gold!",
+        narration:
+          "Reserve any Market card or blind Tier deck card to hold it safely and collect a Wild Sunstone Gold coin that bridges any shortfall.",
+      },
+      {
+        id: "sg-patrons",
+        title: "Royal Patrons & Final Round",
+        badge: "0:39",
+        startSec: 39,
+        endSec: 48,
+        caption: "Match Patron discounts for +3★ — hit the goal to trigger the Final Round!",
+        narration:
+          "Match a Royal Patron's permanent discounts to earn three free Prestige! Hitting the Prestige target triggers the equal-turns Final Round.",
+      },
+    ],
+    shortClips: [
+      {
+        id: "sg-bank",
+        title: "3-Different vs 2-Same Gems",
+        durationSec: 10,
+        tag: "Drafting",
+        icon: "sg-ruby",
+        explanation:
+          "Take 1 each of 3 different base colors, OR take 2 of the same color ONLY when 4+ remain in that stack.",
+        proTip: "Taking 2 of a scarce color early can starve a rival aiming for the same Tier II Relic.",
+      },
+      {
+        id: "sg-engine",
+        title: "⚡ Catalysts & 2× Masterworks",
+        durationSec: 10,
+        tag: "Signature Twist",
+        icon: "sg-emerald",
+        explanation:
+          "Tier I Catalyst cards refund +1 matching gem immediately on craft. Select Tier III Masterworks grant 2× permanent discounts!",
+        proTip: "A single 2× Grand Masterwork can leap you across a Royal Patron threshold in one turn.",
+      },
+      {
+        id: "sg-reserve",
+        title: "Tactical Reserve & Wild Gold",
+        durationSec: 10,
+        tag: "Blocking",
+        icon: "sg-gold",
+        explanation:
+          "Reserving lets you lock away up to 3 Relics AND claim +1 Sunstone Gold Wild, which auto-fills any missing gem cost.",
+        proTip: "Reserve blind from a Tier deck top to hide your target from rival artisans!",
+      },
+      {
+        id: "sg-patrons",
+        title: "Royal Patrons & Tiebreakers",
+        durationSec: 10,
+        tag: "Endgame",
+        icon: "sg-crown",
+        explanation:
+          "Patrons visit automatically for +3★ when your permanent discounts match (max 1 per turn). Ties break by fewest crafted Relics!",
+        proTip: "Efficiency wins ties — crafting fewer high-Prestige Masterworks beats bloating on 0★ Tier I cards.",
+      },
+    ],
+    fallbackTutorial: {
+      gameSlug: "sunstone-guild",
+      title: "Sunstone Guild",
+      summary:
+        "Draft radiant gems, craft Artisan Relics for permanent discounts, spark Tier I Catalysts & 2× Masterworks, welcome Royal Patrons (+3★), and race to 15 Prestige!",
+      rulesMarkdown: `### Goal of the Game
+- Race to **15 Prestige** *(or **12 Prestige** in Quick mode)* by crafting **Artisan Relics** and welcoming **Royal Guild Patrons**.
+- Reaching the target triggers the **Final Round** so every artisan finishes an equal number of turns. Ties break by **fewest crafted Relics**, then **most gems**.
+
+### On Your Turn — Pick 1 Action
+1. **Take 3 Different Gems:** Pick **1 each** of up to 3 different base colors *(Ruby, Sapphire, Emerald, Amethyst, Pearl — never Gold directly)*.
+2. **Take 2 Matching Gems:** Pick **2 of the same base color**, ONLY if that bank stack currently has **4 or more** gems remaining.
+3. **Reserve a Relic (+1 Wild Gold):** Lock any **face-up Market card** *(or draw blind from a Tier I / II / III deck)* into your Reserve Tray *(max 3)* and gain **+1 Sunstone Gold Wild** if available!
+4. **Craft a Relic:** Spend gems matching the card's cost minus your **permanent Engine Discounts** *(Sunstone Gold automatically covers any shortfall)*.
+
+### Cozy Signature Twists & End-of-Turn Rules
+- **⚡ Tier I Catalysts:** Crafting a spark-badged Tier I Relic immediately refunds **+1 free gem** of its color from the bank!
+- **2× Grand Masterworks:** Select Tier III Relics grant **double (+2) permanent gem discounts**!
+- **10-Gem Hand Cap:** Hold at most **10 gems** at the end of your turn — if over, return excess gems of your choice.
+- **Royal Guild Patrons (+3★):** The instant your permanent discounts match a face-up Patron's requirements, they visit your guild permanently for **+3 Prestige** *(max 1 Patron per turn)*!`,
+      cardReference: [
+        {
+          name: "5 Base Gems (Ruby, Sapphire, Emerald, Amethyst, Pearl)",
+          category: "Gem Bank",
+          icon: "sg-ruby",
+          description:
+            "Take 3 different colors OR 2 of one color (when 4+ remain in stock). Max 10 total gems in hand.",
+        },
+        {
+          name: "Sunstone Gold (Wild)",
+          category: "Wild Token",
+          icon: "sg-gold",
+          description:
+            "Earned ONLY when Reserving a Relic. Counts as any gem color automatically when crafting!",
+        },
+        {
+          name: "Tier I — Workshop & ⚡ Catalysts",
+          category: "Engine Starters",
+          icon: "sg-emerald",
+          description:
+            "Low-cost relics (0–1★) that build permanent discounts. ⚡ Catalyst cards refund +1 matching gem immediately!",
+        },
+        {
+          name: "Tier II — Atelier Relics",
+          category: "Mid-Game",
+          icon: "sg-sapphire",
+          description:
+            "Balanced 1–3★ relics that bridge your engine toward Royal Patrons and Tier III crown jewels.",
+        },
+        {
+          name: "Tier III — Grand Masterworks (2×)",
+          category: "High Prestige",
+          icon: "sg-amethyst",
+          description:
+            "Worth 3–5 Prestige! Select Masterworks grant 2× permanent gem discounts to unlock Patrons fast.",
+        },
+        {
+          name: "Royal Guild Patrons (+3★)",
+          category: "Bonus Milestone",
+          icon: "sg-patron",
+          description:
+            "Automatically visit your guild when your permanent discounts match their requirement — free +3 Prestige!",
+        },
+      ],
+      faq: [
+        {
+          q: "Do permanent Engine Discounts get spent when I craft a new Relic?",
+          a: "Never! Every Relic you craft stays in your workshop forever, permanently lowering future costs — eventually making Tier I Relics completely FREE!",
+        },
+        {
+          q: "Why can't I take 2 of the same gem sometimes?",
+          a: "Taking 2 matching gems requires at least 4 gems of that color in the bank BEFORE you take them (leaving 2+ behind).",
+        },
+        {
+          q: "Can opponents see cards I reserve?",
+          a: "Face-up Market reserves remain visible as mini chips to rivals. Blind reserves from a Tier deck top stay strictly hidden until you craft them!",
+        },
+        {
+          q: "How do ties break at the end of the Final Round?",
+          a: "Highest Prestige wins. If tied, the artisan with FEWER crafted Relic cards wins (rewarding a leaner engine!), then most remaining gems.",
+        },
+      ],
+      videoUrl: null,
+    },
+  },
+
+  harborreach: {
+    slug: "harborreach",
+    title: "Harborreach",
+    icon: "game-harbor",
+    accentBg: "from-teal-100/90 via-oat-50 to-amber-100/75",
+    accentBorder: "border-[#1E7D74]/60",
+    atAGlance: {
+      players: "2–4 Players",
+      duration: "10–18 min",
+      category: "Trading & Strategy",
+      difficulty: "Medium",
+      winGoal:
+        "Settle the coastal hex island, harvest & trade resources, build Roads, Cottages & Towns, and be the first Pioneer to reach 10 Victory Points (8 VP in Quick mode)!",
+      signatureTwist:
+        "Dry-Spell Harbor Compass (+1 charge whenever non-7 dice miss you; spend 3 charges for any 1 resource) plus structured instant trading with humans & Practice Bots!",
+    },
+    turnSteps: [
+      {
+        step: 1,
+        title: "Roll 2d6 & Harvest",
+        icon: "hr-grain",
+        accent: "sage",
+        summary:
+          "Roll **2d6**! Every Cottage touching a matching number harvests **+1 resource** *(Towns harvest **+2**!)*. Miss completely on a non-7 roll? Gain **+1 Harbor Compass** charge *(3 charges = any 1 resource!)*.",
+      },
+      {
+        step: 2,
+        title: "Watch for the Bandit Fox (7)",
+        icon: "hr-bandit",
+        accent: "terracotta",
+        summary:
+          "Rolling **7** makes anyone holding **8+ cards** discard half, then moves the **Bandit Fox** onto a hex to block its harvest and steal **1 random card** from an adjacent rival!",
+      },
+      {
+        step: 3,
+        title: "Trade, Build & Play Scrolls",
+        icon: "hr-cottage",
+        accent: "amber",
+        summary:
+          "Trade via **4:1 Bank**, **3:1 / 2:1 Harbors**, or **Player Offers**, build **Roads**, **Cottages (+1★)**, **Towns (+2★)**, or buy **Guild Scrolls** — then tap **End Turn**!",
+      },
+    ],
+    scoringPillars: [
+      {
+        label: "Cottages & Towns",
+        value: "1★ / 2★ each",
+        detail: "Cottages earn 1★ & harvest 1 resource; Towns earn 2★ & harvest 2!",
+        icon: "hr-town",
+        tone: "amber",
+      },
+      {
+        label: "Island Awards",
+        value: "+2★ Each",
+        detail: "Longest Trade Route (5+ unbroken Roads) & Largest Harbor Watch (3+ Scouts).",
+        icon: "hr-harbor",
+        tone: "sage",
+      },
+      {
+        label: "Landmark Charters",
+        value: "+1★ Secret",
+        detail: "Hidden +1★ Victory Point Scrolls count immediately toward winning on your turn!",
+        icon: "hr-scroll",
+        tone: "terracotta",
+      },
+    ],
+    firstMatchTips: [
+      {
+        kind: "do",
+        text: "During **Founding Setup**, aim your 2 starting Cottages at high-probability red **6** and **8** tokens — and remember your **2nd Cottage** harvests all 3 touching terrains immediately!",
+      },
+      {
+        kind: "do",
+        text: "Settle on a coastal **2:1** or **3:1 Harbor** early if you produce tons of one resource so you can convert surplus into whatever you need without waiting on rivals.",
+      },
+      {
+        kind: "watch",
+        text: "Stay at **7 or fewer cards** before ending your turn when possible — holding 8+ risks losing half your hand if the next player rolls a **7**!",
+      },
+    ],
+    walkthroughDurationSec: 55,
+    walkthroughChapters: [
+      {
+        id: "hr-ch-1",
+        title: "Founding the Coastal Island",
+        badge: "SETUP",
+        startSec: 0,
+        endSec: 11,
+        caption:
+          "Snake-draft 2 free Cottages and 2 Roads on the 19-hex island (stay 2 edges apart!). Your 2nd Cottage immediately harvests every touching terrain!",
+        narration:
+          "Welcome to Harborreach! Before round one, every pioneer places two free Cottages and two Roads in snake-draft order. Stay two edges away from other buildings, and collect starting resources from your second Cottage immediately!",
+      },
+      {
+        id: "hr-ch-2",
+        title: "2d6 Harvest & Harbor Compass",
+        badge: "HARVEST",
+        startSec: 11,
+        endSec: 23,
+        caption:
+          "Roll 2d6 every turn — matching hexes shower adjacent Cottages (+1) and Towns (+2). Unlucky dry roll? Your Harbor Compass gains +1 charge (redeem 3 for any resource!).",
+        narration:
+          "Start every turn by rolling two dice. Every Cottage on a matching hex harvests one resource, and Towns harvest two! Whenever a non-seven roll misses you completely, your Harbor Compass charges up—spend three charges for any one resource!",
+      },
+      {
+        id: "hr-ch-3",
+        title: "Harbors & Player Trading",
+        badge: "TRADE",
+        startSec: 23,
+        endSec: 34,
+        caption:
+          "Swap 4:1 with the Bank, unlock 3:1 or 2:1 Specialty Harbors along the coast, or pitch 1-click Trade Offers to both humans and Practice Bots!",
+        narration:
+          "Missing Clay or Ore? Trade four-to-one with the Bank, settle coastal harbors for three-to-one or two-to-one specialty swaps, or send structured trade offers directly to other pioneers and Practice Bots!",
+      },
+      {
+        id: "hr-ch-4",
+        title: "Build, Upgrade & Guild Scrolls",
+        badge: "BUILD",
+        startSec: 34,
+        endSec: 45,
+        caption:
+          "Spend resources to lay Roads, expand Cottages (+1★), upgrade Towns (+2★), or draw Guild Scrolls for Ranger Scouts, Road Builders, Plenty, Monopoly, or secret +1★ Charters!",
+        narration:
+          "Turn resources into victory points by laying Roads, settling new Cottages, and upgrading Cottages into double-harvest Towns. You can also buy Guild Scrolls for powerful action plays and secret Landmark Charter points!",
+      },
+      {
+        id: "hr-ch-5",
+        title: "Bandit Fox, Awards & Victory",
+        badge: "WIN",
+        startSec: 45,
+        endSec: 55,
+        caption:
+          "Rolling 7 triggers the Bandit Fox (8+ cards discard half, block a hex & steal 1). Claim Longest Route (+2★) and Largest Watch (+2★) to reach 10★ first!",
+        narration:
+          "Watch out for sevens—anyone holding eight or more cards discards half while the Bandit Fox blocks a hex and steals a resource. Race for Longest Trade Route, Largest Harbor Watch, and ten victory points to win Harborreach!",
+      },
+    ],
+    shortClips: [
+      {
+        id: "hr-setup-harvest",
+        title: "Snake-Draft Setup & 2d6 Harvests",
+        durationSec: 10,
+        tag: "Core Loop",
+        icon: "hr-cottage",
+        explanation:
+          "Cottages must sit at least 2 road-edges apart from any other building. Red 6 and 8 tokens never sit next to each other — target corners touching 3 rich terrains and high pip dots!",
+        proTip:
+          "Because your 2nd Cottage immediately grants its touching resources, pick a corner with Timber + Clay or Wool + Grain to jump-start Turn 1!",
+      },
+      {
+        id: "hr-compass-twist",
+        title: "Dry-Spell Harbor Compass",
+        durationSec: 9,
+        tag: "TableFolk Twist",
+        icon: "hr-harbor",
+        explanation:
+          "Whenever any non-7 roll gives you 0 resources, your Harbor Compass gains +1 charge. On your turn, spend 3 charges to claim ANY 1 resource straight from the island supply!",
+        proTip:
+          "Hold 3 Compass charges until you're ready to build — Compass charges can't be stolen by the Bandit Fox and don't count toward the 7-card discard limit!",
+      },
+      {
+        id: "hr-trading",
+        title: "Harbor Ports & Player Trades",
+        durationSec: 10,
+        tag: "Economy",
+        icon: "hr-timber",
+        explanation:
+          "Trade 4:1 with the Island Bank anytime, unlock coastal 3:1 Wild or 2:1 Specialty Harbors by settling on their pier corners, or offer direct trades to other players & Practice Bots.",
+        proTip:
+          "Practice Bots gladly accept fair 1:1 trades when you offer a resource they lack in exchange for their surplus!",
+      },
+      {
+        id: "hr-bandit-scrolls",
+        title: "Bandit Fox & Guild Scrolls",
+        durationSec: 10,
+        tag: "Tactics",
+        icon: "hr-bandit",
+        explanation:
+          "Rolling 7 or playing a Ranger Scout moves the Bandit Fox onto any hex to silence its production and steal 1 random card from an adjacent rival. Play 3+ Scouts for Largest Harbor Watch (+2★)!",
+        proTip:
+          "You can play a Ranger Scout BEFORE rolling dice to chase the Bandit Fox off your own 6 or 8 hex before harvest!",
+      },
+    ],
+    fallbackTutorial: {
+      gameSlug: "harborreach",
+      title: "Harborreach",
+      summary:
+        "Settle a sunlit 19-hex coastal island, harvest Timber, Clay, Wool, Grain & Ore on 2d6 rolls, trade across Harbors & Pioneers, command the Bandit Fox, and race to 10 Victory Points!",
+      rulesMarkdown: `### Goal of the Game
+- Be the first Pioneer to reach **10 Victory Points** *(or **8 VP** in Quick mode)* on your turn!
+- Earn VP from **Cottages (1★)**, **Towns (2★)**, **Longest Trade Route (+2★, 5+ Roads)**, **Largest Harbor Watch (+2★, 3+ Ranger Scouts)**, and secret **Landmark Charter (+1★)** scrolls.
+
+### Founding Setup (Snake Draft)
+- Place **2 free Cottages** and **2 adjacent Roads** in snake-draft order *(1 → N, then N → 1)*.
+- **Distance Rule:** Every Cottage must stay at least **2 edges away** from all other buildings.
+- Your **2nd Cottage** immediately harvests **1 resource** from each terrain hex it touches!
+
+### On Your Turn
+1. **Roll 2d6:** All Pioneers with Cottages (+1) or Towns (+2) touching matching hex numbers harvest immediately.
+   - **Dry-Spell Harbor Compass:** Whenever a non-7 roll gives you 0 resources, gain **+1 Compass charge** *(spend **3 charges** on your turn for ANY 1 resource!)*.
+   - **Rolled a 7 (Bandit Fox):** Anyone with **8+ cards** discards half, then the roller moves the **Bandit Fox** onto a hex to block its harvest and steals **1 random card** from an adjacent rival.
+2. **Trade & Build (Any Order):**
+   - **Harbor / Bank Swap:** 4:1 Bank default, **3:1 Wild Harbor**, or **2:1 Specialty Harbor** when settled on a pier corner.
+   - **Player Trade:** Pitch structured trade offers to humans & Practice Bots!
+   - **Build:** Road *(1 Timber, 1 Clay)* · Cottage *(1T, 1C, 1W, 1G)* · Town *(2G, 3O)* · Guild Scroll *(1W, 1G, 1O)*.
+   - **Play 1 Guild Scroll per turn** *(bought on a previous turn; Landmark Charter VP scrolls score passively!)*.
+3. **End Turn:** Victory triggers immediately the instant you hit the VP goal on your turn!`,
+      cardReference: [
+        {
+          name: "5 Island Resources",
+          category: "Harvest",
+          icon: "hr-timber",
+          description:
+            "Timber (Forest), Clay (Quarry), Wool (Pasture), Grain (Fields), and Ore (Peaks) — harvested on matching 2d6 rolls.",
+        },
+        {
+          name: "Road · Cottage (+1★) · Town (+2★)",
+          category: "Building",
+          icon: "hr-cottage",
+          description:
+            "Roads (1T 1C) expand your network; Cottages (1T 1C 1W 1G) harvest 1 & score 1★; Towns (2G 3O) upgrade Cottages to harvest 2 & score 2★!",
+        },
+        {
+          name: "Coastal Harbors (3:1 & 2:1)",
+          category: "Trade Ports",
+          icon: "hr-harbor",
+          description:
+            "Settle on either pier corner of a coastal Harbor to unlock permanent 3:1 wild swaps or 2:1 single-resource swaps!",
+        },
+        {
+          name: "Harbor Compass (3 Charges → Wild)",
+          category: "Cozy Twist",
+          icon: "game-harbor",
+          description:
+            "Missed completely on a non-7 roll? Gain +1 Compass charge. Spend 3 charges on your turn to claim ANY 1 resource!",
+        },
+        {
+          name: "Bandit Fox (7-Roll & Ranger Scout)",
+          category: "Disruption",
+          icon: "hr-bandit",
+          description:
+            "Blocks harvest on its hex and steals 1 random card from an adjacent rival when moved on a 7-roll or Ranger Scout.",
+        },
+        {
+          name: "Guild Scrolls (5 Types)",
+          category: "Action Deck",
+          icon: "hr-scroll",
+          description:
+            "Ranger Scout (14), Landmark Charter +1★ (5), Road Builder +2 free Roads (2), Harvest Plenty +2 free resources (2), Guild Monopoly (2).",
+        },
+      ],
+      faq: [
+        {
+          q: "Why can't I place a Cottage right next to another Cottage?",
+          a: "Harborreach uses the classic Distance Rule: every Cottage must sit at least 2 road edges away from any existing Cottage or Town (yours or a rival's).",
+        },
+        {
+          q: "Can I play a Guild Scroll on the same turn I buy it?",
+          a: "Action Scrolls (Ranger Scout, Road Builder, Harvest Plenty, Guild Monopoly) unlock on your next turn (1 per turn). Secret +1★ Landmark Charters count toward victory immediately!",
+        },
+        {
+          q: "Does the Bandit Fox steal my Harbor Compass charges?",
+          a: "Never! Compass charges stay safely on your compass meter and do NOT count toward the 8-card discard penalty when a 7 is rolled.",
+        },
+        {
+          q: "How do Longest Trade Route and Largest Harbor Watch change hands?",
+          a: "First player to build 5+ continuous Roads claims Longest Trade Route (+2★), and 3+ Ranger Scouts claims Largest Harbor Watch (+2★). A rival must STRICTLY beat your count to steal the badge!",
+        },
+      ],
+      videoUrl: null,
+    },
+  },
+
+  dawnspire: {
+    slug: "dawnspire",
+    title: "Dawnspire",
+    icon: "game-dawnspire",
+    accentBg: "from-fuchsia-100/90 via-oat-50 to-amber-100/80",
+    accentBorder: "border-[#8B3A62]/55",
+    atAGlance: {
+      players: "2–7 Players",
+      duration: "6–10 min",
+      category: "Card Drafting",
+      difficulty: "Medium",
+      winGoal:
+        "Draft 3 Eras of cards simultaneously, raise your Wonder, trade with neighbors, clash Shields each Era, and earn the highest 7-Category Victory Point total!",
+      signatureTwist:
+        "Zero-downtime simultaneous play with instant auto-trade math, Sunlit vs Starlit Wonder sides, plus the Sunlit Caravan Bonus (+4g when selling while lowest on Gold)!",
+    },
+    turnSteps: [
+      {
+        step: 1,
+        title: "Draft 1 Card Simultaneously",
+        icon: "game-dawnspire",
+        accent: "sage",
+        summary:
+          "Every kingdom picks **1 card at the same time** from their hand of 7, then passes the rest **Left** (Era I), **Right** (Era II), and **Left** (Era III)!",
+      },
+      {
+        step: 2,
+        title: "Build, Raise Wonder, or Sell",
+        icon: "ds-wonder",
+        accent: "amber",
+        summary:
+          "**Build** the card into your tableau (auto-borrowing neighbor resources or using **Free Chains**!), tuck it under your **Wonder Stage**, or **Sell** it for **+3g** (+4g Caravan Bonus!).",
+      },
+      {
+        step: 3,
+        title: "Era Military Clashes & 7-Path Score",
+        icon: "ds-military",
+        accent: "terracotta",
+        summary:
+          "After Turn 6 of each Era, compare **Shields** vs Left & Right neighbors (**+1★ / +3★ / +5★** win, **−1★** loss). After Era III, tally all **7 categories**!",
+      },
+    ],
+    scoringPillars: [
+      {
+        label: "Military & Wonders",
+        value: "+1 / +3 / +5★ · 10★+",
+        detail: "Win Era border clashes and complete 2–3 iconic Wonder stages.",
+        icon: "ds-military",
+        tone: "terracotta",
+      },
+      {
+        label: "Civic, Commerce & Guilds",
+        value: "Blue · Yel · Purp",
+        detail: "Direct Blue monuments (up to 8★), Yellow bonuses, and Era III Grand Guilds.",
+        icon: "ds-civic",
+        tone: "amber",
+      },
+      {
+        label: "Science Academies",
+        value: "n² + 7★ / Set",
+        detail: "Tablets, Compasses & Gears score n² each PLUS +7★ per complete trio!",
+        icon: "ds-science",
+        tone: "sage",
+      },
+    ],
+    firstMatchTips: [
+      {
+        kind: "do",
+        text: "Draft **Raw Materials (Brown)** and **Fine Crafts (Silver)** early in Era I so you don't pay Gold to neighbors all game — and they'll pay YOU!",
+      },
+      {
+        kind: "do",
+        text: "Watch for **Free Chain** icons (like **Altar → Sun Temple → Pantheon** or **Scriptorium → Library → University**) to score massive Era II & III buildings for 0 Gold!",
+      },
+      {
+        kind: "watch",
+        text: "Peek at your **Left & Right Neighbors' Shields** before Turn 6 of each Era — adding just 1 Military card can turn a −1★ defeat into a +3★ or +5★ win!",
+      },
+    ],
+    walkthroughDurationSec: 55,
+    walkthroughChapters: [
+      {
+        id: "ds-ch-1",
+        title: "Simultaneous Drafting Across 3 Eras",
+        badge: "ZERO WAIT",
+        startSec: 0,
+        endSec: 11,
+        caption:
+          "Every kingdom starts with 3 Gold, a unique Wonder, and 7 cards. Everyone chooses simultaneously and passes remaining hands Left (Era I), Right (Era II), Left (Era III)!",
+        narration:
+          "Welcome to Dawnspire! Every kingdom gets a unique Wonder, three Gold, and seven cards. Everyone drafts simultaneously—so even a seven-player match finishes in under ten minutes!",
+      },
+      {
+        id: "ds-ch-2",
+        title: "Build, Free Chain & Auto-Trade",
+        badge: "ECONOMY",
+        startSec: 11,
+        endSec: 23,
+        caption:
+          "Build Brown Raw & Silver Craft resources for your engine, chain upgrades for FREE, or borrow missing neighbor resources automatically (2g, or 1g with Markets!).",
+        narration:
+          "Every card shows its exact status automatically: Free, Free Chain, or the cheapest neighbor trade split. Borrowing a neighbor's resource never takes it from them—you simply pay them Gold!",
+      },
+      {
+        id: "ds-ch-3",
+        title: "Raise Your Sunlit or Starlit Wonder",
+        badge: "WONDERS",
+        startSec: 23,
+        endSec: 34,
+        caption:
+          "Tuck ANY card in your hand under your Wonder to raise its next Stage—paying the Stage's cost instead of the card's! Unlock big VP, Shields, Wild Science, or Free Builds!",
+        narration:
+          "You can always tuck any card under your Wonder to build the next Stage, paying the Wonder's cost instead of the card's. Choose Sunlit Wonders for balanced play or Starlit Wonders for bold asymmetric powers!",
+      },
+      {
+        id: "ds-ch-4",
+        title: "End-of-Era Military Clashes",
+        badge: "MILITARY",
+        startSec: 34,
+        endSec: 44,
+        caption:
+          "At the end of each Era, compare Red Shields against your Left & Right neighbors: earn +1★ (Era I), +3★ (Era II), or +5★ (Era III) for each win, or −1★ for defeat!",
+        narration:
+          "After turn six of each Era, your Shields clash with your immediate Left and Right neighbors! Victories grow from one point in Era One to five points in Era Three!",
+      },
+      {
+        id: "ds-ch-5",
+        title: "Science Sets, Guilds & 7-Path Victory",
+        badge: "SCORING",
+        startSec: 44,
+        endSec: 55,
+        caption:
+          "After Era III, score Military, Gold (3g=1★), Wonders, Blue Civic, Yellow Commerce, Purple Guilds, and exponential Green Science (n² + 7 per set) to crown the ruler!",
+        narration:
+          "When Era Three ends, Dawnspire tallies all seven scoring paths—including explosive Science sets and Purple Grand Guilds—to crown the grandest realm!",
+      },
+    ],
+    shortClips: [
+      {
+        id: "ds-simultaneous",
+        title: "Simultaneous Drafting & Passing",
+        durationSec: 9,
+        tag: "Core Loop",
+        icon: "game-dawnspire",
+        explanation:
+          "Pick 1 card and lock in Build, Wonder Stage, or Sell at the same time as everyone else. Pass remaining hands Left (Era I), Right (Era II), and Left (Era III)!",
+        proTip:
+          "Remember what cards you pass in Era I — in 3–4 player games, you'll see that same hand come back around a few turns later!",
+      },
+      {
+        id: "ds-trade-chain",
+        title: "Auto Neighbor Trade & Free Chains",
+        durationSec: 10,
+        tag: "Economy",
+        icon: "ds-commerce",
+        explanation:
+          "Borrow Brown/Silver resources from Left or Right neighbors for 2g (1g with Markets) — never removing them from your neighbor! Prerequisite structures unlock Era II/III upgrades for FREE!",
+        proTip:
+          "Look at the '↳ Free:' hint on Era I cards — building Altar or Scriptorium early unlocks 5–7★ monuments completely free later!",
+      },
+      {
+        id: "ds-wonder-caravan",
+        title: "Wonder Stages & Sunlit Caravan (+4g)",
+        durationSec: 9,
+        tag: "TableFolk Twist",
+        icon: "ds-wonder",
+        explanation:
+          "Use any unneeded card to raise your next Wonder Stage, or Sell it for +3 Gold (+4 Gold with the Sunlit Caravan Bonus whenever you hold the lowest Gold at the table!).",
+        proTip:
+          "Tucking a rival's coveted Science or Military card under your Wonder denies it from passing to your neighbor!",
+      },
+      {
+        id: "ds-science-guilds",
+        title: "Science Combos & Era III Guilds",
+        durationSec: 10,
+        tag: "Big Points",
+        icon: "ds-science",
+        explanation:
+          "Green Science scores n² for each matching symbol (Tablet, Compass, Gear) PLUS +7★ for every full set of all 3! Wild Science automatically picks your optimal symbol!",
+        proTip:
+          "Even 1 complete Science set (1 of each) is worth 10★ — and 2 of each explodes to 26★!",
+      },
+    ],
+    fallbackTutorial: {
+      gameSlug: "dawnspire",
+      title: "Dawnspire",
+      summary:
+        "Draft 3 Eras of sunlit wonders simultaneously! Build structures, chain upgrades for free, borrow neighbor resources automatically, clash Shields each Era, and score across 7 paths!",
+      rulesMarkdown: `### Goal of the Game
+- Build the grandest ancient kingdom across **3 Eras** *(18 simultaneous drafting turns)* and finish with the highest **7-Category Victory Point** total!
+- Choose **Sunlit Wonders (Balanced)** or **Starlit Wonders (Asymmetric Powers)** before starting.
+
+### Simultaneous Turn Loop
+1. **Pick 1 Card from Your Hand** and choose **1 of 3 Actions** simultaneously:
+   - **Build Structure:** Pay its resource/coin cost, use a **Free Chain** prerequisite *(0 Gold!)*, or borrow missing neighbor resources (**2g**, or **1g** with Trade Markets!).
+   - **Raise Wonder Stage:** Tuck any card under your Wonder to build its next Stage *(pays the Stage's cost, NOT the card's!)*.
+   - **Sell Card:** Discard face-down for **+3 Gold** *(or **+4 Gold** with the **Sunlit Caravan Bonus** if lowest on Gold!)*.
+2. **Pass Remaining Hand:** **Left** in Era I, **Right** in Era II, **Left** in Era III.
+3. **End-of-Era Military Clashes:** Compare **Shields** against Left & Right neighbors (**+1★ / +3★ / +5★** per win, **−1★** per defeat).`,
+      cardReference: [
+        {
+          name: "Raw Materials (Brown) & Fine Crafts (Silver)",
+          category: "Production",
+          icon: "ds-wonder",
+          description:
+            "Produce Timber, Stone, Clay, Ore, Glass & Silk every turn — neighbors can also pay you Gold to borrow them!",
+        },
+        {
+          name: "Civic Monuments (Blue)",
+          category: "Direct VP",
+          icon: "ds-civic",
+          description:
+            "Reliable Victory Points (+2★ to +8★) — many unlock FREE via Era I → II → III chains!",
+        },
+        {
+          name: "Commerce & Markets (Yellow)",
+          category: "Trade & Gold",
+          icon: "ds-commerce",
+          description:
+            "Cut neighbor trade costs to 1g, add Wild resources, gain Gold bursts, and score Era III bonuses!",
+        },
+        {
+          name: "Military Garrisons (Red)",
+          category: "Shields ⚔",
+          icon: "ds-military",
+          description:
+            "Beat Left & Right neighbors' Shields at the end of each Era for +1★, +3★, and +5★ tokens!",
+        },
+        {
+          name: "Science Academies (Green)",
+          category: "Exponential VP",
+          icon: "ds-science",
+          description:
+            "Tablets, Compasses & Gears score n² each PLUS +7★ for every complete set of all 3!",
+        },
+        {
+          name: "Grand Guilds (Purple — Era III)",
+          category: "Endgame Combos",
+          icon: "ds-guild",
+          description:
+            "Era III powerhouses scoring off neighboring cards, Wonder stages, defeats, or Wild Science!",
+        },
+      ],
+      faq: [
+        {
+          q: "Does borrowing a neighbor's resource remove it from them?",
+          a: "Never! Resources refresh every turn — you simply pay them 2 Gold (or 1 Gold with a Market) and both players still use their resources simultaneously!",
+        },
+        {
+          q: "Can I build two copies of the exact same card?",
+          a: "No — every structure name can only be built once in your kingdom (duplicates are clearly labeled 'Built Already', though you can still tuck them for your Wonder or Sell them!).",
+        },
+        {
+          q: "How does 2-Player Dawnspire work?",
+          a: "In 2-player Caravan Duel mode, 3 hands rotate around the table and the neutral Caravan drops 1 card each turn while you clash and trade directly with your opponent!",
+        },
+        {
+          q: "How do ties break at the end of Era III?",
+          a: "Highest total Victory Points wins. Ties break by most remaining Gold, then most built structures!",
+        },
+      ],
+      videoUrl: null,
+    },
+  },
 };
 
 export function getOnboardingCurriculum(slug: string): GameOnboardingCurriculum {
   if (slug === "hearthvale") return GAME_ONBOARDING.hearthvale;
   if (slug === "velvet-masque") return GAME_ONBOARDING["velvet-masque"];
+  if (slug === "sunstone-guild") return GAME_ONBOARDING["sunstone-guild"];
+  if (slug === "harborreach") return GAME_ONBOARDING.harborreach;
+  if (slug === "dawnspire") return GAME_ONBOARDING.dawnspire;
   return GAME_ONBOARDING["treasure-trails"];
 }

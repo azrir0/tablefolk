@@ -688,6 +688,421 @@ function StepInteractiveStage({ visualId }: { visualId: QuickTourVisualId }) {
           </div>
         </div>
       );
+
+    /* ========================= SUNSTONE GUILD ========================= */
+    case "sg-goal":
+      return (
+        <div className="flex flex-col items-center gap-2.5 rounded-2xl border border-amberwarm-400/50 bg-gradient-to-br from-[#2B5096] to-[#1E3B73] p-3.5 text-white">
+          <div className="flex items-center gap-2.5">
+            <GameIcon name="game-sunstone" className="h-9 w-9" />
+            <div className="text-left">
+              <div className="text-[10px] font-extrabold uppercase tracking-wider text-amberwarm-100">
+                Prestige Goal
+              </div>
+              <div className="font-display text-sm font-black">
+                12★ Quick · 15★ Classic
+              </div>
+            </div>
+          </div>
+          <div className="flex w-full items-center justify-between rounded-xl bg-white/95 px-3 py-2 text-xs font-bold text-espresso">
+            <span>Hit Target → Final Round!</span>
+            <span className="rounded-full bg-amberwarm-100 px-2 py-0.5 text-[10px] font-black text-amberwarm-600">
+              Tiebreak: Fewer Relics
+            </span>
+          </div>
+        </div>
+      );
+
+    case "sg-bank":
+      return (
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-oat-300 bg-oat-100 p-3">
+          <div className="flex items-center gap-1.5">
+            {(["sg-ruby", "sg-sapphire", "sg-emerald", "sg-amethyst", "sg-pearl"] as const).map(
+              (icon, idx) => (
+                <div
+                  key={icon}
+                  className={`flex h-10 w-10 items-center justify-center rounded-full border-2 bg-white shadow-sm ${
+                    idx < 3 ? "border-emerald-500 ring-2 ring-emerald-400/40" : "border-oat-300"
+                  }`}
+                >
+                  <GameIcon name={icon} className="h-5 w-5" />
+                </div>
+              )
+            )}
+          </div>
+          <div className="flex flex-wrap justify-center gap-1.5 text-[10px] font-extrabold text-espresso">
+            <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-emerald-800">
+              ✓ 3 Different Colors
+            </span>
+            <span className="rounded-full bg-amberwarm-100 px-2.5 py-0.5 text-amberwarm-600">
+              OR 2 Same (if 4+ in bank)
+            </span>
+          </div>
+        </div>
+      );
+
+    case "sg-market":
+      return (
+        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-oat-300 bg-oat-100 p-3">
+          <div className="rounded-xl border-2 border-[#79CFA0] bg-white p-2 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="rounded-full bg-amberwarm-400 px-1.5 py-0.5 text-[9px] font-black text-espresso">
+                ⚡ +1 Gem
+              </span>
+              <GameIcon name="sg-emerald" className="h-4 w-4" />
+            </div>
+            <div className="mt-1 font-display text-xs font-bold text-espresso">Tier I Catalyst</div>
+            <p className="text-[10px] font-semibold text-espresso-soft">
+              Refunds +1 matching gem immediately!
+            </p>
+          </div>
+          <div className="rounded-xl border-2 border-[#BA92E3] bg-white p-2 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="rounded-full bg-amberwarm-400 px-1.5 py-0.5 text-[9px] font-black text-espresso">
+                3★ · 2×
+              </span>
+              <GameIcon name="sg-amethyst" className="h-4 w-4" />
+            </div>
+            <div className="mt-1 font-display text-xs font-bold text-espresso">
+              Tier III Masterwork
+            </div>
+            <p className="text-[10px] font-semibold text-espresso-soft">
+              Grants double permanent discount!
+            </p>
+          </div>
+        </div>
+      );
+
+    case "sg-reserve":
+      return (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-amberwarm-400/60 bg-amberwarm-100/60 p-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 border-amberwarm-400 bg-white shadow-sm">
+            <GameIcon name="sg-gold" className="h-7 w-7" />
+          </div>
+          <div className="min-w-0 text-left">
+            <div className="font-display text-xs font-extrabold text-espresso">
+              Reserve Any Relic → +1 ★ Wild Gold
+            </div>
+            <p className="mt-0.5 text-[11px] font-semibold text-espresso-soft">
+              Hold up to 3 reserved Relics (face-up or blind from a deck). Wild Gold auto-fills any
+              gem shortfall when crafting!
+            </p>
+          </div>
+        </div>
+      );
+
+    case "sg-patrons":
+      return (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border-2 border-amberwarm-400 bg-gradient-to-r from-[#FFFDF7] to-[#FEF3D5] p-3">
+          <div className="flex items-center gap-2">
+            <GameIcon name="sg-crown" className="h-8 w-8 shrink-0" />
+            <div className="text-left">
+              <div className="font-display text-xs font-black text-espresso">
+                Grand Lapidary (+3★)
+              </div>
+              <div className="mt-1 flex items-center gap-1">
+                <span className="inline-flex items-center gap-0.5 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-black text-emerald-800">
+                  <GameIcon name="sg-ruby" className="h-3 w-3" /> 3/3
+                </span>
+                <span className="inline-flex items-center gap-0.5 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-black text-emerald-800">
+                  <GameIcon name="sg-sapphire" className="h-3 w-3" /> 3/3
+                </span>
+                <span className="inline-flex items-center gap-0.5 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-black text-emerald-800">
+                  <GameIcon name="sg-emerald" className="h-3 w-3" /> 3/3
+                </span>
+              </div>
+            </div>
+          </div>
+          <span className="rounded-full bg-amberwarm-600 px-2.5 py-1 text-[10px] font-black text-white shadow-sm">
+            Auto-Visits!
+          </span>
+        </div>
+      );
+
+    case "sg-engine":
+      return (
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-sage-300 bg-sage-100/70 p-3 text-center">
+          <div className="flex items-center gap-1.5">
+            {(
+              [
+                ["sg-ruby", "−2"],
+                ["sg-sapphire", "−3"],
+                ["sg-emerald", "−1"],
+                ["sg-amethyst", "−2"],
+                ["sg-pearl", "−1"],
+              ] as const
+            ).map(([icon, disc]) => (
+              <div
+                key={icon}
+                className="flex flex-col items-center rounded-xl border border-oat-300 bg-white px-2 py-1 shadow-sm"
+              >
+                <GameIcon name={icon} className="h-4 w-4" />
+                <span className="mt-0.5 text-[10px] font-black text-sage-700">{disc}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] font-bold text-espresso">
+            Engine discounts stay forever — watch rivals&apos; chips to block their big Masterworks!
+          </p>
+        </div>
+      );
+
+    /* ========================= HARBORREACH ========================= */
+    case "hr-goal":
+      return (
+        <div className="flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-[#1E7D74]/40 bg-gradient-to-br from-[#195E59] to-[#124340] p-3.5 text-white">
+          <div className="flex items-center gap-2 rounded-xl bg-white/15 px-3 py-2">
+            <GameIcon name="hr-cottage" className="h-6 w-6" />
+            <div className="text-left">
+              <div className="text-xs font-extrabold">Cottage = 1★</div>
+              <div className="text-[10px] text-amberwarm-100">Harvests +1</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 rounded-xl bg-white/15 px-3 py-2">
+            <GameIcon name="hr-town" className="h-6 w-6" />
+            <div className="text-left">
+              <div className="text-xs font-extrabold">Town = 2★</div>
+              <div className="text-[10px] text-amberwarm-100">Harvests +2</div>
+            </div>
+          </div>
+          <span className="rounded-full bg-amberwarm-400 px-3 py-1 text-[11px] font-black text-espresso shadow">
+            First to 10★ Wins!
+          </span>
+        </div>
+      );
+
+    case "hr-island":
+      return (
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-[#3C7B8A]/45 bg-[#5BA9B9]/25 p-3">
+          <div className="flex items-center gap-2">
+            {(
+              [
+                ["hr-timber", "6", true],
+                ["hr-grain", "8", true],
+                ["hr-ore", "9", false],
+                ["hr-harbor", "2:1", false],
+              ] as const
+            ).map(([icon, num, isRed]) => (
+              <div
+                key={icon}
+                className="flex flex-col items-center gap-1 rounded-2xl border border-oat-300 bg-white px-2.5 py-1.5 shadow-sm"
+              >
+                <GameIcon name={icon} className="h-5 w-5" />
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-black ${
+                    isRed
+                      ? "bg-terracotta-100 text-terracotta-700"
+                      : "bg-oat-100 text-espresso"
+                  }`}
+                >
+                  {num}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] font-bold text-espresso">
+            Red 6 &amp; 8 tokens roll most often — settle coastal piers for 2:1 &amp; 3:1 Harbors!
+          </p>
+        </div>
+      );
+
+    case "hr-hand":
+      return (
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-amberwarm-400/55 bg-amberwarm-100/55 p-3">
+          <div className="flex items-center gap-1.5">
+            {(["hr-timber", "hr-clay", "hr-wool", "hr-grain", "hr-ore"] as const).map((icon) => (
+              <div
+                key={icon}
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-oat-300 bg-white shadow-sm"
+              >
+                <GameIcon name={icon} className="h-5 w-5" />
+              </div>
+            ))}
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/60 bg-white px-3 py-1.5 text-[11px] font-extrabold text-espresso shadow-sm">
+            <Compass className="h-4 w-4 text-emerald-600" />
+            <span>Dry non-7 roll → +1 Compass Charge · 3/3 = Any 1 Wild Resource!</span>
+          </div>
+        </div>
+      );
+
+    case "hr-build":
+      return (
+        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-oat-300 bg-oat-100 p-3 text-left">
+          <div className="rounded-xl border border-oat-300 bg-white p-2 shadow-sm">
+            <div className="text-[11px] font-extrabold text-espresso">Road · Cottage</div>
+            <div className="mt-0.5 text-[10px] font-semibold text-espresso-soft">
+              Road: 1T 1C · Cottage: 1T 1C 1W 1G
+            </div>
+          </div>
+          <div className="rounded-xl border border-amberwarm-400/70 bg-white p-2 shadow-sm">
+            <div className="text-[11px] font-extrabold text-espresso">Town · Trade</div>
+            <div className="mt-0.5 text-[10px] font-semibold text-espresso-soft">
+              Town: 2G 3O · Swap 4:1 / 3:1 / 2:1 or Players!
+            </div>
+          </div>
+        </div>
+      );
+
+    case "hr-scrolls":
+      return (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#2B5096]/40 bg-[#2B5096]/10 p-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#2B5096]/40 bg-white shadow-sm">
+            <GameIcon name="hr-scroll" className="h-6 w-6" />
+          </div>
+          <div className="min-w-0 text-left">
+            <div className="font-display text-xs font-extrabold text-espresso">
+              Guild Scrolls (1 Wool · 1 Grain · 1 Ore)
+            </div>
+            <p className="mt-0.5 text-[10.5px] font-semibold text-espresso-soft">
+              Ranger Scout (move Bandit Fox), Road Builder (+2 Roads), Harvest Plenty (+2 Wild),
+              Monopoly, or secret +1★ Landmark Charters!
+            </p>
+          </div>
+        </div>
+      );
+
+    case "hr-awards":
+      return (
+        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-oat-300 bg-oat-100 p-3">
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-400/60 bg-white p-2 shadow-sm">
+            <GameIcon name="hr-harbor" className="h-6 w-6 shrink-0" />
+            <div className="text-left">
+              <div className="text-[11px] font-extrabold text-espresso">Longest Route</div>
+              <div className="text-[10px] font-bold text-emerald-700">5+ Roads → +2★</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 rounded-xl border border-terracotta-500/45 bg-white p-2 shadow-sm">
+            <GameIcon name="hr-bandit" className="h-6 w-6 shrink-0" />
+            <div className="text-left">
+              <div className="text-[11px] font-extrabold text-espresso">Largest Watch</div>
+              <div className="text-[10px] font-bold text-terracotta-700">3+ Scouts → +2★</div>
+            </div>
+          </div>
+        </div>
+      );
+
+    /* ========================= DAWNSPIRE ========================= */
+    case "ds-goal":
+      return (
+        <div className="flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-[#8B3A62]/40 bg-gradient-to-br from-[#6D2A4B] to-[#4A1B33] p-3.5 text-white">
+          {(
+            [
+              ["Era I", "Pass ⬅ Left"],
+              ["Era II", "Pass ➡ Right"],
+              ["Era III", "Pass ⬅ Left"],
+            ] as const
+          ).map(([era, dir]) => (
+            <div key={era} className="rounded-xl bg-white/15 px-3 py-1.5 text-center">
+              <div className="font-display text-xs font-black text-amberwarm-100">{era}</div>
+              <div className="text-[10px] font-bold">{dir}</div>
+            </div>
+          ))}
+        </div>
+      );
+
+    case "ds-wonder":
+      return (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-amberwarm-400/60 bg-amberwarm-100/60 p-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border-2 border-amberwarm-400 bg-white shadow-sm">
+            <GameIcon name="ds-wonder" className="h-7 w-7" />
+          </div>
+          <div className="min-w-0 text-left">
+            <div className="font-display text-xs font-black text-espresso">
+              7 Iconic Wonders · Sunlit &amp; Starlit Sides
+            </div>
+            <p className="mt-0.5 text-[10.5px] font-semibold text-espresso-soft">
+              Start with 1 permanent Resource and raise 2–3 Stages for VP, Shields, Wild Science, or
+              Free Builds!
+            </p>
+          </div>
+        </div>
+      );
+
+    case "ds-hand":
+      return (
+        <div className="flex flex-wrap items-center justify-center gap-1.5 rounded-2xl border border-oat-300 bg-oat-100 p-3">
+          <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-black text-white">
+            FREE CHAIN!
+          </span>
+          <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-black text-emerald-800">
+            Ready · Free
+          </span>
+          <span className="rounded-full bg-amberwarm-100 px-2.5 py-1 text-[10px] font-black text-amberwarm-600">
+            Buy · 2g (1← 1→)
+          </span>
+          <span className="rounded-full bg-[#8B3A62] px-2.5 py-1 text-[10px] font-black text-white">
+            Wonder Free!
+          </span>
+        </div>
+      );
+
+    case "ds-actions":
+      return (
+        <div className="grid grid-cols-3 gap-1.5 rounded-2xl border border-oat-300 bg-oat-100 p-2.5 text-center">
+          <div className="rounded-xl bg-emerald-600 p-2 text-white shadow-sm">
+            <div className="text-[11px] font-black">Build</div>
+            <div className="text-[9.5px] opacity-90">Add to Realm</div>
+          </div>
+          <div className="rounded-xl bg-amberwarm-600 p-2 text-white shadow-sm">
+            <div className="text-[11px] font-black">Wonder</div>
+            <div className="text-[9.5px] opacity-90">Raise Stage</div>
+          </div>
+          <div className="rounded-xl border border-amberwarm-400 bg-amberwarm-100 p-2 text-espresso shadow-sm">
+            <div className="text-[11px] font-black">Sell +3/4g</div>
+            <div className="text-[9.5px] text-espresso-soft">Caravan Bonus</div>
+          </div>
+        </div>
+      );
+
+    case "ds-neighbors":
+      return (
+        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-terracotta-500/35 bg-terracotta-100/45 p-3">
+          <div className="flex items-center gap-2 rounded-xl bg-white p-2 shadow-sm">
+            <GameIcon name="ds-commerce" className="h-5 w-5 shrink-0" />
+            <div className="text-left">
+              <div className="text-[11px] font-extrabold text-espresso">Auto-Trade</div>
+              <div className="text-[10px] font-bold text-amberwarm-600">2g (or 1g Market)</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 rounded-xl bg-white p-2 shadow-sm">
+            <GameIcon name="ds-military" className="h-5 w-5 shrink-0" />
+            <div className="text-left">
+              <div className="text-[11px] font-extrabold text-espresso">Era Clashes</div>
+              <div className="text-[10px] font-bold text-terracotta-700">+1 / +3 / +5★</div>
+            </div>
+          </div>
+        </div>
+      );
+
+    case "ds-kingdoms":
+      return (
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-sage-300 bg-sage-100/70 p-3">
+          <div className="flex items-center gap-1.5">
+            {(
+              [
+                "ds-military",
+                "coin-gold",
+                "ds-wonder",
+                "ds-civic",
+                "ds-commerce",
+                "ds-guild",
+                "ds-science",
+              ] as const
+            ).map((icon) => (
+              <div
+                key={icon}
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-oat-300 bg-white shadow-sm"
+              >
+                <GameIcon name={icon} className="h-4 w-4" />
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] font-bold text-espresso">
+            7 Scoring Paths: Military · Gold · Wonder · Blue · Yellow · Guilds · Science!
+          </p>
+        </div>
+      );
   }
 }
 
