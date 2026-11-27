@@ -5,6 +5,7 @@ import { Client as ColyseusClient, type Room } from "colyseus.js";
 import {
   BookOpen,
   Bot,
+  Compass,
   Eye,
   EyeOff,
   Flame,
@@ -42,6 +43,7 @@ import {
   type VaultKind,
 } from "@tablefolk/game-treasure-trails";
 import { WS_BASE_URL, getStoredToken } from "@/lib/api";
+import { hasCompletedQuickTour } from "@/lib/gameQuickTours";
 import { soundEngine } from "@/lib/sound";
 import { BoardMarkerLayer, BoardMarkerToolbar } from "./BoardMarkerLayer";
 import {
@@ -51,6 +53,7 @@ import {
   gearToIconName,
   type GameIconName,
 } from "./GameIcons";
+import { GameQuickTour } from "./GameQuickTour";
 import { PathTileSvg } from "./TreasureTrailsTileSvg";
 
 interface TreasureTrailsOverlayProps {
@@ -1319,6 +1322,27 @@ export function TreasureTrailsOverlay({
   const revealSecondsLeft = Math.max(0, Math.ceil((revealEndsAt - nowMs) / 1000));
 
   const isIntroBlocking = !isSpectator && introStage !== "none";
+  const [showQuickTour, setShowQuickTour] = useState(false);
+  const autoTourCheckedRef = useRef(false);
+
+  // Auto-launch the 6-step spotlight tour once for first-time players right after role reveal
+  useEffect(() => {
+    if (
+      autoTourCheckedRef.current ||
+      !pub ||
+      pub.phase !== "IN_PROGRESS" ||
+      isSpectator ||
+      isIntroBlocking
+    ) {
+      return;
+    }
+    autoTourCheckedRef.current = true;
+    if (!hasCompletedQuickTour("treasure-trails")) {
+      const t = window.setTimeout(() => setShowQuickTour(true), 450);
+      return () => window.clearTimeout(t);
+    }
+  }, [pub, isSpectator, isIntroBlocking]);
+
   const isMyTurn =
     !isSpectator &&
     !isIntroBlocking &&
@@ -1493,28 +1517,31 @@ export function TreasureTrailsOverlay({
   return (
     <div className="fixed inset-0 z-40 flex h-[100dvh] flex-col overflow-hidden bg-[#2D241E] text-espresso">
       {/* Compact Responsive Header (Single/Tight Row on Mobile, Rich on Desktop) */}
-      <header className="shrink-0 border-b border-oat-300/20 bg-oat-50 px-2.5 py-1.5 shadow-sm sm:px-4 sm:py-2.5">
+      <header
+        data-tour="tt-header"
+        className="shrink-0 border-b border-oat-300/20 bg-oat-50 px-2.5 py-1.5 shadow-sm sm:px-4 sm:py-2.5 short:px-2.5 short:py-1"
+      >
         <div className="flex items-center justify-between gap-1.5">
           {/* Left: Title (Desktop) + Turn Status + Deck */}
-          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
-            <div className="hidden items-center gap-1.5 font-display text-lg font-bold text-espresso sm:flex">
-              <GameIcon name="game-trails" className="h-5 w-5" />
+          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2.5 short:gap-1.5">
+            <div className="hidden shrink-0 items-center gap-1.5 whitespace-nowrap font-display text-lg font-bold text-espresso sm:flex short:text-sm">
+              <GameIcon name="game-trails" className="h-5 w-5 short:h-4 short:w-4" />
               Treasure Trails
             </div>
-            <span className="shrink-0 rounded-full bg-oat-200 px-2 py-0.5 text-[10px] font-bold text-espresso-soft sm:text-xs">
+            <span className="shrink-0 whitespace-nowrap rounded-full bg-oat-200 px-2 py-0.5 text-[10px] font-bold text-espresso-soft sm:text-xs short:text-[10px]">
               R{pub.currentRound}/{pub.config.totalRounds}
             </span>
             <span
               ref={deckRef}
-              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amberwarm-100 px-2 py-0.5 text-[10px] font-bold text-amberwarm-600 sm:px-2.5 sm:text-xs"
+              className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-amberwarm-100 px-2 py-0.5 text-[10px] font-bold text-amberwarm-600 sm:px-2.5 sm:text-xs short:px-2 short:text-[10px]"
             >
               <GameIcon name="card-deck" className="h-3.5 w-3.5" />
               {pub.deckCount}
-              <span className="hidden sm:inline"> · Disc {pub.discardCount}</span>
+              <span className="hidden sm:inline short:hidden"> · Disc {pub.discardCount}</span>
             </span>
             {pub.phase === "IN_PROGRESS" && (
               <span
-                className={`truncate rounded-full px-2.5 py-0.5 text-[11px] font-extrabold sm:px-3 sm:text-xs ${
+                className={`truncate whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-extrabold sm:px-3 sm:text-xs short:shrink-0 short:px-2 short:text-[11px] ${
                   inServerIntro
                     ? "bg-amberwarm-400 text-espresso"
                     : isMyTurn
@@ -1544,14 +1571,17 @@ export function TreasureTrailsOverlay({
             )}
           </div>
 
-          {/* Right: Secret Role Pill + Board Marker + Chat (Mobile) + Rules + Exit */}
-          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+          {/* Right: Secret Role Pill + Board Marker + Chat (Mobile) + Tour + Rules + Exit */}
+          <div
+            data-tour="tt-tools"
+            className="flex shrink-0 items-center gap-1 sm:gap-2 short:gap-1"
+          >
             {!isSpectator && pub.phase === "IN_PROGRESS" && (
               <button
                 type="button"
                 onClick={() => setMarkerMode((v) => !v)}
                 title="Draw or tap-ping on the board so everyone can see!"
-                className={`inline-flex items-center gap-1 rounded-xl px-2 py-1 text-[10px] font-extrabold shadow-sm transition sm:px-2.5 sm:py-1.5 sm:text-xs ${
+                className={`inline-flex items-center gap-1 whitespace-nowrap rounded-xl px-2 py-1 text-[10px] font-extrabold shadow-sm transition sm:px-2.5 sm:py-1.5 sm:text-xs short:px-2 short:py-1 short:text-[11px] ${
                   markerMode
                     ? "bg-amberwarm-400 text-espresso ring-2 ring-amberwarm-600"
                     : "bg-oat-200 text-espresso hover:bg-amberwarm-100"
@@ -1570,7 +1600,7 @@ export function TreasureTrailsOverlay({
               <button
                 type="button"
                 onClick={() => setRoleVisible((v) => !v)}
-                className={`inline-flex items-center gap-1 rounded-xl px-2 py-1 text-[10px] font-extrabold shadow-sm transition sm:px-3 sm:py-1.5 sm:text-xs ${
+                className={`inline-flex items-center gap-1 whitespace-nowrap rounded-xl px-2 py-1 text-[10px] font-extrabold shadow-sm transition sm:px-3 sm:py-1.5 sm:text-xs short:px-2 short:py-1 short:text-[11px] ${
                   !roleVisible
                     ? "bg-oat-200 text-espresso"
                     : priv.role === "TRICKSTER"
@@ -1581,7 +1611,7 @@ export function TreasureTrailsOverlay({
                 {roleVisible ? (
                   <GameIcon
                     name={priv.role === "TRICKSTER" ? "role-impostor" : "role-explorer"}
-                    className="h-3.5 w-3.5 sm:h-4 sm:w-4"
+                    className="h-3.5 w-3.5 sm:h-4 sm:w-4 short:h-3.5 short:w-3.5"
                   />
                 ) : (
                   <EyeOff className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
@@ -1602,7 +1632,7 @@ export function TreasureTrailsOverlay({
                 setUnreadChatCount(0);
               }}
               aria-label="Table Chat & Log"
-              className="relative inline-flex items-center justify-center rounded-xl bg-oat-200 p-1.5 text-espresso hover:bg-oat-300 lg:hidden"
+              className="relative inline-flex items-center justify-center rounded-xl bg-oat-200 p-1.5 text-espresso hover:bg-oat-300 lg:hidden short:p-1"
             >
               <MessageCircle className="h-4 w-4" />
               {unreadChatCount > 0 && (
@@ -1614,9 +1644,20 @@ export function TreasureTrailsOverlay({
 
             <button
               type="button"
+              onClick={() => setShowQuickTour(true)}
+              aria-label="Quick Tour"
+              title="Step-by-step spotlight tour of Treasure Trails"
+              className="inline-flex items-center gap-1 whitespace-nowrap rounded-xl bg-sage-100 p-1.5 text-xs font-extrabold text-sage-700 hover:bg-sage-300/60 sm:px-2.5 sm:py-1.5 short:px-2 short:py-1 short:text-[11px]"
+            >
+              <Compass className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Tour</span>
+            </button>
+
+            <button
+              type="button"
               onClick={onOpenTutorial}
               aria-label="Rules"
-              className="inline-flex items-center gap-1 rounded-xl bg-oat-200 p-1.5 text-xs font-bold text-espresso hover:bg-oat-300 sm:px-3 sm:py-1.5"
+              className="inline-flex items-center gap-1 whitespace-nowrap rounded-xl bg-oat-200 p-1.5 text-xs font-bold text-espresso hover:bg-oat-300 sm:px-3 sm:py-1.5 short:px-2 short:py-1 short:text-[11px]"
             >
               <BookOpen className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Rules</span>
@@ -1626,20 +1667,26 @@ export function TreasureTrailsOverlay({
               type="button"
               onClick={() => onExitGame({ finished: pub.phase === "COMPLETED" })}
               aria-label="Back to Café"
-              className="inline-flex items-center gap-1 rounded-xl bg-oat-200 p-1.5 text-xs font-bold text-espresso hover:bg-terracotta-100 hover:text-terracotta-700 sm:px-3 sm:py-1.5"
+              className="inline-flex items-center gap-1 whitespace-nowrap rounded-xl bg-oat-200 p-1.5 text-xs font-bold text-espresso hover:bg-terracotta-100 hover:text-terracotta-700 sm:px-3 sm:py-1.5 short:px-2 short:py-1 short:text-[11px]"
             >
               <LogOut className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Back to Café</span>
+              <span className="hidden sm:inline short:hidden">Back to Café</span>
+              <span className="hidden short:inline">Café</span>
             </button>
           </div>
         </div>
       </header>
 
+      {/* Responsive Workspace: Stacked on Portrait/Desktop, Handheld Split (Board Left + Cards Right) in Mobile Landscape! */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden short:flex-row">
       {/* Main Content Area: Player Strip + 9x5 Board + Desktop Sidebar */}
-      <div className="grid min-h-0 flex-1 gap-2 overflow-hidden p-2 sm:gap-3 sm:p-3 lg:grid-cols-12">
-        <div className="flex min-h-0 flex-col gap-1.5 overflow-hidden sm:gap-2.5 lg:col-span-9">
+      <div className="grid min-h-0 flex-1 gap-2 overflow-hidden p-2 sm:gap-3 sm:p-3 lg:grid-cols-12 short:gap-1.5 short:p-1.5">
+        <div className="flex min-h-0 flex-col gap-1.5 overflow-hidden sm:gap-2.5 lg:col-span-9 short:gap-1">
           {/* Compact Player Roster Strip */}
-          <div className="flex shrink-0 gap-1.5 overflow-x-auto pb-0.5 sm:gap-2">
+          <div
+            data-tour="tt-players"
+            className="flex shrink-0 gap-1.5 overflow-x-auto pb-0.5 sm:gap-2 short:gap-1 short:pb-0"
+          >
             {pub.players.map((p) => {
               const isActive =
                 !inServerIntro &&
@@ -1657,7 +1704,7 @@ export function TreasureTrailsOverlay({
                     if (el) playerRefs.current.set(p.userId, el);
                     else playerRefs.current.delete(p.userId);
                   }}
-                  className={`min-w-[122px] shrink-0 rounded-2xl border-2 px-2 py-1.5 transition sm:min-w-[158px] sm:px-3 sm:py-2 ${
+                  className={`min-w-[122px] shrink-0 rounded-2xl border-2 px-2 py-1.5 transition sm:min-w-[158px] sm:px-3 sm:py-2 short:flex short:min-w-0 short:items-center short:gap-2 short:rounded-xl short:px-2 short:py-1 ${
                     isShaking
                       ? "animate-tt-shake border-terracotta-500 bg-terracotta-100"
                       : isActive
@@ -1665,14 +1712,14 @@ export function TreasureTrailsOverlay({
                         : "border-oat-300/60 bg-oat-50/90"
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-1 text-[11px] font-bold sm:text-xs">
+                  <div className="flex items-center justify-between gap-1 text-[11px] font-bold sm:text-xs short:gap-1.5 short:text-[11px]">
                     <span className="flex min-w-0 items-center gap-1.5 truncate text-espresso">
                       <span
                         title={`${p.displayName}'s color (${pColor.label})`}
                         className="h-2.5 w-2.5 shrink-0 rounded-full border border-white shadow-sm"
                         style={{ backgroundColor: pColor.hex }}
                       />
-                      <span className="truncate">
+                      <span className="truncate short:max-w-[78px]">
                         {p.displayName}
                         {isMe ? " (You)" : ""}
                       </span>
@@ -1690,12 +1737,12 @@ export function TreasureTrailsOverlay({
                       {p.score}
                     </span>
                   </div>
-                  <div className="mt-1 flex items-center justify-between gap-1">
+                  <div className="mt-1 flex items-center justify-between gap-1 short:mt-0 short:gap-1.5">
                     <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-espresso-muted">
                       <GameIcon name="card-deck" className="h-3 w-3" />
                       {p.handCount}
                     </span>
-                    <div className="flex gap-0.5 sm:gap-1">
+                    <div className="flex gap-0.5 sm:gap-1 short:gap-0.5">
                       {(["lantern", "compass", "grapple"] as GearType[]).map((g) => {
                         const intact = p.gear[g];
                         const canTargetHazard =
@@ -1717,7 +1764,7 @@ export function TreasureTrailsOverlay({
                             disabled={!clickable}
                             onClick={() => handlePlayerGearClick(p.userId, g)}
                             title={`${p.displayName}'s ${GEAR_META[g].label}: ${intact ? "Intact" : "BROKEN"}`}
-                            className={`flex h-6 w-6 items-center justify-center rounded-md border transition sm:h-7 sm:w-7 sm:rounded-lg ${
+                            className={`flex h-6 w-6 items-center justify-center rounded-md border transition sm:h-7 sm:w-7 sm:rounded-lg short:h-5 short:w-5 short:rounded-md ${
                               !intact
                                 ? "border-terracotta-500 bg-terracotta-100"
                                 : "border-oat-300 bg-oat-100"
@@ -1730,7 +1777,7 @@ export function TreasureTrailsOverlay({
                             <ToolSlotIcon
                               gear={g}
                               broken={!intact}
-                              className="h-4 w-4 sm:h-[18px] sm:w-[18px]"
+                              className="h-4 w-4 sm:h-[18px] sm:w-[18px] short:h-3.5 short:w-3.5"
                             />
                           </button>
                         );
@@ -1743,12 +1790,15 @@ export function TreasureTrailsOverlay({
           </div>
 
           {/* 9x5 Expedition Board — Fits 100% On Mobile Screen By Default + Zoom Toggle! */}
-          <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border-2 border-[#594436] bg-[#3E3026] shadow-inner sm:rounded-3xl">
-            {/* Mobile Zoom / Fit-All Toggle Pill */}
+          <div
+            data-tour="tt-board"
+            className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border-2 border-[#594436] bg-[#3E3026] shadow-inner sm:rounded-3xl short:rounded-2xl"
+          >
+            {/* Mobile & Landscape Zoom / Fit-All Toggle Pill */}
             <button
               type="button"
               onClick={() => setBoardZoomed((z) => !z)}
-              className="absolute right-2 top-2 z-20 inline-flex items-center gap-1 rounded-full bg-espresso/85 px-2.5 py-1 text-[10px] font-bold text-oat-50 shadow-md backdrop-blur hover:bg-espresso sm:hidden"
+              className="absolute right-2 top-2 z-20 inline-flex items-center gap-1 rounded-full bg-espresso/85 px-2.5 py-1 text-[10px] font-bold text-oat-50 shadow-md backdrop-blur hover:bg-espresso sm:hidden short:right-1.5 short:top-1.5 short:inline-flex"
             >
               {boardZoomed ? (
                 <>
@@ -1785,7 +1835,7 @@ export function TreasureTrailsOverlay({
               !isIntroBlocking &&
               !markerMode &&
               roundResultStage === "hidden" && (
-                <div className="pointer-events-none absolute left-1/2 top-2 z-20 max-w-[78%] -translate-x-1/2 truncate rounded-full border border-amberwarm-400/50 bg-espresso/90 px-3 py-1 text-[11px] font-bold text-oat-50 shadow-lg backdrop-blur sm:px-4 sm:py-1.5 sm:text-xs">
+                <div className="pointer-events-none absolute left-1/2 top-2 z-20 max-w-[78%] -translate-x-1/2 truncate rounded-full border border-amberwarm-400/50 bg-espresso/90 px-3 py-1 text-[11px] font-bold text-oat-50 shadow-lg backdrop-blur sm:px-4 sm:py-1.5 sm:text-xs short:left-2 short:top-1.5 short:max-w-[66%] short:translate-x-0 short:px-2.5 short:py-0.5 short:text-[10px]">
                   {actionBanner}
                 </div>
               )}
@@ -1861,17 +1911,17 @@ export function TreasureTrailsOverlay({
 
             {/* Scrollable Board Canvas (NEVER clips left/top edges!) */}
             <div
-              className={`flex-1 overflow-auto p-1.5 sm:p-3 ${
+              className={`flex-1 overflow-auto p-1.5 sm:p-3 short:p-1 ${
                 boardZoomed
                   ? "block"
                   : "flex items-center justify-center"
               }`}
             >
               <div
-                className={`relative grid gap-1 sm:gap-1.5 ${
+                className={`relative grid gap-1 sm:gap-1.5 short:gap-0.5 ${
                   boardZoomed
                     ? "w-max"
-                    : "w-full max-w-[720px]"
+                    : "w-full max-w-[720px] short:max-w-[calc((100dvh-94px)*1.34)]"
                 }`}
                 style={{
                   gridTemplateColumns: boardZoomed
@@ -2089,15 +2139,18 @@ export function TreasureTrailsOverlay({
         </aside>
       </div>
 
-      {/* Mobile-First Stacked Bottom Hand Dock (or sleek Spectator Bar when watching!) */}
-      <footer className="shrink-0 border-t border-oat-300/30 bg-oat-50 px-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-4 sm:py-3">
+      {/* Mobile-First Stacked Bottom Hand Dock (Right-Side Handheld Dock in Mobile Landscape!) */}
+      <footer
+        data-tour="tt-hand"
+        className="shrink-0 border-t border-oat-300/30 bg-oat-50 px-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-4 sm:py-3 short:flex short:w-[238px] short:flex-col short:overflow-y-auto short:border-l short:border-t-0 short:px-2 short:pb-2 short:pt-1.5"
+      >
         {isSpectator ? (
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 text-xs font-bold">
-            <div className="flex items-center gap-2 text-espresso">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 text-xs font-bold short:flex-col short:items-stretch">
+            <div className="flex items-center gap-2 text-espresso short:flex-col short:items-start short:gap-1">
               <span className="inline-flex items-center gap-1 rounded-full bg-espresso px-2.5 py-1 text-[10px] font-extrabold text-amberwarm-400">
                 <Eye className="h-3 w-3" /> Spectator Mode
               </span>
-              <span className="text-[11px] text-espresso-soft sm:text-xs">
+              <span className="text-[11px] text-espresso-soft sm:text-xs short:text-[10px]">
                 Watching live · Secret roles &amp; hands stay hidden · Cheer in chat anytime!
               </span>
             </div>
@@ -2110,23 +2163,26 @@ export function TreasureTrailsOverlay({
             </button>
           </div>
         ) : (
-        <div className="mx-auto flex max-w-6xl flex-col gap-2">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 short:gap-1.5">
           {/* Row 1: Action Buttons & Concise Turn Prompt (Full Width — Never Crushes Cards!) */}
-          <div className="flex flex-wrap items-center justify-between gap-1.5">
-            <div className="text-[11px] font-bold text-espresso-soft sm:text-xs">
+          <div
+            data-tour="tt-actions"
+            className="flex flex-wrap items-center justify-between gap-1.5 short:flex-col short:items-stretch short:gap-1"
+          >
+            <div className="text-[11px] font-bold text-espresso-soft sm:text-xs short:text-[10px] short:leading-tight">
               {markerMode
                 ? "Marker Mode ON — drag to draw or tap to ping! Tap Done when finished."
                 : statusHintText}
             </div>
 
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5 short:gap-1">
               {selectedCard?.kind === "PATH" && !fieldPatchMode && (
                 <button
                   type="button"
                   onClick={() => setRotation((r) => (r === 0 ? 180 : 0))}
-                  className="inline-flex items-center gap-1 rounded-xl bg-amberwarm-400 px-3 py-1.5 text-[11px] font-bold text-espresso shadow-sm hover:bg-amberwarm-600 hover:text-white sm:text-xs"
+                  className="inline-flex items-center gap-1 rounded-xl bg-amberwarm-400 px-3 py-1.5 text-[11px] font-bold text-espresso shadow-sm hover:bg-amberwarm-600 hover:text-white sm:text-xs short:px-2 short:py-1 short:text-[10px]"
                 >
-                  <RotateCw className="h-3.5 w-3.5" /> Flip 180°
+                  <RotateCw className="h-3.5 w-3.5 short:h-3 short:w-3" /> Flip 180°
                 </button>
               )}
 
@@ -2136,9 +2192,9 @@ export function TreasureTrailsOverlay({
                   onClick={() =>
                     sendAction({ type: "DISCARD", cardId: selectedCard.id })
                   }
-                  className="inline-flex items-center gap-1 rounded-xl bg-oat-200 px-3 py-1.5 text-[11px] font-bold text-espresso hover:bg-terracotta-100 hover:text-terracotta-700 sm:text-xs"
+                  className="inline-flex items-center gap-1 rounded-xl bg-oat-200 px-3 py-1.5 text-[11px] font-bold text-espresso hover:bg-terracotta-100 hover:text-terracotta-700 sm:text-xs short:px-2 short:py-1 short:text-[10px]"
                 >
-                  <Trash2 className="h-3.5 w-3.5" /> Discard
+                  <Trash2 className="h-3.5 w-3.5 short:h-3 short:w-3" /> Discard
                 </button>
               )}
 
@@ -2152,7 +2208,7 @@ export function TreasureTrailsOverlay({
                       setSelectedCardId(null);
                       setPatchGear(myBrokenGears[0]!);
                     }}
-                    className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-[11px] font-bold shadow-sm sm:text-xs ${
+                    className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-[11px] font-bold shadow-sm sm:text-xs short:px-2 short:py-1 short:text-[10px] ${
                       fieldPatchMode
                         ? "bg-espresso text-oat-50"
                         : "bg-terracotta-100 text-terracotta-700"
@@ -2195,7 +2251,7 @@ export function TreasureTrailsOverlay({
                           gear: patchGear,
                         })
                       }
-                      className="inline-flex items-center gap-1 rounded-xl bg-sage-500 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sage-700 sm:text-xs"
+                      className="inline-flex items-center gap-1 rounded-xl bg-sage-500 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sage-700 sm:text-xs short:px-2 short:py-1 short:text-[10px]"
                     >
                       <GameIcon name={gearToIconName(patchGear)} className="h-3.5 w-3.5" />
                       Fix {GEAR_META[patchGear].label}!
@@ -2206,10 +2262,10 @@ export function TreasureTrailsOverlay({
             </div>
           </div>
 
-          {/* Row 2: Full-Width Card Hand (All 5-6 Cards Clearly Visible on Phone!) */}
+          {/* Row 2: Full-Width Card Hand (2-Column Vertical Handheld Grid in Mobile Landscape!) */}
           <div
             ref={handRef}
-            className="flex w-full items-end gap-1.5 overflow-x-auto pb-0.5 pt-2 sm:gap-2"
+            className="flex w-full items-end gap-1.5 overflow-x-auto pb-0.5 pt-2 sm:gap-2 short:grid short:grid-cols-2 short:items-stretch short:gap-1.5 short:overflow-x-visible short:pt-0.5"
           >
             {priv?.hand.map((card) => {
               const isSelected = fieldPatchMode
@@ -2221,14 +2277,14 @@ export function TreasureTrailsOverlay({
                   type="button"
                   onClick={() => handleCardSelect(card)}
                   title={card.label}
-                  className={`relative flex h-[92px] w-[68px] shrink-0 flex-col items-center justify-between rounded-xl border-2 p-1 text-center transition sm:h-[116px] sm:w-[86px] sm:rounded-2xl sm:p-1.5 ${
+                  className={`relative flex h-[92px] w-[68px] shrink-0 flex-col items-center justify-between rounded-xl border-2 p-1 text-center transition sm:h-[116px] sm:w-[86px] sm:rounded-2xl sm:p-1.5 short:h-[86px] short:w-full short:rounded-xl short:p-1 ${
                     isSelected
-                      ? "-translate-y-2 border-sage-500 bg-sage-100 shadow-lg"
-                      : "border-oat-300 bg-white hover:-translate-y-1 hover:border-amberwarm-400"
+                      ? "-translate-y-2 border-sage-500 bg-sage-100 shadow-lg short:translate-y-0 short:ring-2 short:ring-sage-500/40"
+                      : "border-oat-300 bg-white hover:-translate-y-1 hover:border-amberwarm-400 short:hover:translate-y-0"
                   }`}
                 >
                   {card.kind === "PATH" ? (
-                    <div className="h-[64px] w-[50px] sm:h-20 sm:w-16">
+                    <div className="h-[64px] w-[50px] sm:h-20 sm:w-16 short:h-[58px] short:w-[44px]">
                       <PathTileSvg
                         edges={getOrientedEdges(
                           card.edges,
@@ -2239,24 +2295,24 @@ export function TreasureTrailsOverlay({
                       />
                     </div>
                   ) : (
-                    <div className="flex flex-1 flex-col items-center justify-center gap-1">
+                    <div className="flex flex-1 flex-col items-center justify-center gap-1 short:gap-0.5">
                       {card.kind === "HAZARD" ? (
-                        <ToolCardArt kind="HAZARD" gears={[card.gear]} />
+                        <ToolCardArt kind="HAZARD" gears={[card.gear]} size="sm" />
                       ) : card.kind === "REPAIR" ? (
-                        <ToolCardArt kind="REPAIR" gears={card.gears} />
+                        <ToolCardArt kind="REPAIR" gears={card.gears} size="sm" />
                       ) : card.kind === "SPYGLASS" ? (
                         <GameIcon
                           name="action-peek-vault"
-                          className="h-8 w-8 sm:h-9 sm:w-9"
+                          className="h-8 w-8 sm:h-9 sm:w-9 short:h-7 short:w-7"
                         />
                       ) : (
                         <GameIcon
                           name="action-blast-tile"
-                          className="h-8 w-8 sm:h-9 sm:w-9"
+                          className="h-8 w-8 sm:h-9 sm:w-9 short:h-7 short:w-7"
                         />
                       )}
                       <span
-                        className={`text-[7px] font-extrabold uppercase tracking-wider sm:text-[8.5px] ${
+                        className={`text-[7px] font-extrabold uppercase tracking-wider sm:text-[8.5px] short:text-[7px] ${
                           card.kind === "HAZARD"
                             ? "text-terracotta-700"
                             : card.kind === "REPAIR"
@@ -2278,7 +2334,7 @@ export function TreasureTrailsOverlay({
                       </span>
                     </div>
                   )}
-                  <span className="w-full truncate text-[8.5px] font-bold text-espresso sm:text-[9.5px]">
+                  <span className="w-full truncate text-[8.5px] font-bold text-espresso sm:text-[9.5px] short:text-[8.5px]">
                     {card.label}
                   </span>
                 </button>
@@ -2288,6 +2344,7 @@ export function TreasureTrailsOverlay({
         </div>
         )}
       </footer>
+      </div>
 
       {/* Mobile Slide-Up Table Talk & Log Drawer */}
       {mobileChatOpen && (
@@ -2488,7 +2545,7 @@ export function TreasureTrailsOverlay({
 
       {/* FULL-SCREEN COUNTDOWN + DRAMATIC SECRET ROLE REVEAL CEREMONY */}
       {isIntroBlocking && priv && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1F1814]/90 p-5 backdrop-blur-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[#1F1814]/90 p-5 backdrop-blur-md short:p-2.5">
           {introStage === "countdown" ? (
             <div className="text-center">
               <div className="text-xs font-extrabold uppercase tracking-[0.25em] text-amberwarm-400">
@@ -2496,62 +2553,70 @@ export function TreasureTrailsOverlay({
               </div>
               <div
                 key={countdownNum}
-                className="animate-tt-countdown mt-4 font-display text-8xl font-bold text-oat-50 drop-shadow-lg sm:text-9xl"
+                className="animate-tt-countdown mt-4 font-display text-8xl font-bold text-oat-50 drop-shadow-lg sm:text-9xl short:mt-2 short:text-6xl"
               >
                 {countdownNum}
               </div>
-              <p className="mt-4 text-sm font-semibold text-oat-200/80">
+              <p className="mt-4 text-sm font-semibold text-oat-200/80 short:mt-2 short:text-xs">
                 Dealing hidden roles &amp; sealing the 3 vaults...
               </p>
             </div>
           ) : (
-            <div className="animate-tt-role-card w-full max-w-md overflow-hidden rounded-[2rem] border-4 border-amberwarm-400 bg-oat-50 p-6 text-center shadow-2xl sm:p-7">
-              <div className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-espresso-muted">
-                Your Secret Role • Round {pub.currentRound}
+            <div className="animate-tt-role-card max-h-[94dvh] w-full max-w-md overflow-y-auto rounded-[2rem] border-4 border-amberwarm-400 bg-oat-50 p-6 text-center shadow-2xl sm:p-7 short:flex short:max-w-xl short:items-center short:gap-5 short:rounded-3xl short:p-4 short:text-left">
+              <div className="short:flex short:shrink-0 short:flex-col short:items-center">
+                <div className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-espresso-muted short:hidden">
+                  Your Secret Role • Round {pub.currentRound}
+                </div>
+                <div
+                  className={`mx-auto mt-3 flex h-20 w-20 items-center justify-center rounded-3xl shadow-inner sm:mt-4 sm:h-24 sm:w-24 short:mt-0 short:h-20 short:w-20 short:rounded-2xl ${
+                    priv.role === "TRICKSTER"
+                      ? "bg-terracotta-100 ring-4 ring-terracotta-500/30"
+                      : "bg-sage-100 ring-4 ring-sage-500/30"
+                  }`}
+                >
+                  <GameIcon
+                    name={priv.role === "TRICKSTER" ? "role-impostor" : "role-explorer"}
+                    className="h-14 w-14 sm:h-16 sm:w-16 short:h-12 short:w-12"
+                  />
+                </div>
+                <h2
+                  className={`mt-3 font-display text-3xl font-bold tracking-tight sm:mt-4 sm:text-4xl short:mt-2 short:text-2xl ${
+                    priv.role === "TRICKSTER" ? "text-terracotta-700" : "text-sage-700"
+                  }`}
+                >
+                  {priv.role === "TRICKSTER" ? "IMPOSTOR" : "EXPLORER"}
+                </h2>
               </div>
-              <div
-                className={`mx-auto mt-3 flex h-20 w-20 items-center justify-center rounded-3xl shadow-inner sm:mt-4 sm:h-24 sm:w-24 ${
-                  priv.role === "TRICKSTER"
-                    ? "bg-terracotta-100 ring-4 ring-terracotta-500/30"
-                    : "bg-sage-100 ring-4 ring-sage-500/30"
-                }`}
-              >
-                <GameIcon
-                  name={priv.role === "TRICKSTER" ? "role-impostor" : "role-explorer"}
-                  className="h-14 w-14 sm:h-16 sm:w-16"
-                />
+
+              <div className="short:min-w-0 short:flex-1">
+                <div className="hidden text-[10px] font-extrabold uppercase tracking-[0.22em] text-espresso-muted short:block">
+                  Your Secret Role • Round {pub.currentRound}
+                </div>
+                <p className="mt-2.5 text-xs font-semibold leading-relaxed text-espresso-soft sm:text-sm short:mt-1 short:text-xs">
+                  {priv.role === "TRICKSTER"
+                    ? "Work in secret to break explorer tools, block the trail with dead-ends, and stall the crew until the deck runs dry!"
+                    : "Team up to build an unbroken path from Base Camp to the hidden Treasure Chest Vault before supplies run out!"}
+                </p>
+                <div className="mt-4 rounded-2xl bg-oat-100 px-4 py-2 text-xs font-bold text-espresso-muted short:mt-2.5 short:rounded-xl short:px-3 short:py-1.5 short:text-[11px]">
+                  Keep your screen private! First turn:{" "}
+                  <span className="text-espresso">{nameOf(pub.activePlayerId)}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearIntroTimers();
+                    setIntroStage("none");
+                    soundEngine.playCountdownGo();
+                  }}
+                  className={`mt-4 w-full rounded-2xl py-3 font-display text-sm font-bold text-white shadow-sm transition short:mt-2.5 short:rounded-xl short:py-2 ${
+                    priv.role === "TRICKSTER"
+                      ? "bg-terracotta-500 hover:bg-terracotta-700"
+                      : "bg-sage-500 hover:bg-sage-700"
+                  }`}
+                >
+                  Got It — Start Playing!
+                </button>
               </div>
-              <h2
-                className={`mt-3 font-display text-3xl font-bold tracking-tight sm:mt-4 sm:text-4xl ${
-                  priv.role === "TRICKSTER" ? "text-terracotta-700" : "text-sage-700"
-                }`}
-              >
-                {priv.role === "TRICKSTER" ? "IMPOSTOR" : "EXPLORER"}
-              </h2>
-              <p className="mt-2.5 text-xs font-semibold leading-relaxed text-espresso-soft sm:text-sm">
-                {priv.role === "TRICKSTER"
-                  ? "Work in secret to break explorer tools, block the trail with dead-ends, and stall the crew until the deck runs dry!"
-                  : "Team up to build an unbroken path from Base Camp to the hidden Treasure Chest Vault before supplies run out!"}
-              </p>
-              <div className="mt-4 rounded-2xl bg-oat-100 px-4 py-2 text-xs font-bold text-espresso-muted">
-                Keep your screen private! First turn:{" "}
-                <span className="text-espresso">{nameOf(pub.activePlayerId)}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  clearIntroTimers();
-                  setIntroStage("none");
-                  soundEngine.playCountdownGo();
-                }}
-                className={`mt-4 w-full rounded-2xl py-3 font-display text-sm font-bold text-white shadow-sm transition ${
-                  priv.role === "TRICKSTER"
-                    ? "bg-terracotta-500 hover:bg-terracotta-700"
-                    : "bg-sage-500 hover:bg-sage-700"
-                }`}
-              >
-                Got It — Start Playing!
-              </button>
             </div>
           )}
         </div>
@@ -2561,27 +2626,27 @@ export function TreasureTrailsOverlay({
       {isRoundEnded &&
         roundResultStage === "modal" &&
         pub.lastRoundSummary && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/65 p-4 backdrop-blur-sm">
-            <div className="relative max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-3xl border-2 border-amberwarm-400 bg-oat-50 p-5 text-center shadow-cozy sm:p-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/65 p-4 backdrop-blur-sm short:p-2">
+            <div className="relative max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-3xl border-2 border-amberwarm-400 bg-oat-50 p-5 text-center shadow-cozy sm:p-6 short:max-h-[94dvh] short:rounded-2xl short:p-3.5">
               <button
                 type="button"
                 onClick={() => setRoundResultStage("inspecting")}
-                className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-xl bg-oat-200 px-2.5 py-1 text-[11px] font-bold text-espresso transition hover:bg-oat-300"
+                className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-xl bg-oat-200 px-2.5 py-1 text-[11px] font-bold text-espresso transition hover:bg-oat-300 short:right-3 short:top-3"
               >
                 <Eye className="h-3.5 w-3.5" /> View Board
               </button>
 
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amberwarm-100 shadow-inner">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amberwarm-100 shadow-inner short:h-11 short:w-11">
                 <GameIcon
                   name={
                     pub.lastRoundSummary.winningTeam === "TRAILBLAZER"
                       ? "vault-treasure"
                       : "role-impostor"
                   }
-                  className="h-11 w-11"
+                  className="h-11 w-11 short:h-8 short:w-8"
                 />
               </div>
-              <h2 className="mt-3 font-display text-2xl font-bold text-espresso sm:text-3xl">
+              <h2 className="mt-3 font-display text-2xl font-bold text-espresso sm:text-3xl short:mt-1.5 short:text-xl">
                 {pub.lastRoundSummary.winningTeam === "TRAILBLAZER"
                   ? "Explorers Win!"
                   : "Impostors Win!"}
@@ -2700,6 +2765,14 @@ export function TreasureTrailsOverlay({
             </div>
           </div>
         )}
+
+      {/* Interactive 6-Step Live Spotlight Quick Tour */}
+      <GameQuickTour
+        gameSlug="treasure-trails"
+        open={showQuickTour}
+        onClose={() => setShowQuickTour(false)}
+        onOpenFullRules={onOpenTutorial}
+      />
     </div>
   );
 }

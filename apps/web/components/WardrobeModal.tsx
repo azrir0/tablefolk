@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { BookOpen, Clock, Film, PackageCheck, Users, X } from "lucide-react";
+import { BookOpen, Clock, Compass, Film, PackageCheck, Users, X } from "lucide-react";
 import type { GameCatalogueItemDTO } from "@tablefolk/shared";
 import { fetchGameCatalogue } from "@/lib/api";
 import { GameIcon, gameSlugToIconName } from "./GameIcons";
@@ -9,7 +9,7 @@ import { GameIcon, gameSlugToIconName } from "./GameIcons";
 interface WardrobeModalProps {
   carryingSlug: string;
   onCarryGame: (slug: string | null) => void;
-  onOpenTutorial: (slug: string, initialTab?: "rules" | "clips") => void;
+  onOpenTutorial: (slug: string, initialTab?: "tour" | "rules" | "clips") => void;
   onClose: () => void;
 }
 
@@ -35,34 +35,34 @@ export function WardrobeModal({
     category === "All" ? games : games.filter((g) => g.category === category);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/45 p-4 backdrop-blur-sm">
-      <div className="flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border-2 border-oat-300 bg-oat-50 shadow-cozy">
-        <div className="flex items-center justify-between border-b border-oat-200 px-6 py-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/45 p-4 backdrop-blur-sm short:p-2">
+      <div className="flex max-h-[88dvh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border-2 border-oat-300 bg-oat-50 shadow-cozy short:max-h-[95dvh] short:rounded-2xl">
+        <div className="flex items-center justify-between border-b border-oat-200 px-6 py-4 short:px-4 short:py-2">
           <div>
-            <h2 className="inline-flex items-center gap-2 font-display text-xl font-bold text-espresso">
-              <GameIcon name="bookshelf" className="h-6 w-6" />
+            <h2 className="inline-flex items-center gap-2 font-display text-xl font-bold text-espresso short:text-base">
+              <GameIcon name="bookshelf" className="h-6 w-6 short:h-5 short:w-5" />
               Game Wardrobe
             </h2>
-            <p className="text-xs text-espresso-muted">
+            <p className="text-xs text-espresso-muted short:hidden">
               Check rules &amp; video walkthroughs first, then pick up a box to carry to any table!
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl p-1.5 text-espresso-muted hover:bg-oat-200"
+            className="rounded-xl p-1.5 text-espresso-muted hover:bg-oat-200 short:p-1"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="flex flex-wrap gap-2 border-b border-oat-200 bg-oat-100/70 px-6 py-3">
+        <div className="flex flex-wrap gap-2 border-b border-oat-200 bg-oat-100/70 px-6 py-3 short:gap-1.5 short:px-4 short:py-1.5">
           {categories.map((cat) => (
             <button
               key={cat}
               type="button"
               onClick={() => setCategory(cat)}
-              className={`rounded-full px-3.5 py-1 text-xs font-bold transition ${
+              className={`rounded-full px-3.5 py-1 text-xs font-bold transition short:px-2.5 short:py-0.5 short:text-[11px] ${
                 category === cat
                   ? "bg-espresso text-oat-50"
                   : "bg-oat-50 text-espresso-soft hover:bg-oat-200"
@@ -73,7 +73,7 @@ export function WardrobeModal({
           ))}
         </div>
 
-        <div className="grid flex-1 gap-4 overflow-y-auto p-6 sm:grid-cols-2">
+        <div className="grid flex-1 gap-4 overflow-y-auto p-6 sm:grid-cols-2 short:gap-2.5 short:p-3">
           {loading && (
             <div className="col-span-2 py-12 text-center text-sm font-bold text-espresso-muted">
               Opening the wooden shelves...
@@ -135,17 +135,30 @@ export function WardrobeModal({
                         {game.difficulty}
                       </span>
                       {canOpenRules && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onClose();
-                            onOpenTutorial(game.slug, "clips");
-                          }}
-                          className="inline-flex items-center gap-1 rounded-lg bg-amberwarm-100 px-2 py-1 text-espresso transition hover:bg-amberwarm-400/35"
-                        >
-                          <Film className="h-3 w-3 text-amberwarm-600" />
-                          Video &amp; Clips
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose();
+                              onOpenTutorial(game.slug, "tour");
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg bg-sage-100 px-2 py-1 text-sage-700 transition hover:bg-sage-300/60"
+                          >
+                            <Compass className="h-3 w-3" />
+                            Quick Tour
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose();
+                              onOpenTutorial(game.slug, "clips");
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg bg-amberwarm-100 px-2 py-1 text-espresso transition hover:bg-amberwarm-400/35"
+                          >
+                            <Film className="h-3 w-3 text-amberwarm-600" />
+                            Video &amp; Clips
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>

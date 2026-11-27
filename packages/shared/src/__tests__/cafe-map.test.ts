@@ -31,7 +31,7 @@ describe("Cozy Café Map & Shared Contracts", () => {
       expect(isWalkableWorldPos(tbl.x, tbl.y, 10, COZY_CAFE_MAP, grid)).toBe(false);
     }
 
-    // A* pathfinder finds a valid walkable path from Entrance to Grand Lantern Table & Wardrobe
+    // A* pathfinder finds a valid walkable path from Entrance to Grand Lantern Table & Open Tables Board
     const grandTable = COZY_CAFE_MAP.tables.find((t) => t.id === "table_large_1")!;
     const pathToSeat = findGridPath(
       COZY_CAFE_MAP.spawnPoint.x,
@@ -43,16 +43,16 @@ describe("Cozy Café Map & Shared Contracts", () => {
     );
     expect(pathToSeat.length).toBeGreaterThan(2);
 
-    const wardrobe = COZY_CAFE_MAP.interactables.find((i) => i.type === "wardrobe")!;
-    const pathToWardrobe = findGridPath(
+    const noticeBoard = COZY_CAFE_MAP.interactables.find((i) => i.type === "notice_board")!;
+    const pathToBoard = findGridPath(
       COZY_CAFE_MAP.spawnPoint.x,
       COZY_CAFE_MAP.spawnPoint.y,
-      wardrobe.interactX,
-      wardrobe.interactY,
+      noticeBoard.interactX,
+      noticeBoard.interactY,
       COZY_CAFE_MAP,
       grid
     );
-    expect(pathToWardrobe.length).toBeGreaterThan(2);
+    expect(pathToBoard.length).toBeGreaterThan(2);
   });
 
   it("generates schema-valid random procedural avatars that vary across default calls", () => {

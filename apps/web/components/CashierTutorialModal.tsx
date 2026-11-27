@@ -7,6 +7,7 @@ import {
   BookOpen,
   CheckCircle2,
   Clock,
+  Compass,
   Film,
   HelpCircle,
   Layers,
@@ -27,10 +28,13 @@ import {
   GameShortClipsPlayer,
   GameWalkthroughPlayer,
 } from "./GameWalkthroughPlayer";
+import { QuickTutorialStepper } from "./QuickTutorialStepper";
+
+export type TutorialModalTab = "tour" | "rules" | "clips" | "cards" | "faq";
 
 interface CashierTutorialModalProps {
   gameSlug?: string;
-  initialTab?: "rules" | "clips" | "cards" | "faq";
+  initialTab?: TutorialModalTab;
   /** Optional Wardrobe round-trip props so users can inspect rules and carry the box seamlessly */
   carryingSlug?: string;
   onCarryGame?: (slug: string | null) => void;
@@ -96,7 +100,7 @@ export function CashierTutorialModal({
   const [tutorial, setTutorial] = useState<GameTutorialDTO>(
     curriculum.fallbackTutorial
   );
-  const [tab, setTab] = useState<"rules" | "clips" | "cards" | "faq">(initialTab);
+  const [tab, setTab] = useState<TutorialModalTab>(initialTab);
 
   useEffect(() => {
     setSelectedSlug(normalizeSlug(gameSlug));
@@ -124,17 +128,17 @@ export function CashierTutorialModal({
   const isCarryingThis = carryingSlug === selectedSlug;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/50 p-3 backdrop-blur-sm sm:p-4">
-      <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border-2 border-oat-300 bg-oat-50 shadow-cozy">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/50 p-3 backdrop-blur-sm sm:p-4 short:p-2">
+      <div className="flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border-2 border-oat-300 bg-oat-50 shadow-cozy short:max-h-[95dvh] short:rounded-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between gap-3 border-b border-oat-200 px-5 py-3.5 sm:px-6">
+        <div className="flex items-center justify-between gap-3 border-b border-oat-200 px-5 py-3.5 sm:px-6 short:px-4 short:py-2">
           <div className="min-w-0">
-            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-sage-700">
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-sage-700 short:hidden">
               <GameIcon name="cafe-cup" className="h-4 w-4" />
               Sage&apos;s Interactive Rulebook &amp; Walkthrough
             </div>
-            <h2 className="mt-0.5 flex items-center gap-2 font-display text-xl font-bold text-espresso">
-              <GameIcon name={curriculum.icon} className="h-6 w-6" />
+            <h2 className="mt-0.5 flex items-center gap-2 font-display text-xl font-bold text-espresso short:mt-0 short:text-base">
+              <GameIcon name={curriculum.icon} className="h-6 w-6 short:h-5 short:w-5" />
               <span className="truncate">{tutorial.title}</span>
             </h2>
           </div>
@@ -143,14 +147,14 @@ export function CashierTutorialModal({
             type="button"
             onClick={onClose}
             aria-label="Close rulebook"
-            className="shrink-0 rounded-xl p-1.5 text-espresso-muted transition hover:bg-oat-200 hover:text-espresso"
+            className="shrink-0 rounded-xl p-1.5 text-espresso-muted transition hover:bg-oat-200 hover:text-espresso short:p-1"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Game Switcher + Section Tabs */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-oat-200 bg-oat-100/75 px-5 py-2.5 text-xs font-bold sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-oat-200 bg-oat-100/75 px-5 py-2.5 text-xs font-bold sm:px-6 short:gap-1.5 short:px-4 short:py-1.5">
           <div className="flex flex-wrap gap-1 rounded-xl bg-oat-200/75 p-0.5">
             {AVAILABLE_RULEBOOKS.map((book) => (
               <button
@@ -172,6 +176,7 @@ export function CashierTutorialModal({
           <div className="flex flex-wrap gap-1">
             {(
               [
+                ["tour", "Quick Tour", Compass],
                 ["rules", "How to Play", BookOpen],
                 ["clips", `Short Clips (${curriculum.shortClips.length})`, Film],
                 [
@@ -204,24 +209,39 @@ export function CashierTutorialModal({
 
         {/* Scrollable Content Body */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6">
-          {tab === "rules" ? (
+          {tab === "tour" ? (
+            <QuickTutorialStepper
+              gameSlug={selectedSlug}
+              onComplete={onClose}
+            />
+          ) : tab === "rules" ? (
             <div className="space-y-5">
               {/* 1. At-a-Glance Hero Strip */}
               <div
                 className={`rounded-2xl border ${curriculum.accentBorder} bg-gradient-to-br ${curriculum.accentBg} p-4 shadow-sm`}
               >
-                <div className="flex flex-wrap items-center gap-2 text-[11px] font-extrabold text-espresso">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-white/85 px-2.5 py-1 shadow-sm">
-                    <Users className="h-3.5 w-3.5 text-sage-700" />
-                    {curriculum.atAGlance.players}
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-white/85 px-2.5 py-1 shadow-sm">
-                    <Clock className="h-3.5 w-3.5 text-amberwarm-600" />
-                    {curriculum.atAGlance.duration}
-                  </span>
-                  <span className="rounded-full bg-white/85 px-2.5 py-1 text-espresso-soft shadow-sm">
-                    {curriculum.atAGlance.category} · {curriculum.atAGlance.difficulty}
-                  </span>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] font-extrabold text-espresso">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-white/85 px-2.5 py-1 shadow-sm">
+                      <Users className="h-3.5 w-3.5 text-sage-700" />
+                      {curriculum.atAGlance.players}
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-white/85 px-2.5 py-1 shadow-sm">
+                      <Clock className="h-3.5 w-3.5 text-amberwarm-600" />
+                      {curriculum.atAGlance.duration}
+                    </span>
+                    <span className="rounded-full bg-white/85 px-2.5 py-1 text-espresso-soft shadow-sm">
+                      {curriculum.atAGlance.category} · {curriculum.atAGlance.difficulty}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setTab("tour")}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-sage-500 px-3 py-1 text-[11px] font-extrabold text-white shadow-sm transition hover:bg-sage-700"
+                  >
+                    <Compass className="h-3.5 w-3.5" />
+                    6-Step Interactive Tour →
+                  </button>
                 </div>
 
                 <p className="mt-2.5 text-sm font-bold leading-relaxed text-espresso">

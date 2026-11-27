@@ -1,34 +1,43 @@
 "use client";
 
 import React, { useState } from "react";
-import { BookOpen, Film, Play } from "lucide-react";
+import { BookOpen, Compass, Film, Play } from "lucide-react";
 import type { SupportedGameSlug } from "@/lib/gameTutorials";
-import { CashierTutorialModal } from "./CashierTutorialModal";
+import { CashierTutorialModal, type TutorialModalTab } from "./CashierTutorialModal";
 
 interface GamesWardrobeRuleButtonProps {
   gameSlug: SupportedGameSlug;
 }
 
 /**
- * Interactive Rules & Video Walkthrough launcher for the public /games "Game Wardrobe" page.
- * Matches the exact Rules button inside the in-café Game Wardrobe & HUD so players can
- * watch the 55s walkthrough and short mechanic clips before entering Sunlit Oak Café.
+ * Interactive Quick Tour, Rules & Video Walkthrough launcher for the public /games "Game Wardrobe" page.
+ * Matches the exact buttons inside the in-café Game Wardrobe & Table Lobby so players can
+ * walk through core features step-by-step or watch the 55s walkthrough before entering Sunlit Oak Café.
  */
 export function GamesWardrobeRuleButton({
   gameSlug,
 }: GamesWardrobeRuleButtonProps) {
-  const [openTab, setOpenTab] = useState<"rules" | "clips" | null>(null);
+  const [openTab, setOpenTab] = useState<TutorialModalTab | null>(null);
 
   return (
     <>
       <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-oat-200/80 pt-4">
         <button
           type="button"
+          onClick={() => setOpenTab("tour")}
+          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-2xl bg-sage-500 px-4 py-2 text-xs font-extrabold text-white shadow-sm transition hover:bg-sage-700"
+        >
+          <Compass className="h-3.5 w-3.5" />
+          Quick Tour (6 Steps)
+        </button>
+
+        <button
+          type="button"
           onClick={() => setOpenTab("rules")}
-          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-2xl border border-oat-300 bg-oat-50 px-4 py-2 text-xs font-bold text-espresso shadow-sm transition hover:bg-white"
+          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-2xl border border-oat-300 bg-oat-50 px-3.5 py-2 text-xs font-bold text-espresso shadow-sm transition hover:bg-white"
         >
           <BookOpen className="h-3.5 w-3.5 text-sage-700" />
-          Rules &amp; Video Walkthrough
+          Rules &amp; Video
         </button>
 
         <button

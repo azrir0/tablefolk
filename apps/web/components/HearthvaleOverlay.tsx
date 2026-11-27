@@ -6,6 +6,7 @@ import {
   BookOpen,
   Bot,
   Check,
+  Compass,
   Eye,
   Flame,
   Highlighter,
@@ -40,10 +41,12 @@ import {
   type BoardMarkerStroke,
 } from "@tablefolk/shared";
 import { WS_BASE_URL, getStoredToken } from "@/lib/api";
+import { hasCompletedQuickTour } from "@/lib/gameQuickTours";
 import { soundEngine } from "@/lib/sound";
 import { FOLK_COLOR_STYLES, HearthvaleTileSvg } from "./HearthvaleTileSvg";
 import { BoardMarkerLayer, BoardMarkerToolbar } from "./BoardMarkerLayer";
 import { GameIcon, type GameIconName } from "./GameIcons";
+import { GameQuickTour } from "./GameQuickTour";
 
 interface HearthvaleOverlayProps {
   gameRoomId: string;
@@ -779,6 +782,26 @@ export function HearthvaleOverlay({
     if (pub && pub.phase !== "IN_PROGRESS") setMarkerMode(false);
   }, [pub]);
 
+  const [showQuickTour, setShowQuickTour] = useState(false);
+  const autoTourCheckedRef = useRef(false);
+
+  // Auto-launch the 6-step spotlight tour once for first-time Hearthvale players
+  useEffect(() => {
+    if (
+      autoTourCheckedRef.current ||
+      !pub ||
+      pub.phase !== "IN_PROGRESS" ||
+      isSpectator
+    ) {
+      return;
+    }
+    autoTourCheckedRef.current = true;
+    if (!hasCompletedQuickTour("hearthvale")) {
+      const t = window.setTimeout(() => setShowQuickTour(true), 500);
+      return () => window.clearTimeout(t);
+    }
+  }, [pub, isSpectator]);
+
   const isMyTurn =
     !isSpectator && pub?.phase === "IN_PROGRESS" && pub.activePlayerId === myUserId;
   const isPlaceTileStep = isMyTurn && pub?.turnStep === "PLACE_TILE";
@@ -970,20 +993,23 @@ export function HearthvaleOverlay({
   return (
     <div className="fixed inset-0 z-40 flex h-[100dvh] flex-col overflow-hidden bg-[#2D241E] text-espresso">
       {/* Compact Responsive Header */}
-      <header className="shrink-0 border-b border-oat-300/20 bg-oat-50 px-2.5 py-1.5 shadow-sm sm:px-4 sm:py-2.5">
+      <header
+        data-tour="hv-header"
+        className="shrink-0 border-b border-oat-300/20 bg-oat-50 px-2.5 py-1.5 shadow-sm sm:px-4 sm:py-2.5 short:px-2.5 short:py-1"
+      >
         <div className="flex items-center justify-between gap-1.5">
-          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
-            <div className="hidden items-center gap-1.5 font-display text-lg font-bold text-espresso sm:flex">
-              <GameIcon name="game-hearthvale" className="h-5 w-5" />
+          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2.5 short:gap-1.5">
+            <div className="hidden shrink-0 items-center gap-1.5 whitespace-nowrap font-display text-lg font-bold text-espresso sm:flex short:text-sm">
+              <GameIcon name="game-hearthvale" className="h-5 w-5 short:h-4 short:w-4" />
               Hearthvale
             </div>
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amberwarm-100 px-2 py-0.5 text-[10px] font-bold text-amberwarm-600 sm:px-2.5 sm:text-xs">
+            <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-amberwarm-100 px-2 py-0.5 text-[10px] font-bold text-amberwarm-600 sm:px-2.5 sm:text-xs short:px-2 short:text-[10px]">
               <GameIcon name="card-deck" className="h-3.5 w-3.5" />
               {pub.deckCount} left
             </span>
             {pub.phase === "IN_PROGRESS" && (
               <span
-                className={`truncate rounded-full px-2.5 py-0.5 text-[11px] font-extrabold sm:px-3 sm:text-xs ${
+                className={`truncate whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-extrabold sm:px-3 sm:text-xs short:shrink-0 short:px-2 short:text-[11px] ${
                   isMyTurn
                     ? isPlaceFolkStep
                       ? "animate-pulse bg-amberwarm-400 text-espresso"
@@ -1013,13 +1039,16 @@ export function HearthvaleOverlay({
             )}
           </div>
 
-          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+          <div
+            data-tour="hv-tools"
+            className="flex shrink-0 items-center gap-1 sm:gap-2 short:gap-1"
+          >
             {!isSpectator && pub.phase === "IN_PROGRESS" && (
               <button
                 type="button"
                 onClick={() => setMarkerMode((v) => !v)}
                 title="Draw or tap-ping on the valley so everyone can see!"
-                className={`inline-flex items-center gap-1 rounded-xl px-2 py-1 text-[10px] font-extrabold shadow-sm transition sm:px-2.5 sm:py-1.5 sm:text-xs ${
+                className={`inline-flex items-center gap-1 whitespace-nowrap rounded-xl px-2 py-1 text-[10px] font-extrabold shadow-sm transition sm:px-2.5 sm:py-1.5 sm:text-xs short:px-2 short:py-1 short:text-[11px] ${
                   markerMode
                     ? "bg-amberwarm-400 text-espresso ring-2 ring-amberwarm-600"
                     : "bg-oat-200 text-espresso hover:bg-amberwarm-100"
@@ -1042,7 +1071,7 @@ export function HearthvaleOverlay({
                 setUnreadChatCount(0);
               }}
               aria-label="Table Chat & Log"
-              className="relative inline-flex items-center justify-center rounded-xl bg-oat-200 p-1.5 text-espresso hover:bg-oat-300 lg:hidden"
+              className="relative inline-flex items-center justify-center rounded-xl bg-oat-200 p-1.5 text-espresso hover:bg-oat-300 lg:hidden short:p-1"
             >
               <MessageCircle className="h-4 w-4" />
               {unreadChatCount > 0 && (
@@ -1054,9 +1083,20 @@ export function HearthvaleOverlay({
 
             <button
               type="button"
+              onClick={() => setShowQuickTour(true)}
+              aria-label="Quick Tour"
+              title="Step-by-step spotlight tour of Hearthvale"
+              className="inline-flex items-center gap-1 whitespace-nowrap rounded-xl bg-sage-100 p-1.5 text-xs font-extrabold text-sage-700 hover:bg-sage-300/60 sm:px-2.5 sm:py-1.5 short:px-2 short:py-1 short:text-[11px]"
+            >
+              <Compass className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Tour</span>
+            </button>
+
+            <button
+              type="button"
               onClick={onOpenTutorial}
               aria-label="Rules"
-              className="inline-flex items-center gap-1 rounded-xl bg-oat-200 p-1.5 text-xs font-bold text-espresso hover:bg-oat-300 sm:px-3 sm:py-1.5"
+              className="inline-flex items-center gap-1 whitespace-nowrap rounded-xl bg-oat-200 p-1.5 text-xs font-bold text-espresso hover:bg-oat-300 sm:px-3 sm:py-1.5 short:px-2 short:py-1 short:text-[11px]"
             >
               <BookOpen className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Rules</span>
@@ -1066,20 +1106,26 @@ export function HearthvaleOverlay({
               type="button"
               onClick={() => onExitGame({ finished: pub.phase === "COMPLETED" })}
               aria-label="Back to Café"
-              className="inline-flex items-center gap-1 rounded-xl bg-oat-200 p-1.5 text-xs font-bold text-espresso hover:bg-terracotta-100 hover:text-terracotta-700 sm:px-3 sm:py-1.5"
+              className="inline-flex items-center gap-1 whitespace-nowrap rounded-xl bg-oat-200 p-1.5 text-xs font-bold text-espresso hover:bg-terracotta-100 hover:text-terracotta-700 sm:px-3 sm:py-1.5 short:px-2 short:py-1 short:text-[11px]"
             >
               <LogOut className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Back to Café</span>
+              <span className="hidden sm:inline short:hidden">Back to Café</span>
+              <span className="hidden short:inline">Café</span>
             </button>
           </div>
         </div>
       </header>
 
+      {/* Responsive Workspace: Stacked on Portrait/Desktop, Handheld Split (Valley Left + Hand Right) in Mobile Landscape! */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden short:flex-row">
       {/* Main Content Area: Player Strip + Auto-Fit Valley Board + Desktop Sidebar */}
-      <div className="grid min-h-0 flex-1 gap-2 overflow-hidden p-2 sm:gap-3 sm:p-3 lg:grid-cols-12">
-        <div className="flex min-h-0 flex-col gap-1.5 overflow-hidden sm:gap-2.5 lg:col-span-9">
+      <div className="grid min-h-0 flex-1 gap-2 overflow-hidden p-2 sm:gap-3 sm:p-3 lg:grid-cols-12 short:gap-1.5 short:p-1.5">
+        <div className="flex min-h-0 flex-col gap-1.5 overflow-hidden sm:gap-2.5 lg:col-span-9 short:gap-1">
           {/* Player Roster Strip */}
-          <div className="flex shrink-0 gap-1.5 overflow-x-auto pb-0.5 sm:gap-2">
+          <div
+            data-tour="hv-players"
+            className="flex shrink-0 gap-1.5 overflow-x-auto pb-0.5 sm:gap-2 short:gap-1 short:pb-0"
+          >
             {pub.players.map((p) => {
               const isActive =
                 pub.phase === "IN_PROGRESS" && pub.activePlayerId === p.userId;
@@ -1094,19 +1140,19 @@ export function HearthvaleOverlay({
                     if (el) playerRefs.current.set(p.userId, el);
                     else playerRefs.current.delete(p.userId);
                   }}
-                  className={`min-w-[122px] shrink-0 rounded-2xl border-2 px-2 py-1.5 transition sm:min-w-[156px] sm:px-3 sm:py-2 ${
+                  className={`min-w-[122px] shrink-0 rounded-2xl border-2 px-2 py-1.5 transition sm:min-w-[156px] sm:px-3 sm:py-2 short:flex short:min-w-0 short:items-center short:gap-2 short:rounded-xl short:px-2 short:py-1 ${
                     isActive
                       ? "border-amberwarm-400 bg-oat-50 shadow-md"
                       : "border-oat-300/60 bg-oat-50/90"
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-1 text-[11px] font-bold sm:text-xs">
+                  <div className="flex items-center justify-between gap-1 text-[11px] font-bold sm:text-xs short:gap-1.5 short:text-[11px]">
                     <span className="flex min-w-0 items-center gap-1.5 truncate text-espresso">
                       <span
                         className="h-2.5 w-2.5 shrink-0 rounded-full border border-white shadow-sm"
                         style={{ backgroundColor: colorStyle.fill }}
                       />
-                      <span className="truncate">
+                      <span className="truncate short:max-w-[78px]">
                         {p.displayName}
                         {isMe ? " (You)" : ""}
                       </span>
@@ -1124,7 +1170,7 @@ export function HearthvaleOverlay({
                       {p.score}
                     </span>
                   </div>
-                  <div className="mt-1 flex items-center justify-between gap-1.5 text-[10px] font-bold text-espresso-muted">
+                  <div className="mt-1 flex items-center justify-between gap-1.5 text-[10px] font-bold text-espresso-muted short:mt-0 short:gap-1.5">
                     <span
                       title="Remaining Villagers (strength 1)"
                       className="inline-flex items-center gap-0.5"
@@ -1155,12 +1201,15 @@ export function HearthvaleOverlay({
           </div>
 
           {/* Growing Sunlit Valley Map */}
-          <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border-2 border-[#594436] bg-[#3E3026] shadow-inner sm:rounded-3xl">
+          <div
+            data-tour="hv-board"
+            className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border-2 border-[#594436] bg-[#3E3026] shadow-inner sm:rounded-3xl short:rounded-2xl"
+          >
             {/* Zoom / Fit Map Toggle */}
             <button
               type="button"
               onClick={() => setBoardZoomed((z) => !z)}
-              className="absolute right-2 top-2 z-20 inline-flex items-center gap-1 rounded-full bg-espresso/85 px-2.5 py-1 text-[10px] font-bold text-oat-50 shadow-md backdrop-blur hover:bg-espresso"
+              className="absolute right-2 top-2 z-20 inline-flex items-center gap-1 rounded-full bg-espresso/85 px-2.5 py-1 text-[10px] font-bold text-oat-50 shadow-md backdrop-blur hover:bg-espresso short:right-1.5 short:top-1.5"
             >
               {boardZoomed ? (
                 <>
@@ -1194,14 +1243,14 @@ export function HearthvaleOverlay({
 
             {/* Live Action Banner */}
             {actionBanner && !markerMode && (
-              <div className="pointer-events-none absolute left-1/2 top-2 z-20 max-w-[74%] -translate-x-1/2 truncate rounded-full border border-amberwarm-400/50 bg-espresso/90 px-3 py-1 text-[11px] font-bold text-oat-50 shadow-lg backdrop-blur sm:px-4 sm:py-1.5 sm:text-xs">
+              <div className="pointer-events-none absolute left-1/2 top-2 z-20 max-w-[74%] -translate-x-1/2 truncate rounded-full border border-amberwarm-400/50 bg-espresso/90 px-3 py-1 text-[11px] font-bold text-oat-50 shadow-lg backdrop-blur sm:px-4 sm:py-1.5 sm:text-xs short:left-2 short:top-1.5 short:max-w-[66%] short:translate-x-0 short:px-2.5 short:py-0.5 short:text-[10px]">
                 {actionBanner}
               </div>
             )}
 
             {/* Big Celebratory Score Burst Pill */}
             {scorePopup && (
-              <div className="pointer-events-none absolute bottom-3 left-1/2 z-30 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border-2 border-amberwarm-400 bg-oat-50 px-4 py-1.5 font-display text-sm font-bold text-espresso shadow-2xl">
+              <div className="pointer-events-none absolute bottom-3 left-1/2 z-30 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border-2 border-amberwarm-400 bg-oat-50 px-4 py-1.5 font-display text-sm font-bold text-espresso shadow-2xl short:bottom-1.5 short:px-3 short:py-1 short:text-xs">
                 <GameIcon name={featureIconName(scorePopup.kind)} className="h-4 w-4" />
                 <span>{scorePopup.text}</span>
                 <GameIcon name="star-gold" className="h-4 w-4" />
@@ -1210,7 +1259,7 @@ export function HearthvaleOverlay({
 
             {/* Scrollable & Auto-Fitted Valley Grid */}
             <div
-              className={`flex-1 overflow-auto p-2 sm:p-4 ${
+              className={`flex-1 overflow-auto p-2 sm:p-4 short:p-1.5 ${
                 boardZoomed || cols > 9 || rows > 7
                   ? "block"
                   : "flex items-center justify-center"
@@ -1222,7 +1271,7 @@ export function HearthvaleOverlay({
                   width:
                     boardZoomed || cols > 9
                       ? `${cols * 76}px`
-                      : `min(100%, ${cols * 86}px)`,
+                      : `min(100%, ${cols * 86}px, calc((100dvh - 108px) * ${(cols / Math.max(rows, 1)).toFixed(3)}))`,
                   gridTemplateColumns:
                     boardZoomed || cols > 9
                       ? `repeat(${cols}, 72px)`
@@ -1422,15 +1471,18 @@ export function HearthvaleOverlay({
         </aside>
       </div>
 
-      {/* Bottom Architect Hand & Contextual Action Dock (or Spectator Bar when watching) */}
-      <footer className="shrink-0 border-t border-oat-300/30 bg-oat-50 px-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-4 sm:py-3">
+      {/* Bottom Architect Hand & Contextual Action Dock (Right-Side Handheld Dock in Mobile Landscape!) */}
+      <footer
+        data-tour="hv-hand"
+        className="shrink-0 border-t border-oat-300/30 bg-oat-50 px-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-4 sm:py-3 short:flex short:w-[232px] short:flex-col short:overflow-y-auto short:border-l short:border-t-0 short:px-2 short:pb-2 short:pt-1.5"
+      >
         {isSpectator ? (
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 text-xs font-bold">
-            <div className="flex items-center gap-2 text-espresso">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 text-xs font-bold short:flex-col short:items-stretch">
+            <div className="flex items-center gap-2 text-espresso short:flex-col short:items-start short:gap-1">
               <span className="inline-flex items-center gap-1 rounded-full bg-espresso px-2.5 py-1 text-[10px] font-extrabold text-amberwarm-400">
                 <Eye className="h-3 w-3" /> Spectator Mode
               </span>
-              <span className="text-[11px] text-espresso-soft sm:text-xs">
+              <span className="text-[11px] text-espresso-soft sm:text-xs short:text-[10px]">
                 Watching the valley grow live · Hands stay hidden · Cheer in chat anytime!
               </span>
             </div>
@@ -1443,14 +1495,17 @@ export function HearthvaleOverlay({
             </button>
           </div>
         ) : (
-        <div className="mx-auto flex max-w-6xl flex-col gap-2">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 short:gap-1.5">
           {/* Action Row */}
-          <div className="flex flex-wrap items-center justify-between gap-1.5">
-            <div className="text-[11px] font-bold text-espresso-soft sm:text-xs">
+          <div
+            data-tour="hv-scoring"
+            className="flex flex-wrap items-center justify-between gap-1.5 short:flex-col short:items-stretch short:gap-1"
+          >
+            <div className="text-[11px] font-bold text-espresso-soft sm:text-xs short:text-[10px] short:leading-tight">
               {statusHintText}
             </div>
 
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5 short:gap-1">
               {/* Step 1 Preview Controls */}
               {isPlaceTileStep && previewSpot && (
                 <>
@@ -1458,22 +1513,22 @@ export function HearthvaleOverlay({
                     <button
                       type="button"
                       onClick={handleRotatePreview}
-                      className="inline-flex items-center gap-1 rounded-xl bg-amberwarm-400 px-3 py-1.5 text-[11px] font-bold text-espresso shadow-sm hover:bg-amberwarm-600 hover:text-white sm:text-xs"
+                      className="inline-flex items-center gap-1 rounded-xl bg-amberwarm-400 px-3 py-1.5 text-[11px] font-bold text-espresso shadow-sm hover:bg-amberwarm-600 hover:text-white sm:text-xs short:px-2 short:py-1 short:text-[10px]"
                     >
-                      <RotateCw className="h-3.5 w-3.5" /> Rotate 90°
+                      <RotateCw className="h-3.5 w-3.5 short:h-3 short:w-3" /> Rotate 90°
                     </button>
                   )}
                   <button
                     type="button"
                     onClick={handleConfirmPlacement}
-                    className="inline-flex items-center gap-1 rounded-xl bg-sage-500 px-3.5 py-1.5 text-[11px] font-extrabold text-white shadow-sm hover:bg-sage-700 sm:text-xs"
+                    className="inline-flex items-center gap-1 rounded-xl bg-sage-500 px-3.5 py-1.5 text-[11px] font-extrabold text-white shadow-sm hover:bg-sage-700 sm:text-xs short:px-2.5 short:py-1 short:text-[10px]"
                   >
-                    <Check className="h-3.5 w-3.5" /> Place Tile
+                    <Check className="h-3.5 w-3.5 short:h-3 short:w-3" /> Place Tile
                   </button>
                   <button
                     type="button"
                     onClick={() => setPreviewSpot(null)}
-                    className="rounded-xl bg-oat-200 px-2.5 py-1.5 text-[11px] font-bold text-espresso hover:bg-oat-300 sm:text-xs"
+                    className="rounded-xl bg-oat-200 px-2.5 py-1.5 text-[11px] font-bold text-espresso hover:bg-oat-300 sm:text-xs short:px-2 short:py-1 short:text-[10px]"
                   >
                     Cancel
                   </button>
@@ -1487,30 +1542,30 @@ export function HearthvaleOverlay({
                     type="button"
                     disabled={myPublic.villagersLeft <= 0}
                     onClick={() => setSelectedFolkKind("VILLAGER")}
-                    className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-[11px] font-bold shadow-sm transition disabled:opacity-40 sm:text-xs ${
+                    className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-[11px] font-bold shadow-sm transition disabled:opacity-40 sm:text-xs short:px-2 short:py-1 short:text-[10px] ${
                       selectedFolkKind === "VILLAGER"
                         ? "bg-sage-500 text-white"
                         : "bg-oat-200 text-espresso"
                     }`}
                   >
-                    <GameIcon name="hv-villager" className="h-4 w-4" /> Villager ({myPublic.villagersLeft})
+                    <GameIcon name="hv-villager" className="h-4 w-4 short:h-3.5 short:w-3.5" /> Villager ({myPublic.villagersLeft})
                   </button>
                   <button
                     type="button"
                     disabled={myPublic.mayorsLeft <= 0}
                     onClick={() => setSelectedFolkKind("MAYOR")}
-                    className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-[11px] font-bold shadow-sm transition disabled:opacity-40 sm:text-xs ${
+                    className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-[11px] font-bold shadow-sm transition disabled:opacity-40 sm:text-xs short:px-2 short:py-1 short:text-[10px] ${
                       selectedFolkKind === "MAYOR"
                         ? "bg-amberwarm-400 text-espresso ring-2 ring-amberwarm-600"
                         : "bg-oat-200 text-espresso"
                     }`}
                   >
-                    <GameIcon name="hv-mayor" className="h-4 w-4" /> Mayor ×2 ({myPublic.mayorsLeft})
+                    <GameIcon name="hv-mayor" className="h-4 w-4 short:h-3.5 short:w-3.5" /> Mayor ×2 ({myPublic.mayorsLeft})
                   </button>
                   <button
                     type="button"
                     onClick={() => sendAction({ type: "SKIP_CLAIM" })}
-                    className="rounded-xl bg-espresso px-3.5 py-1.5 text-[11px] font-extrabold text-oat-50 shadow-sm hover:bg-espresso-soft sm:text-xs"
+                    className="rounded-xl bg-espresso px-3.5 py-1.5 text-[11px] font-extrabold text-oat-50 shadow-sm hover:bg-espresso-soft sm:text-xs short:px-2.5 short:py-1 short:text-[10px]"
                   >
                     Skip Folk →
                   </button>
@@ -1522,9 +1577,9 @@ export function HearthvaleOverlay({
           {/* 2-Tile Architect Hand Dock */}
           <div
             ref={handRef}
-            className="flex items-center justify-between gap-2 overflow-x-auto pb-0.5 pt-1"
+            className="flex items-center justify-between gap-2 overflow-x-auto pb-0.5 pt-1 short:flex-col short:items-stretch short:gap-1.5 short:overflow-x-visible short:pt-0.5"
           >
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 short:flex-col short:items-stretch short:gap-1.5">
               {(priv?.hand ?? []).map((tile, idx) => {
                 const tpl = getTileTemplate(tile.templateId);
                 const isSelected = selectedTileId === tile.id;
@@ -1541,27 +1596,27 @@ export function HearthvaleOverlay({
                       setSelectedTileId(tile.id);
                       setPreviewSpot(null);
                     }}
-                    className={`flex items-center gap-2 rounded-2xl border-2 p-1.5 pr-3 text-left transition ${
+                    className={`flex items-center gap-2 rounded-2xl border-2 p-1.5 pr-3 text-left transition short:w-full short:rounded-xl short:p-1.5 ${
                       isSelected
                         ? "border-sage-500 bg-sage-100 shadow-md"
                         : "border-oat-300 bg-white hover:border-amberwarm-400"
                     }`}
                   >
-                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-oat-300 sm:h-16 sm:w-16">
+                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-oat-300 sm:h-16 sm:w-16 short:h-11 short:w-11 short:rounded-lg">
                       <HearthvaleTileSvg
                         templateId={tile.templateId}
                         rotation={0}
                         compact
                       />
                     </div>
-                    <div className="min-w-[82px]">
-                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-espresso-muted">
+                    <div className="min-w-[82px] short:min-w-0 short:flex-1">
+                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-espresso-muted short:text-[9px]">
                         Tile {idx + 1}
                       </div>
-                      <div className="font-display text-xs font-bold text-espresso sm:text-sm">
+                      <div className="truncate font-display text-xs font-bold text-espresso sm:text-sm short:text-xs">
                         {tpl.name}
                       </div>
-                      <div className="mt-0.5 flex flex-wrap gap-1 text-[10px] font-bold">
+                      <div className="mt-0.5 flex flex-wrap gap-1 text-[10px] font-bold short:text-[9px]">
                         {tpl.hasCrest && (
                           <span className="inline-flex items-center gap-0.5 rounded bg-amberwarm-100 px-1 text-amberwarm-600">
                             <GameIcon name="hv-crest" className="h-3 w-3" /> +2
@@ -1589,8 +1644,8 @@ export function HearthvaleOverlay({
               })}
             </div>
 
-            {/* Compact Scoring Legend on Desktop */}
-            <div className="hidden space-y-0.5 rounded-2xl bg-oat-100 px-3 py-2 text-[10px] font-bold text-espresso-soft md:block">
+            {/* Compact Scoring Legend on Desktop & Landscape Dock */}
+            <div className="hidden space-y-0.5 rounded-2xl bg-oat-100 px-3 py-2 text-[10px] font-bold text-espresso-soft md:block short:block short:rounded-xl short:px-2 short:py-1.5 short:text-[9.5px]">
               <div className="flex items-center gap-1">
                 <GameIcon name="hv-town" className="h-3.5 w-3.5" />
                 <span>Town: 3 (2t) · 2/t + 2</span>
@@ -1609,6 +1664,7 @@ export function HearthvaleOverlay({
         </div>
         )}
       </footer>
+      </div>
 
       {/* Mobile Slide-Up Table Talk & Log Drawer */}
       {mobileChatOpen && (
@@ -1718,12 +1774,12 @@ export function HearthvaleOverlay({
 
       {/* Victory Celebration Modal + 1-Tap Play Again Rematch */}
       {pub.phase === "COMPLETED" && pub.endGameSummary && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/65 p-4 backdrop-blur-sm">
-          <div className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-3xl border-2 border-amberwarm-400 bg-oat-50 p-5 text-center shadow-cozy sm:p-6">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amberwarm-100 shadow-inner">
-              <GameIcon name="trophy" className="h-11 w-11" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/65 p-4 backdrop-blur-sm short:p-2">
+          <div className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-3xl border-2 border-amberwarm-400 bg-oat-50 p-5 text-center shadow-cozy sm:p-6 short:max-h-[94dvh] short:rounded-2xl short:p-3.5">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amberwarm-100 shadow-inner short:h-11 short:w-11">
+              <GameIcon name="trophy" className="h-11 w-11 short:h-8 short:w-8" />
             </div>
-            <h2 className="mt-3 font-display text-2xl font-bold text-espresso sm:text-3xl">
+            <h2 className="mt-3 font-display text-2xl font-bold text-espresso sm:text-3xl short:mt-1.5 short:text-xl">
               {pub.endGameSummary.winners.length > 1
                 ? "Shared Valley Victory!"
                 : `${nameOf(pub.endGameSummary.winners[0]!)} Wins!`}
@@ -1825,6 +1881,14 @@ export function HearthvaleOverlay({
           </div>
         </div>
       )}
+
+      {/* Interactive 6-Step Live Spotlight Quick Tour */}
+      <GameQuickTour
+        gameSlug="hearthvale"
+        open={showQuickTour}
+        onClose={() => setShowQuickTour(false)}
+        onOpenFullRules={onOpenTutorial}
+      />
     </div>
   );
 }

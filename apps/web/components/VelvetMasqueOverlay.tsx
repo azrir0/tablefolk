@@ -6,6 +6,7 @@ import {
   BookOpen,
   Bot,
   Check,
+  Compass,
   Crown,
   Eye,
   Flame,
@@ -39,9 +40,11 @@ import {
   type BoardMarkerStroke,
 } from "@tablefolk/shared";
 import { WS_BASE_URL, getStoredToken } from "@/lib/api";
+import { hasCompletedQuickTour } from "@/lib/gameQuickTours";
 import { soundEngine } from "@/lib/sound";
 import { BoardMarkerLayer, BoardMarkerToolbar } from "./BoardMarkerLayer";
 import { GameIcon, masqueToIconName } from "./GameIcons";
+import { GameQuickTour } from "./GameQuickTour";
 import { VelvetMasqueCardSvg } from "./VelvetMasqueCardSvg";
 
 interface VelvetMasqueOverlayProps {
@@ -794,6 +797,27 @@ export function VelvetMasqueOverlay({
     if (pub && pub.phase !== "IN_PROGRESS") setMarkerMode(false);
   }, [pub]);
 
+  const [showQuickTour, setShowQuickTour] = useState(false);
+  const autoTourCheckedRef = useRef(false);
+
+  // Auto-launch the 6-step spotlight tour once for first-time players right after Curtain Call closes
+  useEffect(() => {
+    if (
+      autoTourCheckedRef.current ||
+      !pub ||
+      pub.phase !== "IN_PROGRESS" ||
+      isSpectator ||
+      pub.step === "CURTAIN_CALL"
+    ) {
+      return;
+    }
+    autoTourCheckedRef.current = true;
+    if (!hasCompletedQuickTour("velvet-masque")) {
+      const t = window.setTimeout(() => setShowQuickTour(true), 450);
+      return () => window.clearTimeout(t);
+    }
+  }, [pub, isSpectator]);
+
   const isOpeningSwapOnly = Boolean(
     pub && pub.step === "CHOOSE_ACTION" && pub.turnNumber <= OPENING_SWAP_ONLY_TURNS
   );
@@ -977,22 +1001,25 @@ export function VelvetMasqueOverlay({
   return (
     <div className="fixed inset-0 z-40 flex h-[100dvh] flex-col overflow-hidden bg-[#261119] text-espresso">
       {/* Compact Theatrical Header */}
-      <header className="shrink-0 border-b border-oat-300/20 bg-oat-50 px-2.5 py-1.5 shadow-sm sm:px-4 sm:py-2.5">
+      <header
+        data-tour="vm-header"
+        className="shrink-0 border-b border-oat-300/20 bg-oat-50 px-2.5 py-1.5 shadow-sm sm:px-4 sm:py-2.5 short:px-2.5 short:py-1"
+      >
         <div className="flex items-center justify-between gap-1.5">
-          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
-            <div className="hidden items-center gap-1.5 font-display text-lg font-bold text-espresso sm:flex">
-              <GameIcon name="game-masque" className="h-5 w-5" />
+          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2 short:gap-1.5">
+            <div className="hidden shrink-0 items-center gap-1.5 whitespace-nowrap font-display text-lg font-bold text-espresso sm:flex short:text-sm">
+              <GameIcon name="game-masque" className="h-5 w-5 short:h-4 short:w-4" />
               Velvet Masque
             </div>
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amberwarm-100 px-2 py-0.5 text-[10px] font-bold text-amberwarm-600 sm:px-2.5 sm:text-xs">
+            <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-amberwarm-100 px-2 py-0.5 text-[10px] font-bold text-amberwarm-600 sm:px-2.5 sm:text-xs short:px-2 short:text-[10px]">
               <GameIcon name="trophy" className="h-3.5 w-3.5" />
               {pub.config.targetCoins}g Goal
             </span>
-            <span className="hidden shrink-0 rounded-full bg-oat-200 px-2 py-0.5 text-[10px] font-bold text-espresso-soft md:inline-block sm:text-xs">
+            <span className="hidden shrink-0 whitespace-nowrap rounded-full bg-oat-200 px-2 py-0.5 text-[10px] font-bold text-espresso-soft md:inline-block sm:text-xs short:hidden">
               Turn {pub.turnNumber}/{pub.maxTurns}
             </span>
             <span
-              className={`truncate rounded-full px-2.5 py-0.5 text-[11px] font-extrabold sm:px-3 sm:text-xs ${
+              className={`truncate whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-extrabold sm:px-3 sm:text-xs short:shrink-0 short:px-2 short:text-[11px] ${
                 needsMyChallengeResponse || isMyCloakChoice || isMyPowerChoice
                   ? "animate-pulse bg-terracotta-500 text-white"
                   : isMyChooseAction
@@ -1019,13 +1046,16 @@ export function VelvetMasqueOverlay({
             )}
           </div>
 
-          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+          <div
+            data-tour="vm-tools"
+            className="flex shrink-0 items-center gap-1 sm:gap-2 short:gap-1"
+          >
             {!isSpectator && pub.phase === "IN_PROGRESS" && (
               <button
                 type="button"
                 onClick={() => setMarkerMode((v) => !v)}
                 title="Draw or tap-ping on the table using your personal color!"
-                className={`inline-flex items-center gap-1 rounded-xl px-2 py-1 text-[10px] font-extrabold shadow-sm transition sm:px-2.5 sm:py-1.5 sm:text-xs ${
+                className={`inline-flex items-center gap-1 whitespace-nowrap rounded-xl px-2 py-1 text-[10px] font-extrabold shadow-sm transition sm:px-2.5 sm:py-1.5 sm:text-xs short:px-2 short:py-1 short:text-[11px] ${
                   markerMode
                     ? "bg-amberwarm-400 text-espresso ring-2 ring-amberwarm-600"
                     : "bg-oat-200 text-espresso hover:bg-amberwarm-100"
@@ -1047,7 +1077,7 @@ export function VelvetMasqueOverlay({
                 setUnreadChatCount(0);
               }}
               aria-label="Table Chat & Log"
-              className="relative inline-flex items-center justify-center rounded-xl bg-oat-200 p-1.5 text-espresso hover:bg-oat-300 lg:hidden"
+              className="relative inline-flex items-center justify-center rounded-xl bg-oat-200 p-1.5 text-espresso hover:bg-oat-300 lg:hidden short:p-1"
             >
               <MessageCircle className="h-4 w-4" />
               {unreadChatCount > 0 && (
@@ -1059,9 +1089,20 @@ export function VelvetMasqueOverlay({
 
             <button
               type="button"
+              onClick={() => setShowQuickTour(true)}
+              aria-label="Quick Tour"
+              title="Step-by-step spotlight tour of Velvet Masque"
+              className="inline-flex items-center gap-1 whitespace-nowrap rounded-xl bg-sage-100 p-1.5 text-xs font-extrabold text-sage-700 hover:bg-sage-300/60 sm:px-2.5 sm:py-1.5 short:px-2 short:py-1 short:text-[11px]"
+            >
+              <Compass className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Tour</span>
+            </button>
+
+            <button
+              type="button"
               onClick={onOpenTutorial}
               aria-label="Rules"
-              className="inline-flex items-center gap-1 rounded-xl bg-oat-200 p-1.5 text-xs font-bold text-espresso hover:bg-oat-300 sm:px-3 sm:py-1.5"
+              className="inline-flex items-center gap-1 whitespace-nowrap rounded-xl bg-oat-200 p-1.5 text-xs font-bold text-espresso hover:bg-oat-300 sm:px-3 sm:py-1.5 short:px-2 short:py-1 short:text-[11px]"
             >
               <BookOpen className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Rules</span>
@@ -1071,20 +1112,26 @@ export function VelvetMasqueOverlay({
               type="button"
               onClick={() => onExitGame({ finished: pub.phase === "COMPLETED" })}
               aria-label="Back to Café"
-              className="inline-flex items-center gap-1 rounded-xl bg-oat-200 p-1.5 text-xs font-bold text-espresso hover:bg-terracotta-100 hover:text-terracotta-700 sm:px-3 sm:py-1.5"
+              className="inline-flex items-center gap-1 whitespace-nowrap rounded-xl bg-oat-200 p-1.5 text-xs font-bold text-espresso hover:bg-terracotta-100 hover:text-terracotta-700 sm:px-3 sm:py-1.5 short:px-2 short:py-1 short:text-[11px]"
             >
               <LogOut className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Back to Café</span>
+              <span className="hidden sm:inline short:hidden">Back to Café</span>
+              <span className="hidden short:inline">Café</span>
             </button>
           </div>
         </div>
       </header>
 
+      {/* Responsive Workspace: Stacked on Portrait/Desktop, Handheld Split (Salon Left + Gala Actions Right) in Mobile Landscape! */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden short:flex-row">
       {/* Main Content Area: Velvet Salon Arena + Desktop Chronicle/Chat Sidebar */}
-      <div className="grid min-h-0 flex-1 gap-2 overflow-hidden p-2 sm:gap-3 sm:p-3 lg:grid-cols-12">
-        <div className="flex min-h-0 flex-col gap-1.5 overflow-hidden sm:gap-2 lg:col-span-9">
+      <div className="grid min-h-0 flex-1 gap-2 overflow-hidden p-2 sm:gap-3 sm:p-3 lg:grid-cols-12 short:gap-1.5 short:p-1.5">
+        <div className="flex min-h-0 flex-col gap-1.5 overflow-hidden sm:gap-2 lg:col-span-9 short:gap-1">
           {/* Active Mask Roster Quick Reference Ribbon */}
-          <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto pb-0.5 text-[10px] font-bold">
+          <div
+            data-tour="vm-roster"
+            className="flex shrink-0 items-center gap-1.5 overflow-x-auto pb-0.5 text-[10px] font-bold short:gap-1 short:pb-0 short:text-[9.5px]"
+          >
             <span className="shrink-0 uppercase tracking-wider text-oat-200/75">
               In Play:
             </span>
@@ -1096,13 +1143,13 @@ export function VelvetMasqueOverlay({
                 <span
                   key={mId}
                   title={`${def.name}: ${def.fullPower}`}
-                  className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 shadow-sm transition ${
+                  className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 shadow-sm transition short:px-1.5 ${
                     isClaimed
                       ? "bg-amberwarm-400 text-espresso ring-2 ring-white"
                       : "border border-[#7C3B50]/60 bg-[#421B28] text-oat-100"
                   }`}
                 >
-                  <GameIcon name={masqueToIconName(mId)} className="h-3.5 w-3.5" />
+                  <GameIcon name={masqueToIconName(mId)} className="h-3.5 w-3.5 short:h-3 short:w-3" />
                   <span>{def.name}</span>
                   <span className="opacity-75">({def.shortPower})</span>
                 </span>
@@ -1111,7 +1158,7 @@ export function VelvetMasqueOverlay({
           </div>
 
           {/* Velvet Salon Tabletop Container (Relative for Live Board Markers!) */}
-          <div className="relative flex min-h-0 flex-1 flex-col justify-between overflow-y-auto rounded-2xl border-2 border-[#7A3548] bg-gradient-to-b from-[#491927] via-[#3A1320] to-[#2B0E18] p-2.5 shadow-inner sm:rounded-3xl sm:p-4">
+          <div className="relative flex min-h-0 flex-1 flex-col justify-between overflow-y-auto rounded-2xl border-2 border-[#7A3548] bg-gradient-to-b from-[#491927] via-[#3A1320] to-[#2B0E18] p-2.5 shadow-inner sm:rounded-3xl sm:p-4 short:rounded-2xl short:p-2">
             {/* Live Board Marker Toolbar */}
             {markerMode && !isSpectator && (
               <BoardMarkerToolbar
@@ -1133,7 +1180,7 @@ export function VelvetMasqueOverlay({
 
             {/* Live Action Banner */}
             {actionBanner && !markerMode && endModalStage === "hidden" && (
-              <div className="pointer-events-none sticky top-0 z-20 mx-auto mb-1.5 max-w-[92%] truncate rounded-full border border-amberwarm-400/60 bg-espresso/95 px-3.5 py-1 text-[11px] font-bold text-oat-50 shadow-lg backdrop-blur sm:text-xs">
+              <div className="pointer-events-none sticky top-0 z-20 mx-auto mb-1.5 max-w-[92%] truncate rounded-full border border-amberwarm-400/60 bg-espresso/95 px-3.5 py-1 text-[11px] font-bold text-oat-50 shadow-lg backdrop-blur sm:text-xs short:mb-1 short:px-2.5 short:py-0.5 short:text-[10px]">
                 {actionBanner}
               </div>
             )}
@@ -1146,27 +1193,30 @@ export function VelvetMasqueOverlay({
             )}
 
             {/* Center Velvet Stage + Fine Box + Interactive Spotlight Hub */}
-            <div className="mx-auto my-1 flex w-full max-w-3xl flex-col items-center gap-2">
+            <div className="mx-auto my-1 flex w-full max-w-3xl flex-col items-center gap-2 short:my-0.5 short:gap-1.5">
               {/* Fine Box & Velvet Stage Cards Row */}
-              <div className="flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-[#8E495C]/50 bg-[#2A0D16]/75 px-3.5 py-2 shadow-inner">
+              <div
+                data-tour="vm-stage"
+                className="flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-[#8E495C]/50 bg-[#2A0D16]/75 px-3.5 py-2 shadow-inner short:gap-2 short:rounded-xl short:px-2.5 short:py-1"
+              >
                 <div
                   title="Wrong bluffs & failed challenges drop 1 Gold here — Magistrate claims up to 4 Gold!"
-                  className="flex items-center gap-2 rounded-xl border border-amberwarm-400/50 bg-[#3E1824] px-3 py-1.5 text-oat-50"
+                  className="flex items-center gap-2 rounded-xl border border-amberwarm-400/50 bg-[#3E1824] px-3 py-1.5 text-oat-50 short:px-2 short:py-1"
                 >
-                  <Scale className="h-4 w-4 text-amberwarm-400" />
+                  <Scale className="h-4 w-4 text-amberwarm-400 short:h-3.5 short:w-3.5" />
                   <div>
                     <div className="text-[9px] font-extrabold uppercase tracking-wider text-oat-200/70">
                       Fine Box
                     </div>
-                    <div className="inline-flex items-center gap-1 font-display text-sm font-bold text-amberwarm-400">
-                      <GameIcon name="coin-gold" className="h-4 w-4" />
+                    <div className="inline-flex items-center gap-1 font-display text-sm font-bold text-amberwarm-400 short:text-xs">
+                      <GameIcon name="coin-gold" className="h-4 w-4 short:h-3.5 short:w-3.5" />
                       {pub.fineBox} Gold
                     </div>
                   </div>
                 </div>
 
                 {pub.stageCount > 0 && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 short:gap-1.5">
                     <div className="text-[10px] font-extrabold uppercase tracking-wider text-oat-200/75">
                       Velvet Stage:
                     </div>
@@ -1193,7 +1243,7 @@ export function VelvetMasqueOverlay({
                           type="button"
                           disabled={!targetable}
                           onClick={() => handleSlotTap(slot)}
-                          className={`relative flex flex-col items-center rounded-xl p-1 transition ${
+                          className={`relative flex flex-col items-center rounded-xl p-1 transition short:p-0.5 ${
                             targetable
                               ? "cursor-pointer bg-emerald-400/15 ring-2 ring-emerald-400 hover:scale-105"
                               : ""
@@ -1201,7 +1251,7 @@ export function VelvetMasqueOverlay({
                             inPendingSwap ? "animate-pulse ring-2 ring-amberwarm-400" : ""
                           }`}
                         >
-                          <div className="h-16 w-12 sm:h-20 sm:w-14">
+                          <div className="h-16 w-12 sm:h-20 sm:w-14 short:h-14 short:w-10">
                             <VelvetMasqueCardSvg
                               maskId={shownMask}
                               compact
@@ -1443,12 +1493,15 @@ export function VelvetMasqueOverlay({
 
             {/* Player Seats Arena Grid */}
             <div
-              className={`mx-auto my-auto grid w-full max-w-4xl gap-2 py-1 sm:gap-3 ${gridColsClass}`}
+              data-tour="vm-players"
+              className={`mx-auto my-auto grid w-full max-w-4xl gap-2 py-1 sm:gap-3 short:gap-1.5 short:py-0.5 ${gridColsClass}`}
             >
               {pub.players.map((p) => {
                 const slot: MasqueSlotRef = { kind: "PLAYER", userId: p.userId };
                 const isMe = p.userId === myUserId;
                 const isActive =
+                  pub.phase === "IN_PROGRESS" &&
+                  pub.step === "CHALLENGE_WINDOW" ? false :
                   pub.phase === "IN_PROGRESS" &&
                   pub.step === "CHOOSE_ACTION" &&
                   pub.activePlayerId === p.userId;
@@ -1483,7 +1536,7 @@ export function VelvetMasqueOverlay({
                     onClick={() => {
                       if (targetable) handleSlotTap(slot);
                     }}
-                    className={`relative flex flex-col items-center rounded-2xl border-2 p-2 transition sm:p-2.5 ${
+                    className={`relative flex flex-col items-center rounded-2xl border-2 p-2 transition sm:p-2.5 short:rounded-xl short:p-1.5 ${
                       isWinner
                         ? "border-amberwarm-400 bg-amberwarm-100/95 shadow-[0_0_24px_rgba(251,191,36,0.65)]"
                         : isJesterPicked
@@ -1492,7 +1545,7 @@ export function VelvetMasqueOverlay({
                             ? "cursor-pointer border-emerald-400 bg-oat-50 shadow-lg ring-2 ring-emerald-400/50 hover:scale-[1.03]"
                             : isActive
                               ? "border-amberwarm-400 bg-oat-50 shadow-lg"
-                              : "border-oat-300/40 bg-oat-50/92"
+                              : "border-oat-300/40 bg-oat-50/95"
                     } ${inPendingSwap ? "animate-pulse ring-2 ring-amberwarm-400" : ""}`}
                   >
                     {/* Floating Coin Delta Badges */}
@@ -1511,7 +1564,7 @@ export function VelvetMasqueOverlay({
                     ))}
 
                     {/* Player Name + Color Dot + Coins */}
-                    <div className="flex w-full items-center justify-between gap-1 text-[11px] font-bold sm:text-xs">
+                    <div className="flex w-full items-center justify-between gap-1 text-[11px] font-bold sm:text-xs short:text-[10.5px]">
                       <span className="flex min-w-0 items-center gap-1.5 truncate text-espresso">
                         <span
                           className="h-2.5 w-2.5 shrink-0 rounded-full border border-white shadow-sm"
@@ -1527,14 +1580,14 @@ export function VelvetMasqueOverlay({
                           </span>
                         )}
                       </span>
-                      <span className="inline-flex shrink-0 items-center gap-0.5 rounded-lg bg-amberwarm-100 px-1.5 py-0.5 text-[11px] font-black text-amberwarm-600">
-                        <GameIcon name="coin-gold" className="h-3.5 w-3.5" />
+                      <span className="inline-flex shrink-0 items-center gap-0.5 rounded-lg bg-amberwarm-100 px-1.5 py-0.5 text-[11px] font-black text-amberwarm-600 short:text-[10px]">
+                        <GameIcon name="coin-gold" className="h-3.5 w-3.5 short:h-3 short:w-3" />
                         {p.coins}
                       </span>
                     </div>
 
                     {/* Gold Progress Bar toward targetCoins */}
-                    <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-oat-200">
+                    <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-oat-200 short:mt-0.5 short:h-1">
                       <div
                         className="h-full rounded-full bg-amberwarm-400 transition-all duration-500"
                         style={{
@@ -1544,7 +1597,7 @@ export function VelvetMasqueOverlay({
                     </div>
 
                     {/* Mask Card */}
-                    <div className="relative mt-2 h-24 w-[68px] sm:h-28 sm:w-20">
+                    <div className="relative mt-2 h-24 w-[68px] sm:h-28 sm:w-20 short:mt-1 short:h-16 short:w-12">
                       <VelvetMasqueCardSvg
                         maskId={visibleMask}
                         juggled={recentlyJuggled && !visibleMask}
@@ -1705,15 +1758,18 @@ export function VelvetMasqueOverlay({
         </aside>
       </div>
 
-      {/* Bottom Interactive Gala Action Dock (or Spectator Bar) */}
-      <footer className="shrink-0 border-t border-oat-300/30 bg-oat-50 px-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-4 sm:py-2.5">
+      {/* Bottom Interactive Gala Action Dock (Right-Side Handheld Dock in Mobile Landscape!) */}
+      <footer
+        data-tour="vm-dock"
+        className="shrink-0 border-t border-oat-300/30 bg-oat-50 px-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-4 sm:py-2.5 short:flex short:w-[244px] short:flex-col short:overflow-y-auto short:border-l short:border-t-0 short:px-2 short:pb-2 short:pt-1.5"
+      >
         {isSpectator ? (
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 text-xs font-bold">
-            <div className="flex items-center gap-2 text-espresso">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 text-xs font-bold short:flex-col short:items-stretch">
+            <div className="flex items-center gap-2 text-espresso short:flex-col short:items-start short:gap-1">
               <span className="inline-flex items-center gap-1 rounded-full bg-espresso px-2.5 py-1 text-[10px] font-extrabold text-amberwarm-400">
                 <Eye className="h-3 w-3" /> Spectator Mode
               </span>
-              <span className="text-[11px] text-espresso-soft sm:text-xs">
+              <span className="text-[11px] text-espresso-soft sm:text-xs short:text-[10px]">
                 Watching the masquerade live · Secret peeks &amp; cloak swaps stay hidden · Cheer in chat!
               </span>
             </div>
@@ -1726,14 +1782,14 @@ export function VelvetMasqueOverlay({
             </button>
           </div>
         ) : (
-          <div className="mx-auto flex max-w-6xl flex-col gap-2">
+          <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 short:gap-1.5">
             {/* Action Mode / Contextual Status Row */}
             {markerMode ? (
-              <div className="text-center text-xs font-bold text-espresso-soft">
+              <div className="text-center text-xs font-bold text-espresso-soft short:text-left short:text-[10px]">
                 Marker Mode ON ({myColorMeta.label} Pen) — circle suspicious seats or tap to ping! Tap Done when finished.
               </div>
             ) : isMyPowerChoice && pub.pendingPower ? (
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-amberwarm-100 px-3 py-2 text-xs font-bold text-espresso">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-amberwarm-100 px-3 py-2 text-xs font-bold text-espresso short:rounded-xl short:p-2 short:text-[11px]">
                 <span className="inline-flex items-center gap-1.5">
                   <GameIcon
                     name={masqueToIconName(pub.pendingPower.maskId)}
@@ -1762,13 +1818,13 @@ export function VelvetMasqueOverlay({
               </div>
             ) : isMyChooseAction ? (
               <>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-1.5">
+                <div className="flex flex-wrap items-center justify-between gap-2 short:flex-col short:items-stretch short:gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5 short:grid short:grid-cols-1 short:gap-1">
                     {!isOpeningSwapOnly && (
                       <button
                         type="button"
                         onClick={() => setActionMode("announce")}
-                        className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-extrabold transition ${
+                        className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-extrabold transition short:px-2 short:py-1 short:text-[11px] ${
                           actionMode === "announce"
                             ? "bg-espresso text-amberwarm-400 shadow-sm"
                             : "bg-oat-200 text-espresso hover:bg-oat-300"
@@ -1780,7 +1836,7 @@ export function VelvetMasqueOverlay({
                     <button
                       type="button"
                       onClick={() => setActionMode("swap")}
-                      className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-extrabold transition ${
+                      className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-extrabold transition short:px-2 short:py-1 short:text-[11px] ${
                         isOpeningSwapOnly || actionMode === "swap"
                           ? "bg-amberwarm-400 text-espresso shadow-sm"
                           : "bg-oat-200 text-espresso hover:bg-oat-300"
@@ -1792,24 +1848,24 @@ export function VelvetMasqueOverlay({
                       <button
                         type="button"
                         onClick={() => sendAction({ type: "PEEK_SELF" })}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-sage-500 px-3 py-1.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-sage-700"
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-sage-500 px-3 py-1.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-sage-700 short:px-2 short:py-1 short:text-[11px]"
                       >
                         <Eye className="h-3.5 w-3.5" /> Peek My Mask
                       </button>
                     )}
                   </div>
-                  <div className="text-[11px] font-bold text-espresso-soft">
+                  <div className="text-[11px] font-bold text-espresso-soft short:text-[10px] short:leading-tight">
                     {isOpeningSwapOnly
-                      ? `Opening Shuffle (${pub.turnNumber}/${OPENING_SWAP_ONLY_TURNS}): Tap any highlighted seat or Stage mask above!`
+                      ? `Opening Shuffle (${pub.turnNumber}/${OPENING_SWAP_ONLY_TURNS}): Tap any highlighted seat or Stage mask!`
                       : actionMode === "swap"
-                        ? "Tap any glowing green rival or Stage mask above to take Under the Cloak!"
-                        : "Pick ANY Mask below to announce (bluff or truth — you don't peek first!):"}
+                        ? "Tap any glowing green rival or Stage mask to take Under the Cloak!"
+                        : "Pick ANY Mask below to announce (bluff or truth — no peeking first!):"}
                   </div>
                 </div>
 
-                {/* Announce Mask Picker Bar */}
+                {/* Announce Mask Picker Bar (Compact 2-Col Grid in Mobile Landscape!) */}
                 {!isOpeningSwapOnly && actionMode === "announce" && (
-                  <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+                  <div className="flex gap-1.5 overflow-x-auto pb-0.5 short:grid short:grid-cols-2 short:gap-1 short:overflow-x-visible">
                     {pub.roster.map((mId) => {
                       const def = MASQUE_DEFINITIONS[mId];
                       return (
@@ -1818,14 +1874,14 @@ export function VelvetMasqueOverlay({
                           type="button"
                           title={def.fullPower}
                           onClick={() => sendAction({ type: "ANNOUNCE_MASK", maskId: mId })}
-                          className="flex shrink-0 items-center gap-1.5 rounded-xl border-2 border-oat-300 bg-white px-2.5 py-1.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-amberwarm-400 hover:bg-amberwarm-100/50 active:scale-95"
+                          className="flex shrink-0 items-center gap-1.5 rounded-xl border-2 border-oat-300 bg-white px-2.5 py-1.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-amberwarm-400 hover:bg-amberwarm-100/50 active:scale-95 short:w-full short:gap-1 short:px-1.5 short:py-1"
                         >
-                          <GameIcon name={masqueToIconName(mId)} className="h-6 w-6" />
-                          <div>
-                            <div className="text-[11px] font-extrabold leading-tight text-espresso">
+                          <GameIcon name={masqueToIconName(mId)} className="h-6 w-6 shrink-0 short:h-5 short:w-5" />
+                          <div className="min-w-0">
+                            <div className="truncate text-[11px] font-extrabold leading-tight text-espresso short:text-[10px]">
                               {def.name}
                             </div>
-                            <div className="text-[9px] font-bold text-espresso-muted">
+                            <div className="truncate text-[9px] font-bold text-espresso-muted short:text-[8.5px]">
                               {def.shortPower}
                             </div>
                           </div>
@@ -1836,14 +1892,14 @@ export function VelvetMasqueOverlay({
                 )}
               </>
             ) : (
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-espresso-soft">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-espresso-soft short:flex-col short:items-start short:text-[11px]">
                 <span>
                   {pub.phase === "COMPLETED"
                     ? pub.endReason ?? "Gala complete!"
                     : pub.step === "CURTAIN_CALL"
                       ? "Study every face-up Mask before the velvet curtain closes!"
                       : pub.step === "CHALLENGE_WINDOW"
-                        ? "Simultaneous Challenge Window open — decide above!"
+                        ? "Simultaneous Challenge Window open — decide on the table!"
                         : pub.step === "RESOLVE_SWAP"
                           ? "Two masks are hidden under the Velvet Cloak..."
                           : `Waiting for ${nameOf(pub.activePlayerId)}...`}
@@ -1857,6 +1913,7 @@ export function VelvetMasqueOverlay({
           </div>
         )}
       </footer>
+      </div>
 
       {/* Mobile Slide-Up Chat & Log Drawer */}
       {mobileChatOpen && (
@@ -1928,20 +1985,20 @@ export function VelvetMasqueOverlay({
 
       {/* GALA VICTORY MODAL (Opens AFTER the 3.5s full-table Mask Reveal!) */}
       {pub.phase === "COMPLETED" && endModalStage === "modal" && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/65 p-4 backdrop-blur-sm">
-          <div className="relative max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-3xl border-2 border-amberwarm-400 bg-oat-50 p-5 text-center shadow-cozy sm:p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/65 p-4 backdrop-blur-sm short:p-2">
+          <div className="relative max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-3xl border-2 border-amberwarm-400 bg-oat-50 p-5 text-center shadow-cozy sm:p-6 short:max-h-[94dvh] short:rounded-2xl short:p-3.5">
             <button
               type="button"
               onClick={() => setEndModalStage("inspecting")}
-              className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-xl bg-oat-200 px-2.5 py-1 text-[11px] font-bold text-espresso transition hover:bg-oat-300"
+              className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-xl bg-oat-200 px-2.5 py-1 text-[11px] font-bold text-espresso transition hover:bg-oat-300 short:right-3 short:top-3"
             >
               <Eye className="h-3.5 w-3.5" /> View Table
             </button>
 
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amberwarm-100 shadow-inner">
-              <GameIcon name="game-masque" className="h-11 w-11" />
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amberwarm-100 shadow-inner short:h-11 short:w-11">
+              <GameIcon name="game-masque" className="h-11 w-11 short:h-8 short:w-8" />
             </div>
-            <h2 className="mt-3 font-display text-2xl font-bold text-espresso sm:text-3xl">
+            <h2 className="mt-3 font-display text-2xl font-bold text-espresso sm:text-3xl short:mt-1.5 short:text-xl">
               Gala Complete!
             </h2>
             <p className="mt-1 text-xs font-semibold text-espresso-soft sm:text-sm">
@@ -2054,6 +2111,14 @@ export function VelvetMasqueOverlay({
           </div>
         </div>
       )}
+
+      {/* Interactive 6-Step Live Spotlight Quick Tour */}
+      <GameQuickTour
+        gameSlug="velvet-masque"
+        open={showQuickTour}
+        onClose={() => setShowQuickTour(false)}
+        onOpenFullRules={onOpenTutorial}
+      />
     </div>
   );
 }

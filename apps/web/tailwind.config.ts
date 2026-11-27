@@ -8,6 +8,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      screens: {
+        short: { raw: "(max-height: 540px)" },
+        touch: { raw: "(pointer: coarse)" },
+      },
       colors: {
         oat: {
           50: "#FDFBF7",

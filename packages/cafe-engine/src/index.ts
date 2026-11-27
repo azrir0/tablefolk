@@ -44,6 +44,11 @@ export function mountCafeEngine(
     height: Math.round(cssHeight() * dpr),
     backgroundColor: "#F3E7D3",
     antialias: true,
+    render: {
+      antialias: true,
+      antialiasGL: true,
+      roundPixels: false,
+    },
     scale: {
       // Backing buffer is DPR× larger; zoom 1/DPR keeps the CSS display size identical
       mode: Phaser.Scale.NONE,

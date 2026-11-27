@@ -196,7 +196,7 @@ export function CafeExperience() {
   const [showCashierModal, setShowCashierModal] = useState(false);
   const [tutorialGameSlug, setTutorialGameSlug] = useState<string>("treasure-trails");
   const [tutorialInitialTab, setTutorialInitialTab] = useState<
-    "rules" | "clips" | "cards" | "faq"
+    "tour" | "rules" | "clips" | "cards" | "faq"
   >("rules");
   const [tutorialFromWardrobe, setTutorialFromWardrobe] = useState(false);
   const [showLobbySwitcher, setShowLobbySwitcher] = useState(false);
@@ -288,13 +288,14 @@ export function CafeExperience() {
     }
   }, [roomMeta.accessCode, roomMeta.cafeName, roomMeta.isPrivate, roomMeta.roomId, showToast]);
 
-  // Detect touch devices for auto-showing mobile joystick; open chat by default only on desktop
+  // Detect touch devices for auto-showing mobile joystick; open chat by default only on tall desktop screens
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if ("ontouchstart" in window) {
+    const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    if (isTouch) {
       setShowJoystick(true);
     }
-    if (window.innerWidth >= 768) {
+    if (!isTouch && window.innerWidth >= 1024 && window.innerHeight > 540) {
       setChatOpen(true);
     }
   }, []);
@@ -916,17 +917,17 @@ export function CafeExperience() {
       <div ref={mountRef} className="h-full w-full" />
 
       {/* TOP FLOATING BAR */}
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-20 flex flex-wrap items-center justify-between gap-2 p-3">
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-20 flex flex-wrap items-center justify-between gap-2 p-3 short:gap-1 short:p-1.5">
         {/* Left: Café Instance Pill + Private Invite Copy */}
-        <div className="pointer-events-auto flex flex-wrap items-center gap-2">
+        <div className="pointer-events-auto flex flex-wrap items-center gap-2 short:gap-1.5">
           <button
             type="button"
             onClick={() => setShowLobbySwitcher(true)}
-            className="flex items-center gap-2 rounded-2xl border border-oat-300 bg-oat-50/95 px-3.5 py-2 shadow-cozy backdrop-blur transition hover:bg-white"
+            className="flex items-center gap-2 rounded-2xl border border-oat-300 bg-oat-50/95 px-3.5 py-2 shadow-cozy backdrop-blur transition hover:bg-white short:px-2.5 short:py-1"
           >
             <Coffee className="h-4 w-4 text-sage-700" />
             <div className="text-left leading-tight">
-              <div className="font-display text-sm font-bold text-espresso">
+              <div className="font-display text-sm font-bold text-espresso short:text-xs">
                 {roomMeta.cafeName}
               </div>
               <div className="text-[10px] font-bold text-espresso-muted">
@@ -988,15 +989,21 @@ export function CafeExperience() {
         <div className="pointer-events-auto flex items-center gap-1.5">
           <button
             type="button"
-            onClick={() => setShowWardrobeModal(true)}
-            className="hidden items-center gap-1.5 rounded-2xl border border-oat-300 bg-oat-50/95 px-3 py-2 text-xs font-bold text-espresso shadow-sm hover:bg-white sm:inline-flex"
+            onClick={() => {
+              setTutorialInitialTab("tour");
+              setShowCashierModal(true);
+            }}
+            className="hidden items-center gap-1.5 rounded-2xl border border-sage-300 bg-sage-100/95 px-3 py-2 text-xs font-extrabold text-sage-700 shadow-sm hover:bg-sage-300/60 sm:inline-flex"
           >
-            <Sparkles className="h-3.5 w-3.5 text-amberwarm-600" /> Wardrobe
+            <Sparkles className="h-3.5 w-3.5" /> Quick Tour
           </button>
 
           <button
             type="button"
-            onClick={() => setShowCashierModal(true)}
+            onClick={() => {
+              setTutorialInitialTab("rules");
+              setShowCashierModal(true);
+            }}
             className="hidden items-center gap-1.5 rounded-2xl border border-oat-300 bg-oat-50/95 px-3 py-2 text-xs font-bold text-espresso shadow-sm hover:bg-white sm:inline-flex"
           >
             <BookOpen className="h-3.5 w-3.5 text-sage-700" /> Rules
@@ -1137,13 +1144,13 @@ export function CafeExperience() {
         <button
           type="button"
           onClick={() => engineRef.current?.triggerNearbyInteract()}
-          className="fixed bottom-24 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2.5 rounded-2xl border-2 border-sage-500 bg-oat-50/95 px-5 py-2.5 shadow-cozy backdrop-blur transition hover:scale-105"
+          className="fixed bottom-24 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2.5 rounded-2xl border-2 border-sage-500 bg-oat-50/95 px-5 py-2.5 shadow-cozy backdrop-blur transition hover:scale-105 short:bottom-12 short:px-3.5 short:py-1.5"
         >
           <span className="rounded-lg bg-sage-500 px-2 py-0.5 text-xs font-extrabold text-white">
             E
           </span>
           <div className="text-left">
-            <div className="font-display text-sm font-bold text-espresso">
+            <div className="font-display text-sm font-bold text-espresso short:text-xs">
               {nearbyPrompt.label}
             </div>
             <div className="text-[10px] font-semibold text-espresso-muted">
@@ -1155,7 +1162,7 @@ export function CafeExperience() {
 
       {/* SEATED TABLE LOBBY DRAWER */}
       {mySeatedTable && profile && !activeGame && (
-        <div className="pointer-events-none fixed bottom-20 left-1/2 z-20 flex w-full -translate-x-1/2 justify-center px-3">
+        <div className="pointer-events-none fixed bottom-20 left-1/2 z-20 flex w-full -translate-x-1/2 justify-center px-3 short:bottom-2 short:top-12 short:items-center short:px-2">
           <TableLobbyDrawer
             table={mySeatedTable}
             myUserId={profile.userId}
@@ -1198,6 +1205,15 @@ export function CafeExperience() {
                 mySeatedTable.selectedGameSlug ||
                   (mySeatedTable.capacity < 3 ? "hearthvale" : "treasure-trails")
               );
+              setTutorialInitialTab("rules");
+              setShowCashierModal(true);
+            }}
+            onOpenQuickTour={() => {
+              setTutorialGameSlug(
+                mySeatedTable.selectedGameSlug ||
+                  (mySeatedTable.capacity < 3 ? "hearthvale" : "treasure-trails")
+              );
+              setTutorialInitialTab("tour");
               setShowCashierModal(true);
             }}
           />
@@ -1206,7 +1222,7 @@ export function CafeExperience() {
 
       {/* MOBILE VIRTUAL JOYSTICK */}
       {showJoystick && !mySeatedTable && !activeGame && (
-        <div className="fixed bottom-20 left-5 z-20">
+        <div className="fixed bottom-20 left-5 z-20 short:bottom-3 short:left-3">
           <VirtualJoystick
             onVectorChange={(vx, vy) =>
               engineRef.current?.setJoystickVector(vx, vy)
@@ -1217,7 +1233,7 @@ export function CafeExperience() {
 
       {/* BOTTOM-RIGHT SOCIAL CHAT DRAWER */}
       {chatOpen && !activeGame && (
-        <div className="fixed bottom-16 right-3 z-20 flex h-72 w-80 max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-oat-300 bg-oat-50/95 shadow-cozy backdrop-blur">
+        <div className="fixed bottom-16 right-3 z-20 flex h-72 w-80 max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-oat-300 bg-oat-50/95 shadow-cozy backdrop-blur short:bottom-11 short:h-[calc(100dvh-5.5rem)] short:rounded-2xl">
           <div className="flex items-center justify-between border-b border-oat-200 px-3.5 py-2">
             <div className="flex gap-1 text-[11px] font-bold">
               <button
@@ -1345,16 +1361,16 @@ export function CafeExperience() {
       )}
 
       {/* BOTTOM ACTION BAR (Emotes + Chat Toggle + Controls Hint) */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex items-end justify-between p-3">
-        <div className="pointer-events-auto hidden rounded-2xl border border-oat-300/80 bg-oat-50/90 px-3.5 py-1.5 text-[11px] font-bold text-espresso-soft shadow-sm backdrop-blur md:block">
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex items-end justify-between p-3 short:p-1.5">
+        <div className="pointer-events-auto hidden rounded-2xl border border-oat-300/80 bg-oat-50/90 px-3.5 py-1.5 text-[11px] font-bold text-espresso-soft shadow-sm backdrop-blur md:block short:hidden touch:hidden">
           Move: <span className="text-espresso">WASD / Arrows / Click Floor</span> •
           Interact: <span className="text-espresso">E or Click Object</span> • Sit:{" "}
           <span className="text-espresso">Walk near table &amp; click glowing chair</span>
         </div>
 
-        <div className="pointer-events-auto relative ml-auto flex items-center gap-2">
+        <div className="pointer-events-auto relative ml-auto flex items-center gap-2 short:gap-1.5">
           {emoteOpen && (
-            <div className="absolute bottom-12 right-0 flex gap-1 rounded-2xl border border-oat-300 bg-oat-50 p-2 shadow-cozy">
+            <div className="absolute bottom-12 right-0 flex gap-1 rounded-2xl border border-oat-300 bg-oat-50 p-2 shadow-cozy short:bottom-10 short:p-1.5">
               {EMOTE_LIST.map((em) => (
                 <button
                   key={em.id}
@@ -1364,9 +1380,9 @@ export function CafeExperience() {
                     cafeRoomRef.current?.send("player.emote", { emote: em.id });
                     setEmoteOpen(false);
                   }}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl transition hover:scale-125 hover:bg-oat-200"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl transition hover:scale-125 hover:bg-oat-200 short:h-8 short:w-8"
                 >
-                  <GameIcon name={emoteIdToIconName(em.id)} className="h-7 w-7" />
+                  <GameIcon name={emoteIdToIconName(em.id)} className="h-7 w-7 short:h-6 short:w-6" />
                 </button>
               ))}
             </div>
@@ -1375,7 +1391,7 @@ export function CafeExperience() {
           <button
             type="button"
             onClick={() => setEmoteOpen((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-2xl border border-oat-300 bg-oat-50/95 px-3.5 py-2 text-xs font-bold text-espresso shadow-cozy hover:bg-white"
+            className="inline-flex items-center gap-1.5 rounded-2xl border border-oat-300 bg-oat-50/95 px-3.5 py-2 text-xs font-bold text-espresso shadow-cozy hover:bg-white short:px-2.5 short:py-1.5"
           >
             <Smile className="h-4 w-4 text-amberwarm-600" /> Emote
           </button>
@@ -1386,7 +1402,7 @@ export function CafeExperience() {
               setChatOpen((v) => !v);
               setUnreadCafeChat(0);
             }}
-            className="relative inline-flex items-center gap-1.5 rounded-2xl border border-oat-300 bg-oat-50/95 px-3.5 py-2 text-xs font-bold text-espresso shadow-cozy hover:bg-white"
+            className="relative inline-flex items-center gap-1.5 rounded-2xl border border-oat-300 bg-oat-50/95 px-3.5 py-2 text-xs font-bold text-espresso shadow-cozy hover:bg-white short:px-2.5 short:py-1.5"
           >
             <MessageCircle className="h-4 w-4 text-sage-700" /> Chat
             {!chatOpen && unreadCafeChat > 0 && (
@@ -1705,6 +1721,7 @@ export function CafeExperience() {
             }}
             onOpenTutorial={() => {
               setTutorialGameSlug("hearthvale");
+              setTutorialInitialTab("rules");
               setShowCashierModal(true);
             }}
           />
@@ -1727,6 +1744,7 @@ export function CafeExperience() {
             }}
             onOpenTutorial={() => {
               setTutorialGameSlug("velvet-masque");
+              setTutorialInitialTab("rules");
               setShowCashierModal(true);
             }}
           />
@@ -1749,6 +1767,7 @@ export function CafeExperience() {
             }}
             onOpenTutorial={() => {
               setTutorialGameSlug("treasure-trails");
+              setTutorialInitialTab("rules");
               setShowCashierModal(true);
             }}
           />

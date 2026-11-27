@@ -196,23 +196,10 @@ export const COZY_CAFE_MAP: CafeMapDefinition = {
       interactRadius: 130,
     },
     {
-      id: "game_wardrobe",
-      type: "wardrobe",
-      label: "Game Wardrobe",
-      subtitle: "Pick a board game box",
-      tileX: 11,
-      tileY: 2,
-      tileW: 6,
-      tileH: 1,
-      interactX: 14 * T,
-      interactY: 3.6 * T,
-      interactRadius: 135,
-    },
-    {
       id: "notice_board",
       type: "notice_board",
-      label: "Table Board",
-      subtitle: "See open tables",
+      label: "Open Tables",
+      subtitle: "See live & open tables",
       tileX: 20,
       tileY: 2,
       tileW: 3,
@@ -263,7 +250,7 @@ export const COZY_CAFE_MAP: CafeMapDefinition = {
     { id: "plant_bl", kind: "plant", x: 1 * T, y: 15 * T, w: T, h: T, solid: true, tileX: 1, tileY: 15, tileW: 1, tileH: 1 },
     { id: "plant_br", kind: "plant", x: 25 * T, y: 15 * T, w: T, h: T, solid: true, tileX: 25, tileY: 15, tileW: 1, tileH: 1 },
     // Barista NPC marker behind cashier counter
-    { id: "barista_npc", kind: "counter_npc", x: 4.5 * T, y: 2.55 * T, w: T, h: T },
+    { id: "barista_npc", kind: "counter_npc", x: 4.5 * T, y: 2.7 * T, w: T, h: T },
   ],
 };
 
